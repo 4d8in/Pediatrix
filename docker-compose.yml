@@ -38,6 +38,14 @@ services:
       HIBERNATE_DIALECT: "ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect"
       # FHIR R4 explicite (déjà la valeur par défaut de l'image, fixée ici par robustesse).
       HAPI_FHIR_FHIR_VERSION: "R4"
+    healthcheck:
+      # Pas de shell ni curl/wget dans cette image (vérifié : "sh"/"curl" introuvables
+      # via docker exec) ; HealthCheck est la classe Java embarquée prévue pour ça.
+      test: ["CMD", "java", "-cp", "/app", "HealthCheck"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy

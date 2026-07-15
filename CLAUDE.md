@@ -153,7 +153,32 @@ L'étape courante est la seule à traiter. Ne pas anticiper les suivantes.
 
 ## Attentes vis-à-vis de Claude Code
 
+### Périmètre
 - Faire ce qui est demandé, rien de plus. Pas de fonctionnalité "bonus".
 - Avant un changement structurel, proposer le plan et attendre validation.
 - Signaler si une demande contredit ce fichier plutôt que l'appliquer en silence.
-- Privilégier le code simple et lisible : ce prototype doit être **expliqué dans un mémoire** et défendu devant un jury.
+- Privilégier le code simple et lisible : ce prototype doit être **expliqué dans un
+  mémoire** et défendu devant un jury.
+
+### Vérification — règle stricte
+- **Ne pas piloter mon interface graphique** : pas de capture d'écran, pas de `xdotool`,
+  pas de clic simulé, pas d'interaction avec mon affichage X11.
+- Me **donner les commandes de vérification**, je les exécute moi-même et je te renvoie
+  la sortie. C'est moi qui valide, pas toi.
+- Distinguer explicitement dans tout rapport :
+  **ce que tu as réellement exécuté** vs **ce qui reste à vérifier de mon côté**.
+- Ne jamais présenter une étape comme validée sur la seule foi de ton propre rapport.
+- En cas d'anomalie ou de comportement inattendu : le signaler tel quel, sans inventer
+  d'explication rassurante et sans en attribuer la cause à ma machine ou à moi.
+
+### Honnêteté technique
+- Si tu n'es pas certain d'un nom de paquet, d'une clé de configuration, d'une commande
+  ou d'une option : **le dire au lieu de deviner**.
+- Ne pas décrire mon environnement (OS, outils) par supposition : le constater ou se taire.
+- Si un contournement a été nécessaire pour faire marcher quelque chose, le dire
+  explicitement et préciser s'il a été intégré aux fichiers livrés ou non.
+
+### Économie de contexte
+- Réponses de synthèse courtes : pas de re-listing de fichiers déjà connus,
+  pas de récapitulatif de ce que je viens de lire.
+- Ne pas relire des fichiers déjà lus dans la session sauf s'ils ont changé.

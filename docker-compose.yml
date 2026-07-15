@@ -30,8 +30,8 @@ services:
     environment:
       # Connexion au Postgres du service ci-dessus (binding Spring Boot standard).
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB}"
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
       # Nom de variable imposé par le application.yaml source de HAPI (placeholder
       # explicite ${HIBERNATE_DIALECT:...}), ce n'est pas une convention générique.
@@ -45,3 +45,4 @@ services:
 volumes:
   postgres_data:
     name: pediatrix_postgres_data
+    

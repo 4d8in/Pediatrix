@@ -1,0 +1,47 @@
+# Infrastructure de données locale de Pédiatrix : HAPI FHIR + PostgreSQL.
+# Offline-first : aucune image "latest", aucun service cloud.
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16.14-alpine
+    container_name: pediatrix-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    # Pas de "ports:" ici : Postgres reste accessible uniquement sur le réseau
+    # Docker interne, jamais exposé sur l'hôte (donc jamais sur 0.0.0.0).
+
+  hapi-fhir:
+    image: docker.io/hapiproject/hapi:v8.10.0-2
+    container_name: pediatrix-hapi-fhir
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Connexion au Postgres du service ci-dessus (binding Spring Boot standard).
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+      # Nom de variable imposé par le application.yaml source de HAPI (placeholder
+      # explicite ${HIBERNATE_DIALECT:...}), ce n'est pas une convention générique.
+      HIBERNATE_DIALECT: "ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect"
+      # FHIR R4 explicite (déjà la valeur par défaut de l'image, fixée ici par robustesse).
+      HAPI_FHIR_FHIR_VERSION: "R4"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    name: pediatrix_postgres_data

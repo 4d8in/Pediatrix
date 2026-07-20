@@ -49,3 +49,42 @@ export interface CreateEncounterInput {
   notes?: string;
   vitals: Vitals;
 }
+
+export interface CreateServiceRequestInput {
+  exam: string;
+  requester: string;
+}
+
+export interface LabRequest {
+  id: string;
+  patientId: string;
+  patientName: string;
+  exam: string | null;
+  requester: string | null;
+  authoredOn: string | null;
+}
+
+export interface LabResultInput {
+  label: string;
+  value: string;
+}
+
+export interface CreateReportInput {
+  results: LabResultInput[];
+  conclusion?: string;
+}
+
+export interface Report {
+  id: string;
+  date: string | null;
+  exam: string | null;
+  conclusion: string | null;
+  results: { label: string; value: string }[];
+}
+
+export interface FhirLogEntry {
+  type: string;
+  id: string;
+  lastUpdated: string | null;
+  json: unknown;
+}

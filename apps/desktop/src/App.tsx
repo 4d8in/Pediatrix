@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { FileText, Stethoscope, UserPlus } from "lucide-react";
+import { FileText, FlaskConical, Stethoscope, Terminal, UserPlus } from "lucide-react";
 import Admission from "./views/Admission";
 import Consultations from "./views/Consultations";
 import PatientRecord from "./views/PatientRecord/PatientRecord";
+import Laboratory from "./views/Laboratory";
+import FhirLog from "./views/FhirLog";
 import "./App.css";
 
-type ViewType = "admission" | "consultations" | "record";
+type ViewType = "admission" | "consultations" | "record" | "laboratory" | "fhirLog";
 
 const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus }[] = [
   { id: "admission", label: "Admission", icon: UserPlus },
   { id: "consultations", label: "Consultations", icon: Stethoscope },
   { id: "record", label: "Dossier patient", icon: FileText },
+  { id: "laboratory", label: "Laboratoire", icon: FlaskConical },
+  { id: "fhirLog", label: "Flux FHIR", icon: Terminal },
 ];
 
 function App() {
@@ -24,6 +28,10 @@ function App() {
         return <Consultations />;
       case "record":
         return <PatientRecord />;
+      case "laboratory":
+        return <Laboratory />;
+      case "fhirLog":
+        return <FhirLog />;
     }
   }
 

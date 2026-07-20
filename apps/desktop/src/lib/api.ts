@@ -1,4 +1,14 @@
-import type { CreateEncounterInput, CreatePatientInput, Patient, PatientRecord } from "./types";
+import type {
+  CreateEncounterInput,
+  CreatePatientInput,
+  CreateReportInput,
+  CreateServiceRequestInput,
+  FhirLogEntry,
+  LabRequest,
+  Patient,
+  PatientRecord,
+  Report,
+} from "./types";
 
 const BACKEND_URL = "http://localhost:3001";
 
@@ -55,4 +65,36 @@ export function createEncounter(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function createServiceRequest(
+  encounterId: string,
+  input: CreateServiceRequestInput,
+): Promise<{ serviceRequestId: string }> {
+  return request<{ serviceRequestId: string }>(`/api/encounters/${encounterId}/service-requests`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listLabRequests(): Promise<{ requests: LabRequest[] }> {
+  return request<{ requests: LabRequest[] }>("/api/lab/requests");
+}
+
+export function createReport(
+  requestId: string,
+  input: CreateReportInput,
+): Promise<{ diagnosticReportId: string }> {
+  return request<{ diagnosticReportId: string }>(`/api/lab/requests/${requestId}/report`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientReports(patientId: string): Promise<{ reports: Report[] }> {
+  return request<{ reports: Report[] }>(`/api/patients/${patientId}/reports`);
+}
+
+export function getFhirLog(): Promise<{ resources: FhirLogEntry[] }> {
+  return request<{ resources: FhirLogEntry[] }>("/api/fhir-log");
 }

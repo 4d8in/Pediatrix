@@ -2,25 +2,31 @@ import { useEffect, useState } from "react";
 import PatientPicker from "../../components/PatientPicker";
 import PatientIdentity from "./PatientIdentity";
 import ConsultationHistory from "./ConsultationHistory";
-import { ApiError, getPatient } from "../../lib/api";
-import type { Patient, PatientRecord as PatientRecordData } from "../../lib/types";
+import ReportsHistory from "./ReportsHistory";
+import { ApiError, getPatient, getPatientReports } from "../../lib/api";
+import type { Patient, PatientRecord as PatientRecordData, Report } from "../../lib/types";
 
 export default function PatientRecord() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [record, setRecord] = useState<PatientRecordData | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!patient) {
       setRecord(null);
+      setReports([]);
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    getPatient(patient.id)
-      .then(setRecord)
+    Promise.all([getPatient(patient.id), getPatientReports(patient.id)])
+      .then(([recordData, reportsData]) => {
+        setRecord(recordData);
+        setReports(reportsData.reports);
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du dossier."))
       .finally(() => setIsLoading(false));
   }, [patient]);
@@ -47,6 +53,7 @@ export default function PatientRecord() {
         <div className="space-y-10 pb-20">
           <PatientIdentity patient={record.patient} />
           <ConsultationHistory consultations={record.consultations} />
+          <ReportsHistory reports={reports} />
         </div>
       )}
     </div>

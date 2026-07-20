@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-surface: #fafafa;
+  --color-surface-dim: #f4f4f5;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fafafa;
+  --color-surface-container: #f4f4f5;
+  --color-surface-container-high: #e4e4e7;
+  --color-surface-container-highest: #d4d4d8;
+  
+  --color-on-surface: #18181b;
+  --color-on-surface-variant: #71717a;
+  
+  --color-primary: #18181b;
+  --color-primary-container: #27272a;
+  --color-on-primary-container: #ffffff;
+  
+  --color-secondary: #3f3f46;
+  --color-secondary-container: #e4e4e7;
+  
+  --color-outline: #d4d4d8;
+  --color-outline-variant: #e4e4e7;
+  
+  --color-error: #ef4444;
+  
+  --radius-xl: 0.125rem;
+  --radius-lg: 0px;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-zinc-50 text-zinc-900 antialiased select-none;
+  }
+}
+
+.dot-grid {
+  background-image: radial-gradient(#000 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.shadow-clinical {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.font-mono-design {
+  @apply font-mono text-[10px] uppercase tracking-widest;
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  @apply outline-none font-mono text-[10px] uppercase tracking-wide leading-relaxed;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #d4d4d8;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror h2 {
+  @apply text-sm font-black mb-6 border-b border-zinc-200 pb-2;
+}
+
+.ProseMirror ul {
+  @apply list-disc list-inside space-y-2 my-4;
+}
+
+.ProseMirror b, .ProseMirror strong {
+  @apply font-black text-zinc-900;
+}

@@ -1,113 +1,74 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { FileText, Stethoscope, UserPlus } from "lucide-react";
+import Admission from "./views/Admission";
+import Consultations from "./views/Consultations";
+import PatientRecord from "./views/PatientRecord/PatientRecord";
 import "./App.css";
 
-const BACKEND_URL = "http://localhost:3001";
+type ViewType = "admission" | "consultations" | "record";
 
-type HealthStatus = "ok" | "degraded";
-type ServiceStatus = "up" | "down";
-
-interface HealthResponse {
-  status: HealthStatus;
-  backend: { status: "ok" };
-  hapi: { status: ServiceStatus; fhirVersion: string | null };
-}
-
-type CheckState =
-  | { phase: "loading" }
-  | { phase: "success"; data: HealthResponse }
-  | { phase: "error"; message: string };
-
-function StatusRow({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      <span className={`flex items-center gap-2 text-sm ${ok ? "text-green-700" : "text-red-700"}`}>
-        <span className={`h-2 w-2 rounded-full ${ok ? "bg-green-500" : "bg-red-500"}`} />
-        {detail}
-      </span>
-    </div>
-  );
-}
+const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus }[] = [
+  { id: "admission", label: "Admission", icon: UserPlus },
+  { id: "consultations", label: "Consultations", icon: Stethoscope },
+  { id: "record", label: "Dossier patient", icon: FileText },
+];
 
 function App() {
-  const [check, setCheck] = useState<CheckState>({ phase: "loading" });
+  const [currentView, setCurrentView] = useState<ViewType>("admission");
 
-  const runCheck = useCallback(async () => {
-    setCheck({ phase: "loading" });
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/health`);
-      const data: HealthResponse = await response.json();
-      setCheck({ phase: "success", data });
-    } catch (error) {
-      setCheck({
-        phase: "error",
-        message: error instanceof Error ? error.message : "Erreur inconnue",
-      });
+  function renderContent() {
+    switch (currentView) {
+      case "admission":
+        return <Admission />;
+      case "consultations":
+        return <Consultations />;
+      case "record":
+        return <PatientRecord />;
     }
-  }, []);
+  }
 
-  useEffect(() => {
-    runCheck();
-  }, [runCheck]);
+  const activeLabel = NAV_ITEMS.find((item) => item.id === currentView)?.label;
 
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-8">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">Pédiatrix — État du système</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Vérification de la chaîne backend → HAPI FHIR
-        </p>
-
-        <div className="mt-6 space-y-3">
-          {check.phase === "loading" && (
-            <p className="text-slate-500">Vérification en cours...</p>
-          )}
-
-          {check.phase === "error" && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="font-medium text-red-800">Backend injoignable</p>
-              <p className="mt-1 text-sm text-red-700">{check.message}</p>
-            </div>
-          )}
-
-          {check.phase === "success" && (
-            <>
-              <StatusRow
-                label="Backend"
-                ok={check.data.backend.status === "ok"}
-                detail={check.data.backend.status}
-              />
-              <StatusRow
-                label="HAPI FHIR"
-                ok={check.data.hapi.status === "up"}
-                detail={
-                  check.data.hapi.status === "up"
-                    ? `connecté (FHIR ${check.data.hapi.fhirVersion ?? "?"})`
-                    : "injoignable"
-                }
-              />
-              <div
-                className={`rounded-lg p-3 text-center text-sm font-medium ${
-                  check.data.status === "ok"
-                    ? "bg-green-50 text-green-800"
-                    : "bg-amber-50 text-amber-800"
-                }`}
-              >
-                {check.data.status === "ok" ? "Système opérationnel" : "Mode dégradé"}
-              </div>
-            </>
-          )}
+    <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans overflow-hidden">
+      <aside className="w-[280px] bg-[#1A2332] flex flex-col shrink-0 text-white">
+        <div className="p-8 border-b border-white/5 flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#1A6FD4] flex items-center justify-center font-black text-xl">P</div>
+          <h1 className="text-xl font-bold tracking-tight">Pédiatrix</h1>
         </div>
 
-        <button
-          onClick={runCheck}
-          disabled={check.phase === "loading"}
-          className="mt-6 w-full rounded-lg bg-slate-900 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
-        >
-          Relancer la vérification
-        </button>
-      </div>
-    </main>
+        <nav className="flex-1 p-4 space-y-1">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setCurrentView(item.id)}
+              className={`w-full flex items-center gap-4 px-4 py-3 transition-all ${
+                currentView === item.id
+                  ? "bg-[#1A6FD4] text-white shadow-lg shadow-blue-500/20"
+                  : "text-zinc-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[11px] font-bold uppercase tracking-widest">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-20 border-b border-zinc-200 px-10 flex items-center gap-4 bg-white shrink-0">
+          <span className="text-[10px] uppercase font-mono tracking-[0.2em] text-zinc-400 font-semibold">
+            Pédiatrix
+          </span>
+          <span className="text-zinc-300 font-mono">/</span>
+          <span className="text-xs font-black tracking-tight text-zinc-900 uppercase tracking-widest">
+            {activeLabel}
+          </span>
+        </header>
+
+        <div className="flex-1 overflow-y-auto">{renderContent()}</div>
+      </main>
+    </div>
   );
 }
 

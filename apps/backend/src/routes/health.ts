@@ -29,7 +29,7 @@ async function checkHapi(): Promise<HapiStatus> {
       return { status: "down", fhirVersion: null };
     }
 
-    const capabilityStatement: CapabilityStatement = await response.json();
+    const capabilityStatement = (await response.json()) as CapabilityStatement;
     return { status: "up", fhirVersion: capabilityStatement.fhirVersion ?? null };
   } catch {
     return { status: "down", fhirVersion: null };

@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { authenticate } from "../../socle/auth/authenticate.js";
+import { authorize } from "../../socle/auth/authorize.js";
 
 interface FhirServiceRequest {
   resourceType: "ServiceRequest";
@@ -54,10 +56,18 @@ function parseLabRequests(bundle: FhirBundle): LabRequestSummary[] {
 }
 
 export async function listLabRequestsRoute(app: FastifyInstance) {
-  app.get("/api/lab/requests", async (_request, reply) => {
+  app.get("/api/lab/requests", { preHandler: [authenticate, authorize("lab_tech")] }, async (_request, reply) => {
     try {
+      // Cohérence immédiate exigée : la file labo doit refléter les demandes tout
+      // juste créées côté Pédiatrie. Sans cet en-tête, HAPI peut réutiliser un
+      // résultat de recherche mis en cache pour cette même requête (paramètres
+      // identiques) et masquer une demande fraîchement créée pendant un temps
+      // variable et non borné (diagnostiqué en comparant, avec/sans cet en-tête,
+      // une lecture directe par id, une recherche par _id, et cette recherche —
+      // seule cette dernière, sans no-cache, restait périmée).
       const bundle = await hapiClient.get<FhirBundle>(
         "/ServiceRequest?status=active&_include=ServiceRequest:subject&_sort=-authored",
+        { "Cache-Control": "no-cache" },
       );
       return reply.send({ requests: parseLabRequests(bundle) });
     } catch (error) {

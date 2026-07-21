@@ -1,5 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { authenticate } from "../auth/authenticate.js";
+import { authorize } from "../auth/authorize.js";
+
+const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
 
 interface FhirDiagnosticReport {
   resourceType: "DiagnosticReport";
@@ -66,30 +70,34 @@ function parseReports(bundle: FhirBundle): ReportSummary[] {
 }
 
 export async function getPatientReportsRoute(app: FastifyInstance) {
-  app.get("/api/patients/:id/reports", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.get(
+    "/api/patients/:id/reports",
+    { preHandler: [authenticate, authorize(...READ_ROLES)] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    try {
-      await hapiClient.get(`/Patient/${id}`);
-    } catch (error) {
-      if (error instanceof HapiError) {
-        const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
-        const message = error.statusCode === 404 ? "Patient introuvable." : error.message;
-        return reply.code(statusCode).send({ error: message });
+      try {
+        await hapiClient.get(`/Patient/${id}`);
+      } catch (error) {
+        if (error instanceof HapiError) {
+          const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
+          const message = error.statusCode === 404 ? "Patient introuvable." : error.message;
+          return reply.code(statusCode).send({ error: message });
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    try {
-      const bundle = await hapiClient.get<FhirBundle>(
-        `/DiagnosticReport?patient=${id}&_sort=-issued&_include=DiagnosticReport:result`,
-      );
-      return reply.send({ reports: parseReports(bundle) });
-    } catch (error) {
-      if (error instanceof HapiError) {
-        return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+      try {
+        const bundle = await hapiClient.get<FhirBundle>(
+          `/DiagnosticReport?patient=${id}&_sort=-issued&_include=DiagnosticReport:result`,
+        );
+        return reply.send({ reports: parseReports(bundle) });
+      } catch (error) {
+        if (error instanceof HapiError) {
+          return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+        }
+        throw error;
       }
-      throw error;
-    }
-  });
+    },
+  );
 }

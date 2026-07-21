@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
+import { authenticate } from "../../socle/auth/authenticate.js";
+import { authorize } from "../../socle/auth/authorize.js";
 import { parseEncounterTransactionResponse, toEncounterTransactionBundle } from "./encounter.fhir.js";
 import type { CreateEncounterInput } from "./encounter.types.js";
 
@@ -43,37 +45,41 @@ interface TransactionResponseBundle {
 }
 
 export async function createEncounterRoute(app: FastifyInstance) {
-  app.post("/api/patients/:id/encounters", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.post(
+    "/api/patients/:id/encounters",
+    { preHandler: [authenticate, authorize("doctor")] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    try {
-      await hapiClient.get(`/Patient/${id}`);
-    } catch (error) {
-      if (error instanceof HapiError) {
-        const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
-        const message = error.statusCode === 404 ? "Patient introuvable." : error.message;
-        return reply.code(statusCode).send({ error: message });
+      try {
+        await hapiClient.get(`/Patient/${id}`);
+      } catch (error) {
+        if (error instanceof HapiError) {
+          const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
+          const message = error.statusCode === 404 ? "Patient introuvable." : error.message;
+          return reply.code(statusCode).send({ error: message });
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    const result = validate(request.body);
-    if ("errors" in result) {
-      return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
-    }
-
-    try {
-      const responseBundle = await hapiClient.post<TransactionResponseBundle>(
-        "",
-        toEncounterTransactionBundle(id, result.input),
-      );
-      const { encounterId } = parseEncounterTransactionResponse(responseBundle);
-      return reply.code(201).send({ encounterId });
-    } catch (error) {
-      if (error instanceof HapiError) {
-        return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+      const result = validate(request.body);
+      if ("errors" in result) {
+        return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
       }
-      throw error;
-    }
-  });
+
+      try {
+        const responseBundle = await hapiClient.post<TransactionResponseBundle>(
+          "",
+          toEncounterTransactionBundle(id, result.input),
+        );
+        const { encounterId } = parseEncounterTransactionResponse(responseBundle);
+        return reply.code(201).send({ encounterId });
+      } catch (error) {
+        if (error instanceof HapiError) {
+          return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+        }
+        throw error;
+      }
+    },
+  );
 }

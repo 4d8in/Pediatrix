@@ -3,6 +3,9 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { healthRoute } from "./routes/health.js";
 import { fhirLogRoute } from "./routes/fhir-log.route.js";
+import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
+import { loginRoute } from "./socle/auth/login.route.js";
+import { meRoute } from "./socle/auth/me.route.js";
 import { createPatientRoute } from "./socle/patients/create-patient.route.js";
 import { listPatientsRoute } from "./socle/patients/list-patients.route.js";
 import { getPatientRoute } from "./socle/patients/get-patient.route.js";
@@ -24,6 +27,11 @@ await app.register(cors, {
 });
 
 await app.register(healthRoute);
+
+// Socle : authentification JWT.
+await app.register(jwtPlugin);
+await app.register(loginRoute);
+await app.register(meRoute);
 
 // Socle : identité patient.
 await app.register(createPatientRoute);

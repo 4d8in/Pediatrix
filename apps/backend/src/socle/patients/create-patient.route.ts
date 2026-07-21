@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { authenticate } from "../auth/authenticate.js";
+import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient, toFhirPatient } from "./patient.fhir.js";
 import type { CreatePatientInput, Gender } from "./patient.types.js";
 
@@ -50,7 +52,7 @@ function validate(body: unknown): { input: CreatePatientInput } | { errors: stri
 }
 
 export async function createPatientRoute(app: FastifyInstance) {
-  app.post("/api/patients", async (request, reply) => {
+  app.post("/api/patients", { preHandler: [authenticate, authorize("nurse", "doctor")] }, async (request, reply) => {
     const result = validate(request.body);
     if ("errors" in result) {
       return reply.code(400).send({ error: "Requête invalide.", details: result.errors });

@@ -1,27 +1,40 @@
-import { useState } from "react";
-import { FileText, FlaskConical, Stethoscope, Terminal, UserPlus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { FileText, FlaskConical, LogOut, Stethoscope, Terminal, UserPlus } from "lucide-react";
 import Admission from "./views/Admission";
 import Consultations from "./views/Consultations";
 import PatientRecord from "./views/PatientRecord/PatientRecord";
 import Laboratory from "./views/Laboratory";
 import FhirLog from "./views/FhirLog";
+import Login from "./views/Login";
+import { useAuth } from "./lib/auth-context";
+import type { Role } from "./lib/types";
 import "./App.css";
 
 type ViewType = "admission" | "consultations" | "record" | "laboratory" | "fhirLog";
 
-const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus }[] = [
-  { id: "admission", label: "Admission", icon: UserPlus },
-  { id: "consultations", label: "Consultations", icon: Stethoscope },
-  { id: "record", label: "Dossier patient", icon: FileText },
-  { id: "laboratory", label: "Laboratoire", icon: FlaskConical },
-  { id: "fhirLog", label: "Flux FHIR", icon: Terminal },
+// Masquage ergonomique uniquement : la barrière réelle est côté backend
+// (preHandler authenticate/authorize sur chaque route, voir apps/backend).
+const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Role[] }[] = [
+  { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor"] },
+  { id: "consultations", label: "Consultations", icon: Stethoscope, roles: ["doctor"] },
+  { id: "record", label: "Dossier patient", icon: FileText, roles: ["nurse", "doctor", "lab_tech", "director"] },
+  { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
+  { id: "fhirLog", label: "Flux FHIR", icon: Terminal, roles: ["tech_admin"] },
 ];
 
 function App() {
-  const [currentView, setCurrentView] = useState<ViewType>("admission");
+  const { user, logout, sessionExpired } = useAuth();
+  const navItems = useMemo(() => NAV_ITEMS.filter((item) => user && item.roles.includes(user.role)), [user]);
+  const [currentView, setCurrentView] = useState<ViewType | null>(null);
+
+  if (!user) {
+    return <Login notice={sessionExpired ? "Session expirée, veuillez vous reconnecter." : undefined} />;
+  }
+
+  const activeView = currentView && navItems.some((item) => item.id === currentView) ? currentView : navItems[0]?.id;
 
   function renderContent() {
-    switch (currentView) {
+    switch (activeView) {
       case "admission":
         return <Admission />;
       case "consultations":
@@ -32,10 +45,12 @@ function App() {
         return <Laboratory />;
       case "fhirLog":
         return <FhirLog />;
+      default:
+        return null;
     }
   }
 
-  const activeLabel = NAV_ITEMS.find((item) => item.id === currentView)?.label;
+  const activeLabel = navItems.find((item) => item.id === activeView)?.label;
 
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans overflow-hidden">
@@ -46,12 +61,12 @@ function App() {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setCurrentView(item.id)}
               className={`w-full flex items-center gap-4 px-4 py-3 transition-all ${
-                currentView === item.id
+                activeView === item.id
                   ? "bg-[#1A6FD4] text-white shadow-lg shadow-blue-500/20"
                   : "text-zinc-400 hover:bg-white/5 hover:text-white"
               }`}
@@ -61,6 +76,19 @@ function App() {
             </button>
           ))}
         </nav>
+
+        <div className="p-4 border-t border-white/5 space-y-1">
+          <div className="px-4 py-2">
+            <p className="text-xs font-bold text-white truncate">{user.name}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-4 px-4 py-3 text-zinc-400 hover:bg-white/5 hover:text-white transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[11px] font-bold uppercase tracking-widest">Déconnexion</span>
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">

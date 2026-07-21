@@ -1,7 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
+import { authenticate } from "../auth/authenticate.js";
+import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient } from "./patient.fhir.js";
+
+const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
 
 interface FhirEncounter {
   resourceType: "Encounter";
@@ -69,7 +73,7 @@ function parseConsultations(bundle: FhirBundle): ConsultationSummary[] {
 }
 
 export async function getPatientRoute(app: FastifyInstance) {
-  app.get("/api/patients/:id", async (request, reply) => {
+  app.get("/api/patients/:id", { preHandler: [authenticate, authorize(...READ_ROLES)] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     try {

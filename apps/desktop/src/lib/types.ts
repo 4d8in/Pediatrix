@@ -1,3 +1,11 @@
+export type Role = "nurse" | "doctor" | "lab_tech" | "director" | "tech_admin";
+
+export interface User {
+  id: string;
+  role: Role;
+  name: string;
+}
+
 export type Gender = "male" | "female" | "other" | "unknown";
 
 export interface Guardian {

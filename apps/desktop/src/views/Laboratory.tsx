@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CheckCircle2, FlaskConical, Plus, Trash2, User } from "lucide-react";
+import { CheckCircle2, FlaskConical, Plus, RefreshCw, Trash2, User } from "lucide-react";
 import { ApiError, createReport, listLabRequests } from "../lib/api";
 import type { LabRequest, LabResultInput } from "../lib/types";
 
 const EMPTY_ROW: LabResultInput = { label: "", value: "" };
+
+// La file peut rester momentanément périmée juste après la création d'une
+// demande côté Pédiatrie (voir scripts/verify-lab-flow.sh) : ce rafraîchissement
+// automatique rattrape ce cas sans que le technicien ait à recharger l'écran.
+const AUTO_REFRESH_INTERVAL_MS = 15_000;
 
 export default function Laboratory() {
   const [requests, setRequests] = useState<LabRequest[]>([]);
@@ -29,6 +34,8 @@ export default function Laboratory() {
 
   useEffect(() => {
     loadQueue();
+    const intervalId = setInterval(loadQueue, AUTO_REFRESH_INTERVAL_MS);
+    return () => clearInterval(intervalId);
   }, []);
 
   function selectRequest(request: LabRequest) {
@@ -72,10 +79,18 @@ export default function Laboratory() {
   return (
     <div className="flex h-full overflow-hidden bg-zinc-50 font-sans">
       <div className="w-[40%] border-r border-zinc-200 bg-white flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-zinc-100 bg-zinc-50/50">
+        <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between gap-3">
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-900 flex items-center gap-3">
             <FlaskConical className="w-4 h-4" /> Demandes en attente ({requests.length})
           </h2>
+          <button
+            type="button"
+            onClick={loadQueue}
+            disabled={isLoadingQueue}
+            className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3 h-3 ${isLoadingQueue ? "animate-spin" : ""}`} /> Actualiser
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">

@@ -37,7 +37,30 @@ until curl -sf -o /dev/null "${BACKEND_URL}/api/health"; do
 done
 echo "OK : le backend répond sur /api/health."
 
-# --- 2. Création d'un Patient fictif ---------------------------------------
+# --- 2. Authentification (Étape 4 : les routes ci-dessous exigent un JWT) ---
+# Nécessite d'avoir lancé scripts/seed-users.sh au préalable.
+
+if [ -z "${SEED_USER_PASSWORD:-}" ] && [ -f apps/backend/.env ]; then
+  SEED_USER_PASSWORD="$(grep -E '^SEED_USER_PASSWORD=' apps/backend/.env | tail -n1 | cut -d'=' -f2-)"
+fi
+if [ -z "${SEED_USER_PASSWORD:-}" ]; then
+  echo "ÉCHEC : SEED_USER_PASSWORD introuvable (ni en variable d'env, ni dans apps/backend/.env)." >&2
+  exit 1
+fi
+
+echo "Connexion en tant que médecin1 (POST /api/auth/login) ..."
+LOGIN_RESPONSE=$(curl -sf -X POST "${BACKEND_URL}/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"medecin1\",\"password\":\"${SEED_USER_PASSWORD}\"}")
+TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token // empty')
+
+if [ -z "$TOKEN" ]; then
+  echo "ÉCHEC : aucun token retourné par POST /api/auth/login. Avez-vous lancé scripts/seed-users.sh ?" >&2
+  exit 1
+fi
+echo "OK : connecté en tant que médecin1."
+
+# --- 3. Création d'un Patient fictif ---------------------------------------
 
 PATIENT_PAYLOAD=$(cat <<'JSON'
 {
@@ -56,6 +79,7 @@ JSON
 
 echo "Création d'un Patient fictif (Astou Verify-Admission) via POST /api/patients ..."
 POST_PATIENT_RESPONSE=$(curl -sf -X POST "${BACKEND_URL}/api/patients" \
+  -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "$PATIENT_PAYLOAD")
 
@@ -71,7 +95,7 @@ echo "OK : Patient créé avec l'id ${PATIENT_ID}."
 # --- 3. Recherche par nom ---------------------------------------------------
 
 echo "Recherche du patient par nom (GET /api/patients?search=Verify-Admission) ..."
-SEARCH_RESPONSE=$(curl -sf "${BACKEND_URL}/api/patients?search=Verify-Admission")
+SEARCH_RESPONSE=$(curl -sf "${BACKEND_URL}/api/patients?search=Verify-Admission" -H "Authorization: Bearer ${TOKEN}")
 FOUND_ID=$(echo "$SEARCH_RESPONSE" | jq -r --arg id "$PATIENT_ID" '.patients[] | select(.id == $id) | .id')
 
 if [ "$FOUND_ID" != "$PATIENT_ID" ]; then
@@ -100,6 +124,7 @@ JSON
 
 echo "Création d'une consultation via POST /api/patients/${PATIENT_ID}/encounters ..."
 POST_ENCOUNTER_RESPONSE=$(curl -sf -X POST "${BACKEND_URL}/api/patients/${PATIENT_ID}/encounters" \
+  -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "$ENCOUNTER_PAYLOAD")
 
@@ -115,7 +140,7 @@ echo "OK : consultation créée avec l'id ${ENCOUNTER_ID}."
 # --- 5. Relecture du dossier patient ----------------------------------------
 
 echo "Relecture du dossier patient (GET /api/patients/${PATIENT_ID}) ..."
-GET_RECORD_RESPONSE=$(curl -sf "${BACKEND_URL}/api/patients/${PATIENT_ID}")
+GET_RECORD_RESPONSE=$(curl -sf "${BACKEND_URL}/api/patients/${PATIENT_ID}" -H "Authorization: Bearer ${TOKEN}")
 
 RECORD_REASON=$(echo "$GET_RECORD_RESPONSE" | jq -r --arg id "$ENCOUNTER_ID" '.consultations[] | select(.id == $id) | .reason')
 RECORD_TEMPERATURE=$(echo "$GET_RECORD_RESPONSE" | jq -r --arg id "$ENCOUNTER_ID" '.consultations[] | select(.id == $id) | .vitals.temperature')

@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../lib/hapi-client.js";
+import { authenticate } from "../socle/auth/authenticate.js";
+import { authorize } from "../socle/auth/authorize.js";
 
 const RESOURCE_TYPES = ["Patient", "Encounter", "Observation", "ServiceRequest", "DiagnosticReport"] as const;
 const MAX_ENTRIES = 20;
@@ -26,7 +28,7 @@ interface FhirLogEntry {
 // (`GET [base]?_type=...`), on interroge chaque type séparément — plus simple
 // à expliquer et à déboguer dans ce prototype.
 export async function fhirLogRoute(app: FastifyInstance) {
-  app.get("/api/fhir-log", async (_request, reply) => {
+  app.get("/api/fhir-log", { preHandler: [authenticate, authorize("tech_admin")] }, async (_request, reply) => {
     try {
       const bundles = await Promise.all(
         RESOURCE_TYPES.map((type) => hapiClient.get<FhirBundle>(`/${type}?_sort=-_lastUpdated&_count=5`)),

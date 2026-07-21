@@ -47,7 +47,9 @@ async function hapiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const hapiClient = {
-  get: <T>(path: string) => hapiFetch<T>(path),
+  get: <T>(path: string, headers?: RequestInit["headers"]) => hapiFetch<T>(path, { headers }),
   post: <T>(path: string, resource: unknown) =>
     hapiFetch<T>(path, { method: "POST", body: JSON.stringify(resource) }),
+  put: <T>(path: string, resource: unknown) =>
+    hapiFetch<T>(path, { method: "PUT", body: JSON.stringify(resource) }),
 };

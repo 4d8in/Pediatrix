@@ -8,6 +8,7 @@ import type {
   Patient,
   PatientRecord,
   Report,
+  User,
 } from "./types";
 
 const BACKEND_URL = "http://localhost:3001";
@@ -17,6 +18,7 @@ const BACKEND_URL = "http://localhost:3001";
 export class ApiError extends Error {
   constructor(
     message: string,
+    public readonly status?: number,
     public readonly details?: string[],
   ) {
     super(message);
@@ -24,12 +26,33 @@ export class ApiError extends Error {
   }
 }
 
+// Token en mémoire uniquement (pas de localStorage) : posé par AuthContext après
+// login, effacé au logout ou sur un 401.
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+}
+
+// Déclenché sur un 401 (hors /api/auth/login) pour qu'AuthContext puisse
+// déconnecter proprement l'utilisateur — un 403 (rôle insuffisant) ne
+// déclenche pas cette déconnexion, ce n'est pas un problème de session.
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BACKEND_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     throw new ApiError("Le serveur Pédiatrix est injoignable.");
@@ -38,10 +61,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body = await response.json().catch(() => undefined);
 
   if (!response.ok) {
-    throw new ApiError(body?.error ?? `Erreur ${response.status}.`, body?.details);
+    if (response.status === 401 && path !== "/api/auth/login") {
+      onUnauthorized?.();
+    }
+    throw new ApiError(body?.error ?? `Erreur ${response.status}.`, response.status, body?.details);
   }
 
   return body as T;
+}
+
+export function login(username: string, password: string): Promise<{ token: string; user: User }> {
+  return request<{ token: string; user: User }>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function getMe(): Promise<User> {
+  return request<User>("/api/auth/me");
 }
 
 export function createPatient(input: CreatePatientInput): Promise<Patient> {

@@ -1,13 +1,17 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { authenticate } from "../auth/authenticate.js";
+import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient } from "./patient.fhir.js";
 
 interface FhirBundle {
   entry?: { resource: FhirPatient }[];
 }
 
+const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+
 export async function listPatientsRoute(app: FastifyInstance) {
-  app.get("/api/patients", async (request, reply) => {
+  app.get("/api/patients", { preHandler: [authenticate, authorize(...READ_ROLES)] }, async (request, reply) => {
     const { search } = request.query as { search?: string };
     const query = search
       ? `?name=${encodeURIComponent(search)}&_sort=-_lastUpdated`

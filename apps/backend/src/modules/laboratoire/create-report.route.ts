@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { authenticate } from "../../socle/auth/authenticate.js";
+import { authorize } from "../../socle/auth/authorize.js";
 import {
   type FhirServiceRequestResource,
   parseReportTransactionResponse,
@@ -36,38 +38,42 @@ function validate(body: unknown): { input: CreateReportInput } | { errors: strin
 }
 
 export async function createReportRoute(app: FastifyInstance) {
-  app.post("/api/lab/requests/:id/report", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.post(
+    "/api/lab/requests/:id/report",
+    { preHandler: [authenticate, authorize("lab_tech")] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    let serviceRequest: FhirServiceRequestResource;
-    try {
-      serviceRequest = await hapiClient.get<FhirServiceRequestResource>(`/ServiceRequest/${id}`);
-    } catch (error) {
-      if (error instanceof HapiError) {
-        const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
-        const message = error.statusCode === 404 ? "Demande d'examen introuvable." : error.message;
-        return reply.code(statusCode).send({ error: message });
+      let serviceRequest: FhirServiceRequestResource;
+      try {
+        serviceRequest = await hapiClient.get<FhirServiceRequestResource>(`/ServiceRequest/${id}`);
+      } catch (error) {
+        if (error instanceof HapiError) {
+          const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
+          const message = error.statusCode === 404 ? "Demande d'examen introuvable." : error.message;
+          return reply.code(statusCode).send({ error: message });
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    const result = validate(request.body);
-    if ("errors" in result) {
-      return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
-    }
-
-    try {
-      const responseBundle = await hapiClient.post<TransactionResponseBundle>(
-        "",
-        toReportTransactionBundle(serviceRequest, result.input),
-      );
-      const { diagnosticReportId } = parseReportTransactionResponse(responseBundle);
-      return reply.code(201).send({ diagnosticReportId });
-    } catch (error) {
-      if (error instanceof HapiError) {
-        return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+      const result = validate(request.body);
+      if ("errors" in result) {
+        return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
       }
-      throw error;
-    }
-  });
+
+      try {
+        const responseBundle = await hapiClient.post<TransactionResponseBundle>(
+          "",
+          toReportTransactionBundle(serviceRequest, result.input),
+        );
+        const { diagnosticReportId } = parseReportTransactionResponse(responseBundle);
+        return reply.code(201).send({ diagnosticReportId });
+      } catch (error) {
+        if (error instanceof HapiError) {
+          return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+        }
+        throw error;
+      }
+    },
+  );
 }

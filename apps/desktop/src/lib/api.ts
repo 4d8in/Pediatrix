@@ -15,7 +15,9 @@ import type {
   User,
 } from "./types";
 
-const BACKEND_URL = "http://localhost:3001";
+// Résolu au build (variable Vite) : permet de recompiler l'app pour un poste
+// dont le backend tourne sur une autre machine du LAN, sans toucher au code.
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:3001";
 
 // Le frontend ne parle jamais à HAPI directement : tous les appels passent
 // par ce backend, qui traduit les erreurs FHIR en réponses propres.

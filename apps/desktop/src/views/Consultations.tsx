@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { CheckCircle2, FlaskConical } from "lucide-react";
+import { CheckCircle2, FlaskConical, ScanLine } from "lucide-react";
 import PatientPicker from "../components/PatientPicker";
 import VitalsFields from "./VitalsFields";
-import { ApiError, createEncounter, createServiceRequest } from "../lib/api";
+import { ApiError, createEncounter, createImagingRequest, createServiceRequest } from "../lib/api";
 import type { Patient, Vitals } from "../lib/types";
 
 export default function Consultations() {
@@ -21,6 +21,12 @@ export default function Consultations() {
   const [examErrors, setExamErrors] = useState<string[]>([]);
   const [examRequested, setExamRequested] = useState(false);
 
+  const [imagingExam, setImagingExam] = useState("");
+  const [imagingRequester, setImagingRequester] = useState("");
+  const [isRequestingImaging, setIsRequestingImaging] = useState(false);
+  const [imagingErrors, setImagingErrors] = useState<string[]>([]);
+  const [imagingRequested, setImagingRequested] = useState(false);
+
   function resetForm() {
     setPatient(null);
     setReason("");
@@ -31,6 +37,10 @@ export default function Consultations() {
     setRequester("");
     setExamErrors([]);
     setExamRequested(false);
+    setImagingExam("");
+    setImagingRequester("");
+    setImagingErrors([]);
+    setImagingRequested(false);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -72,6 +82,27 @@ export default function Consultations() {
       }
     } finally {
       setIsRequestingExam(false);
+    }
+  }
+
+  async function handleRequestImaging(event: FormEvent) {
+    event.preventDefault();
+    if (!encounterId) return;
+
+    setImagingErrors([]);
+    setIsRequestingImaging(true);
+
+    try {
+      await createImagingRequest(encounterId, { exam: imagingExam, requester: imagingRequester });
+      setImagingRequested(true);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setImagingErrors(error.details ?? [error.message]);
+      } else {
+        setImagingErrors(["Erreur inattendue lors de la demande d'imagerie."]);
+      }
+    } finally {
+      setIsRequestingImaging(false);
     }
   }
 
@@ -142,6 +173,67 @@ export default function Consultations() {
                   className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#1559ab] transition-all disabled:opacity-50"
                 >
                   {isRequestingExam ? "Envoi..." : "Envoyer au laboratoire"}
+                </button>
+              </form>
+            )}
+
+            {imagingRequested ? (
+              <div className="bg-zinc-50 border border-zinc-200 p-6 flex items-center gap-4">
+                <ScanLine className="w-6 h-6 text-zinc-400" />
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-700">
+                  Imagerie demandée — la radiologie a été notifiée.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleRequestImaging} className="space-y-6">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 flex items-center gap-2">
+                  <ScanLine className="w-4 h-4" /> Demander une imagerie
+                </h3>
+
+                {imagingErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+                    {imagingErrors.map((message) => (
+                      <p key={message} className="text-xs font-bold text-red-700">
+                        {message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Examen d'imagerie demandé
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={imagingExam}
+                    onChange={(event) => setImagingExam(event.target.value)}
+                    className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                    placeholder="Ex. : Radiographie thoracique"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Demandeur
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={imagingRequester}
+                    onChange={(event) => setImagingRequester(event.target.value)}
+                    className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                    placeholder="Ex. : Dr. Moussa Diallo"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isRequestingImaging}
+                  className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#1559ab] transition-all disabled:opacity-50"
+                >
+                  {isRequestingImaging ? "Envoi..." : "Envoyer à la radiologie"}
                 </button>
               </form>
             )}

@@ -3,13 +3,15 @@ import PatientPicker from "../../components/PatientPicker";
 import PatientIdentity from "./PatientIdentity";
 import ConsultationHistory from "./ConsultationHistory";
 import ReportsHistory from "./ReportsHistory";
-import { ApiError, getPatient, getPatientReports } from "../../lib/api";
-import type { Patient, PatientRecord as PatientRecordData, Report } from "../../lib/types";
+import ImagingReportsHistory from "./ImagingReportsHistory";
+import { ApiError, getPatient, getPatientImagingReports, getPatientReports } from "../../lib/api";
+import type { ImagingReport, Patient, PatientRecord as PatientRecordData, Report } from "../../lib/types";
 
 export default function PatientRecord() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [record, setRecord] = useState<PatientRecordData | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
+  const [imagingReports, setImagingReports] = useState<ImagingReport[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,15 +19,17 @@ export default function PatientRecord() {
     if (!patient) {
       setRecord(null);
       setReports([]);
+      setImagingReports([]);
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    Promise.all([getPatient(patient.id), getPatientReports(patient.id)])
-      .then(([recordData, reportsData]) => {
+    Promise.all([getPatient(patient.id), getPatientReports(patient.id), getPatientImagingReports(patient.id)])
+      .then(([recordData, reportsData, imagingReportsData]) => {
         setRecord(recordData);
         setReports(reportsData.reports);
+        setImagingReports(imagingReportsData.reports);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du dossier."))
       .finally(() => setIsLoading(false));
@@ -54,6 +58,7 @@ export default function PatientRecord() {
           <PatientIdentity patient={record.patient} />
           <ConsultationHistory consultations={record.consultations} />
           <ReportsHistory reports={reports} />
+          <ImagingReportsHistory reports={imagingReports} />
         </div>
       )}
     </div>

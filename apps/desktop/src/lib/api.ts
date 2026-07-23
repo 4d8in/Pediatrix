@@ -1,9 +1,13 @@
 import type {
   CreateEncounterInput,
+  CreateImagingReportInput,
+  CreateImagingRequestInput,
   CreatePatientInput,
   CreateReportInput,
   CreateServiceRequestInput,
   FhirLogEntry,
+  ImagingReport,
+  ImagingRequest,
   LabRequest,
   Patient,
   PatientRecord,
@@ -130,6 +134,34 @@ export function createReport(
 
 export function getPatientReports(patientId: string): Promise<{ reports: Report[] }> {
   return request<{ reports: Report[] }>(`/api/patients/${patientId}/reports`);
+}
+
+export function createImagingRequest(
+  encounterId: string,
+  input: CreateImagingRequestInput,
+): Promise<{ imagingRequestId: string }> {
+  return request<{ imagingRequestId: string }>(`/api/encounters/${encounterId}/imaging-requests`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listImagingRequests(): Promise<{ requests: ImagingRequest[] }> {
+  return request<{ requests: ImagingRequest[] }>("/api/imaging/requests");
+}
+
+export function createImagingReport(
+  requestId: string,
+  input: CreateImagingReportInput,
+): Promise<{ diagnosticReportId: string }> {
+  return request<{ diagnosticReportId: string }>(`/api/imaging/requests/${requestId}/report`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientImagingReports(patientId: string): Promise<{ reports: ImagingReport[] }> {
+  return request<{ reports: ImagingReport[] }>(`/api/patients/${patientId}/imaging-reports`);
 }
 
 export function getFhirLog(): Promise<{ resources: FhirLogEntry[] }> {

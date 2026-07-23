@@ -1,4 +1,4 @@
-export type Role = "nurse" | "doctor" | "lab_tech" | "director" | "tech_admin";
+export type Role = "nurse" | "doctor" | "lab_tech" | "radiologist" | "director" | "tech_admin";
 
 export interface User {
   id: string;
@@ -83,6 +83,33 @@ export interface CreateReportInput {
 }
 
 export interface Report {
+  id: string;
+  date: string | null;
+  exam: string | null;
+  conclusion: string | null;
+  results: { label: string; value: string }[];
+}
+
+export interface CreateImagingRequestInput {
+  exam: string;
+  requester: string;
+}
+
+export interface ImagingRequest {
+  id: string;
+  patientId: string;
+  patientName: string;
+  exam: string | null;
+  requester: string | null;
+  authoredOn: string | null;
+}
+
+export interface CreateImagingReportInput {
+  results: LabResultInput[];
+  conclusion?: string;
+}
+
+export interface ImagingReport {
   id: string;
   date: string | null;
   exam: string | null;

@@ -1,24 +1,31 @@
 import { useMemo, useState } from "react";
-import { FileText, FlaskConical, LogOut, Stethoscope, Terminal, UserPlus } from "lucide-react";
+import { FileText, FlaskConical, LogOut, ScanLine, Stethoscope, Terminal, UserPlus } from "lucide-react";
 import Admission from "./views/Admission";
 import Consultations from "./views/Consultations";
 import PatientRecord from "./views/PatientRecord/PatientRecord";
 import Laboratory from "./views/Laboratory";
+import Radiology from "./views/Radiology";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import { useAuth } from "./lib/auth-context";
 import type { Role } from "./lib/types";
 import "./App.css";
 
-type ViewType = "admission" | "consultations" | "record" | "laboratory" | "fhirLog";
+type ViewType = "admission" | "consultations" | "record" | "laboratory" | "radiology" | "fhirLog";
 
 // Masquage ergonomique uniquement : la barrière réelle est côté backend
 // (preHandler authenticate/authorize sur chaque route, voir apps/backend).
 const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Role[] }[] = [
   { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor"] },
   { id: "consultations", label: "Consultations", icon: Stethoscope, roles: ["doctor"] },
-  { id: "record", label: "Dossier patient", icon: FileText, roles: ["nurse", "doctor", "lab_tech", "director"] },
+  {
+    id: "record",
+    label: "Dossier patient",
+    icon: FileText,
+    roles: ["nurse", "doctor", "lab_tech", "radiologist", "director"],
+  },
   { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
+  { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
   { id: "fhirLog", label: "Flux FHIR", icon: Terminal, roles: ["tech_admin"] },
 ];
 
@@ -43,6 +50,8 @@ function App() {
         return <PatientRecord />;
       case "laboratory":
         return <Laboratory />;
+      case "radiology":
+        return <Radiology />;
       case "fhirLog":
         return <FhirLog />;
       default:

@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../../lib/service-category.js";
-import { authenticate } from "../auth/authenticate.js";
-import { authorize } from "../auth/authorize.js";
+import { authenticate } from "../../socle/auth/authenticate.js";
+import { authorize } from "../../socle/auth/authorize.js";
 
-const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+const READ_ROLES = ["nurse", "doctor", "radiologist", "director"] as const;
 
 interface FhirDiagnosticReport {
   resourceType: "DiagnosticReport";
@@ -27,7 +27,7 @@ interface FhirBundle {
   entry?: { resource: FhirDiagnosticReport | FhirObservation }[];
 }
 
-interface ReportSummary {
+interface ImagingReportSummary {
   id: string;
   date: string | null;
   exam: string | null;
@@ -43,19 +43,19 @@ function formatObservationValue(obs: FhirObservation): string {
   return "";
 }
 
-function parseReports(bundle: FhirBundle): ReportSummary[] {
+function parseReports(bundle: FhirBundle): ImagingReportSummary[] {
   const resources = (bundle.entry ?? []).map((entry) => entry.resource);
   const reports = resources.filter((r): r is FhirDiagnosticReport => r.resourceType === "DiagnosticReport");
   const observations = resources.filter((r): r is FhirObservation => r.resourceType === "Observation");
 
   return reports
-    .map((report): ReportSummary => {
+    .map((report): ImagingReportSummary => {
       const results = (report.result ?? [])
         .map((ref) => {
           const obsId = ref.reference?.split("/")[1];
           const obs = observations.find((o) => o.id === obsId);
           if (!obs) return null;
-          return { label: obs.code?.text ?? "Résultat", value: formatObservationValue(obs) };
+          return { label: obs.code?.text ?? "Observation", value: formatObservationValue(obs) };
         })
         .filter((r): r is { label: string; value: string } => r !== null);
 
@@ -70,9 +70,9 @@ function parseReports(bundle: FhirBundle): ReportSummary[] {
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
 }
 
-export async function getPatientReportsRoute(app: FastifyInstance) {
+export async function getPatientImagingReportsRoute(app: FastifyInstance) {
   app.get(
-    "/api/patients/:id/reports",
+    "/api/patients/:id/imaging-reports",
     { preHandler: [authenticate, authorize(...READ_ROLES)] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -89,10 +89,8 @@ export async function getPatientReportsRoute(app: FastifyInstance) {
       }
 
       try {
-        // category:not=imagerie exclut les comptes-rendus du module Radiologie
-        // (voir le même filtre dans laboratoire/list-lab-requests.route.ts).
         const bundle = await hapiClient.get<FhirBundle>(
-          `/DiagnosticReport?patient=${id}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_sort=-issued&_include=DiagnosticReport:result`,
+          `/DiagnosticReport?patient=${id}&category=${IMAGING_CATEGORY_SEARCH_TOKEN}&_sort=-issued&_include=DiagnosticReport:result`,
         );
         return reply.send({ reports: parseReports(bundle) });
       } catch (error) {

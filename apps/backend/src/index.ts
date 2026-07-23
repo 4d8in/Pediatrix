@@ -14,6 +14,10 @@ import { createEncounterRoute } from "./modules/pediatrie/create-encounter.route
 import { createServiceRequestRoute } from "./modules/pediatrie/create-service-request.route.js";
 import { listLabRequestsRoute } from "./modules/laboratoire/list-lab-requests.route.js";
 import { createReportRoute } from "./modules/laboratoire/create-report.route.js";
+import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-request.route.js";
+import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
+import { createImagingReportRoute } from "./modules/radiologie/create-imaging-report.route.js";
+import { getPatientImagingReportsRoute } from "./modules/radiologie/get-patient-imaging-reports.route.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -46,6 +50,13 @@ await app.register(createServiceRequestRoute);
 // Module Laboratoire : file d'attente et rapport (DiagnosticReport + Observations).
 await app.register(listLabRequestsRoute);
 await app.register(createReportRoute);
+
+// Module Radiologie (module-souche) : même contrat FHIR que le Laboratoire,
+// juste branché au socle — preuve de modularité.
+await app.register(createImagingRequestRoute);
+await app.register(listImagingRequestsRoute);
+await app.register(createImagingReportRoute);
+await app.register(getPatientImagingReportsRoute);
 
 // Vitrine d'interopérabilité : dernières ressources FHIR émises.
 await app.register(fhirLogRoute);

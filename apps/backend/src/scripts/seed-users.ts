@@ -18,6 +18,7 @@ const SEED_USERS: SeedUser[] = [
   { username: "infirmiere1", displayName: "Fatou Ndiaye", role: "nurse" },
   { username: "medecin1", displayName: "Dr. Awa Diallo", role: "doctor" },
   { username: "labo1", displayName: "Ibrahima Sarr", role: "lab_tech" },
+  { username: "radiologue1", displayName: "Dr. Khadija Ndoye", role: "radiologist" },
   { username: "directeur1", displayName: "Cheikh Ba", role: "director" },
   { username: "admin1", displayName: "Admin Technique", role: "tech_admin" },
 ];

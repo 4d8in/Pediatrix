@@ -1,4 +1,4 @@
-export const ROLES = ["nurse", "doctor", "lab_tech", "director", "tech_admin"] as const;
+export const ROLES = ["nurse", "doctor", "lab_tech", "radiologist", "director", "tech_admin"] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -10,6 +10,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   nurse: "Infirmière",
   doctor: "Médecin",
   lab_tech: "Technicien Labo",
+  radiologist: "Radiologue",
   director: "Directeur",
   tech_admin: "Administrateur technique",
 };

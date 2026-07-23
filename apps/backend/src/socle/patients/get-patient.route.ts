@@ -5,7 +5,7 @@ import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient } from "./patient.fhir.js";
 
-const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+const READ_ROLES = ["nurse", "doctor", "lab_tech", "radiologist", "director"] as const;
 
 interface FhirEncounter {
   resourceType: "Encounter";

@@ -8,7 +8,7 @@ interface FhirBundle {
   entry?: { resource: FhirPatient }[];
 }
 
-const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+const READ_ROLES = ["nurse", "doctor", "lab_tech", "radiologist", "director"] as const;
 
 export async function listPatientsRoute(app: FastifyInstance) {
   app.get("/api/patients", { preHandler: [authenticate, authorize(...READ_ROLES)] }, async (request, reply) => {

@@ -7,7 +7,8 @@
 
 ### Infrastructure (Docker)
 - Docker et Docker Compose v2 (`docker compose version`)
-- `curl` et `jq` (pour le script de vérification)
+- `curl` et `jq` (pour les scripts de vérification)
+- `psql` (client PostgreSQL, pour `scripts/verify-reporting.sh`)
 
 ### Backend
 - Node.js 24.x et npm
@@ -69,3 +70,31 @@ npm run tauri dev
 
 Une fenêtre s'ouvre avec l'état du backend et de HAPI FHIR (connecté ou dégradé),
 et un bouton pour relancer la vérification.
+
+## 4. Service d'agrégation (reporting)
+
+Lit périodiquement les ressources FHIR sur HAPI, calcule des statistiques
+agrégées (totaux, répartition des examens, consultations par jour) et les
+écrit sur un PostgreSQL "reporting" hébergé sur Supabase. Aucune donnée
+nominative n'y est envoyée — voir `apps/backend/src/reporting/`.
+
+Renseigner `SUPABASE_DB_URL` dans `apps/backend/.env` (chaîne `postgres://`
+fournie par Supabase), puis :
+
+```bash
+cd apps/backend
+npm run reporting:start   # boucle continue (intervalle : REPORTING_INTERVAL_MS)
+# ou, pour un seul cycle :
+npm run reporting:once
+```
+
+Ce service tourne indépendamment du backend clinique (Fastify) : une panne
+ou une indisponibilité de Supabase n'affecte jamais le fonctionnement local
+(offline) du backend, et le service d'agrégation retente simplement au cycle
+suivant.
+
+Vérifier la chaîne complète (déclenche un cycle, relit les tables Supabase,
+contrôle l'absence de colonne nominative) :
+```bash
+./scripts/verify-reporting.sh
+```

@@ -9,6 +9,9 @@ const BADGE_COLORS: Record<string, string> = {
   Observation: "bg-teal-500/10 text-teal-400 border-teal-500/30",
   ServiceRequest: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   DiagnosticReport: "bg-green-500/10 text-green-400 border-green-500/30",
+  Immunization: "bg-pink-500/10 text-pink-400 border-pink-500/30",
+  AllergyIntolerance: "bg-red-500/10 text-red-400 border-red-500/30",
+  MedicationRequest: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
 };
 
 export default function FhirLog() {

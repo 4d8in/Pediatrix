@@ -3,7 +3,16 @@ import { HapiError, hapiClient } from "../lib/hapi-client.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
 
-const RESOURCE_TYPES = ["Patient", "Encounter", "Observation", "ServiceRequest", "DiagnosticReport"] as const;
+const RESOURCE_TYPES = [
+  "Patient",
+  "Encounter",
+  "Observation",
+  "ServiceRequest",
+  "DiagnosticReport",
+  "Immunization",
+  "AllergyIntolerance",
+  "MedicationRequest",
+] as const;
 const MAX_ENTRIES = 20;
 
 interface FhirResource {

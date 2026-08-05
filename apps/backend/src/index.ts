@@ -18,6 +18,14 @@ import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-r
 import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
 import { createImagingReportRoute } from "./modules/radiologie/create-imaging-report.route.js";
 import { getPatientImagingReportsRoute } from "./modules/radiologie/get-patient-imaging-reports.route.js";
+import { createImmunizationRoute } from "./modules/vaccination/create-immunization.route.js";
+import { listImmunizationsRoute } from "./modules/vaccination/list-immunizations.route.js";
+import { createGrowthRoute } from "./modules/croissance/create-growth.route.js";
+import { listGrowthRoute } from "./modules/croissance/list-growth.route.js";
+import { createAllergyRoute } from "./modules/prescription/create-allergy.route.js";
+import { listAllergiesRoute } from "./modules/prescription/list-allergies.route.js";
+import { createPrescriptionRoute } from "./modules/prescription/create-prescription.route.js";
+import { listPrescriptionsRoute } from "./modules/prescription/list-prescriptions.route.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -57,6 +65,22 @@ await app.register(createImagingRequestRoute);
 await app.register(listImagingRequestsRoute);
 await app.register(createImagingReportRoute);
 await app.register(getPatientImagingReportsRoute);
+
+// Module Vaccination : carnet vaccinal (Immunization), intégré au dossier patient.
+await app.register(createImmunizationRoute);
+await app.register(listImmunizationsRoute);
+
+// Module Croissance : mesures (Observation poids/taille/périmètre crânien),
+// intégré au dossier patient.
+await app.register(createGrowthRoute);
+await app.register(listGrowthRoute);
+
+// Module Prescription : allergies connues (AllergyIntolerance) et prescriptions
+// (MedicationRequest), avec contrôle d'allergie avant enregistrement.
+await app.register(createAllergyRoute);
+await app.register(listAllergiesRoute);
+await app.register(createPrescriptionRoute);
+await app.register(listPrescriptionsRoute);
 
 // Vitrine d'interopérabilité : dernières ressources FHIR émises.
 await app.register(fhirLogRoute);

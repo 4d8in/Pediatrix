@@ -117,6 +117,67 @@ export interface ImagingReport {
   results: { label: string; value: string }[];
 }
 
+export interface CreateImmunizationInput {
+  vaccine: string;
+  date: string;
+  doseNumber?: number;
+  notes?: string;
+}
+
+export interface Immunization {
+  id: string;
+  date: string | null;
+  vaccine: string | null;
+  doseNumber: number | null;
+  notes: string | null;
+}
+
+export interface CreateGrowthInput {
+  date: string;
+  weight?: number;
+  height?: number;
+  headCircumference?: number;
+}
+
+export interface GrowthMeasurement {
+  date: string;
+  weight?: number;
+  height?: number;
+  headCircumference?: number;
+}
+
+export interface CreateAllergyInput {
+  substance: string;
+  reaction?: string;
+}
+
+export interface Allergy {
+  id: string;
+  substance: string | null;
+  reaction: string | null;
+  recordedDate: string | null;
+}
+
+export interface CreatePrescriptionInput {
+  medication: string;
+  dosage: string;
+  confirmed?: boolean;
+}
+
+export interface Prescription {
+  id: string;
+  date: string | null;
+  medication: string | null;
+  dosage: string | null;
+  allergyOverrideConfirmed: boolean;
+}
+
+export interface AllergyConflict {
+  requiresConfirmation: true;
+  allergy: string;
+  message: string;
+}
+
 export interface FhirLogEntry {
   type: string;
   id: string;

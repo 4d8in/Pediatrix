@@ -1,0 +1,142 @@
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { useAuth } from "../../lib/auth-context";
+import { ApiError, createImmunization } from "../../lib/api";
+import type { Immunization } from "../../lib/types";
+
+export default function ImmunizationSection({
+  patientId,
+  immunizations,
+  onCreated,
+}: {
+  patientId: string;
+  immunizations: Immunization[];
+  onCreated: () => void;
+}) {
+  const { user } = useAuth();
+  const canWrite = user?.role === "doctor" || user?.role === "nurse";
+
+  const [vaccine, setVaccine] = useState("");
+  const [date, setDate] = useState("");
+  const [doseNumber, setDoseNumber] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setErrors([]);
+    setIsSubmitting(true);
+
+    try {
+      await createImmunization(patientId, {
+        vaccine,
+        date,
+        doseNumber: doseNumber ? Number(doseNumber) : undefined,
+      });
+      setVaccine("");
+      setDate("");
+      setDoseNumber("");
+      onCreated();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrors(error.details ?? [error.message]);
+      } else {
+        setErrors(["Erreur inattendue lors de l'enregistrement du vaccin."]);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Carnet vaccinal</h2>
+      </div>
+
+      {canWrite && (
+        <form onSubmit={handleSubmit} className="p-8 border-b border-zinc-100 space-y-6">
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+              {errors.map((message) => (
+                <p key={message} className="text-xs font-bold text-red-700">
+                  {message}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Vaccin</label>
+              <input
+                type="text"
+                required
+                value={vaccine}
+                onChange={(event) => setVaccine(event.target.value)}
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                placeholder="Ex. : BCG"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                Dose (optionnel)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={doseNumber}
+                onChange={(event) => setDoseNumber(event.target.value)}
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                placeholder="Ex. : 3"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+          >
+            {isSubmitting ? "Enregistrement..." : "Ajouter au carnet"}
+          </button>
+        </form>
+      )}
+
+      {immunizations.length === 0 ? (
+        <p className="p-10 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+          Aucun vaccin enregistré.
+        </p>
+      ) : (
+        <div className="divide-y divide-zinc-100">
+          {immunizations.map((immunization) => (
+            <div key={immunization.id} className="p-8 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase tracking-tight text-zinc-900">
+                  {immunization.vaccine ?? "Vaccin non précisé"}
+                  {immunization.doseNumber ? ` — dose ${immunization.doseNumber}` : ""}
+                </p>
+                {immunization.notes && <p className="text-xs text-zinc-600">{immunization.notes}</p>}
+              </div>
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                {immunization.date ? new Date(immunization.date).toLocaleDateString("fr-FR") : "Date inconnue"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

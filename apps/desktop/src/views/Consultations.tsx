@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CheckCircle2, FlaskConical, ScanLine } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FlaskConical, Pill, ScanLine } from "lucide-react";
 import PatientPicker from "../components/PatientPicker";
 import VitalsFields from "./VitalsFields";
-import { ApiError, createEncounter, createImagingRequest, createServiceRequest } from "../lib/api";
-import type { Patient, Vitals } from "../lib/types";
+import {
+  ApiError,
+  createEncounter,
+  createImagingRequest,
+  createPrescription,
+  createServiceRequest,
+  getPatient,
+} from "../lib/api";
+import type { AllergyConflict, Patient, Vitals } from "../lib/types";
 
-export default function Consultations() {
+interface ConsultationsProps {
+  initialPatientId?: string | null;
+}
+
+export default function Consultations({ initialPatientId }: ConsultationsProps) {
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [patientLoadError, setPatientLoadError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [vitals, setVitals] = useState<Vitals>({});
@@ -27,6 +39,13 @@ export default function Consultations() {
   const [imagingErrors, setImagingErrors] = useState<string[]>([]);
   const [imagingRequested, setImagingRequested] = useState(false);
 
+  const [medication, setMedication] = useState("");
+  const [dosage, setDosage] = useState("");
+  const [isPrescribing, setIsPrescribing] = useState(false);
+  const [prescriptionErrors, setPrescriptionErrors] = useState<string[]>([]);
+  const [allergyConflict, setAllergyConflict] = useState<AllergyConflict | null>(null);
+  const [prescriptionCreated, setPrescriptionCreated] = useState(false);
+
   function resetForm() {
     setPatient(null);
     setReason("");
@@ -41,7 +60,31 @@ export default function Consultations() {
     setImagingRequester("");
     setImagingErrors([]);
     setImagingRequested(false);
+    setMedication("");
+    setDosage("");
+    setPrescriptionErrors([]);
+    setAllergyConflict(null);
+    setPrescriptionCreated(false);
   }
+
+  // Reçoit un patient présélectionné (venant du bouton « Saisir paramètres
+  // vitaux » du Dashboard) : le formulaire se pré-remplit directement, sans
+  // passer par PatientPicker. Celui-ci reste disponible pour en choisir un autre.
+  useEffect(() => {
+    if (!initialPatientId) return;
+    let cancelled = false;
+    getPatient(initialPatientId)
+      .then((data) => {
+        if (!cancelled) setPatient(data.patient);
+      })
+      .catch((err) => {
+        if (!cancelled) setPatientLoadError(err instanceof ApiError ? err.message : "Erreur de chargement du patient.");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPatientId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -104,6 +147,47 @@ export default function Consultations() {
     } finally {
       setIsRequestingImaging(false);
     }
+  }
+
+  async function submitPrescription(confirmed: boolean) {
+    if (!encounterId) return;
+
+    setPrescriptionErrors([]);
+    setIsPrescribing(true);
+
+    try {
+      await createPrescription(encounterId, { medication, dosage, confirmed });
+      setAllergyConflict(null);
+      setPrescriptionCreated(true);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        const body = error.body as Partial<AllergyConflict> | undefined;
+        if (body?.requiresConfirmation) {
+          setAllergyConflict({
+            requiresConfirmation: true,
+            allergy: body.allergy ?? "",
+            message: body.message ?? error.message,
+          });
+          return;
+        }
+      }
+      if (error instanceof ApiError) {
+        setPrescriptionErrors(error.details ?? [error.message]);
+      } else {
+        setPrescriptionErrors(["Erreur inattendue lors de l'enregistrement de la prescription."]);
+      }
+    } finally {
+      setIsPrescribing(false);
+    }
+  }
+
+  async function handleSubmitPrescription(event: FormEvent) {
+    event.preventDefault();
+    await submitPrescription(false);
+  }
+
+  async function handleConfirmDespiteAllergy() {
+    await submitPrescription(true);
   }
 
   if (encounterId) {
@@ -238,6 +322,105 @@ export default function Consultations() {
               </form>
             )}
 
+            {prescriptionCreated ? (
+              <div className="bg-zinc-50 border border-zinc-200 p-6 flex items-center gap-4">
+                <Pill className="w-6 h-6 text-zinc-400" />
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-700">
+                  Prescription enregistrée.
+                </p>
+              </div>
+            ) : allergyConflict ? (
+              <div className="bg-red-50 border border-red-200 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-red-700">
+                    Allergie connue
+                  </h3>
+                </div>
+                <p className="text-xs font-bold text-red-700">{allergyConflict.message}</p>
+
+                {prescriptionErrors.length > 0 && (
+                  <div className="space-y-2">
+                    {prescriptionErrors.map((message) => (
+                      <p key={message} className="text-xs font-bold text-red-700">
+                        {message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setAllergyConflict(null)}
+                    className="flex-1 bg-white border border-zinc-300 text-zinc-700 px-6 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-50 transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDespiteAllergy}
+                    disabled={isPrescribing}
+                    className="flex-1 bg-red-600 text-white px-6 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
+                  >
+                    {isPrescribing ? "Envoi..." : "Confirmer et prescrire quand même"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitPrescription} className="space-y-6">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 flex items-center gap-2">
+                  <Pill className="w-4 h-4" /> Prescrire un médicament
+                </h3>
+
+                {prescriptionErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+                    {prescriptionErrors.map((message) => (
+                      <p key={message} className="text-xs font-bold text-red-700">
+                        {message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Médicament
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={medication}
+                    onChange={(event) => setMedication(event.target.value)}
+                    className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                    placeholder="Ex. : Amoxicilline"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Posologie
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={dosage}
+                    onChange={(event) => setDosage(event.target.value)}
+                    className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                    placeholder="Ex. : 5ml x 3/j pendant 7 jours"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isPrescribing}
+                  className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#1559ab] transition-all disabled:opacity-50"
+                >
+                  {isPrescribing ? "Envoi..." : "Enregistrer la prescription"}
+                </button>
+              </form>
+            )}
+
             <button
               type="button"
               onClick={resetForm}
@@ -261,6 +444,11 @@ export default function Consultations() {
       </div>
 
       <form className="space-y-10 pb-20" onSubmit={handleSubmit}>
+        {patientLoadError && (
+          <div className="bg-red-50 border border-red-200 p-6">
+            <p className="text-xs font-bold text-red-700">{patientLoadError}</p>
+          </div>
+        )}
         {errors.length > 0 && (
           <div className="bg-red-50 border border-red-200 p-6 space-y-2">
             {errors.map((message) => (

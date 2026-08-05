@@ -1,16 +1,24 @@
 import type {
+  Allergy,
+  CreateAllergyInput,
   CreateEncounterInput,
+  CreateGrowthInput,
   CreateImagingReportInput,
   CreateImagingRequestInput,
+  CreateImmunizationInput,
   CreatePatientInput,
+  CreatePrescriptionInput,
   CreateReportInput,
   CreateServiceRequestInput,
   FhirLogEntry,
+  GrowthMeasurement,
   ImagingReport,
   ImagingRequest,
+  Immunization,
   LabRequest,
   Patient,
   PatientRecord,
+  Prescription,
   Report,
   User,
 } from "./types";
@@ -26,6 +34,10 @@ export class ApiError extends Error {
     message: string,
     public readonly status?: number,
     public readonly details?: string[],
+    // Corps brut de la réponse : nécessaire pour les réponses d'erreur qui
+    // portent des données structurées au-delà de `error`/`details` (ex. le
+    // conflit d'allergie de la Prescription, voir createPrescription ci-dessous).
+    public readonly body?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -70,7 +82,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (response.status === 401 && path !== "/api/auth/login") {
       onUnauthorized?.();
     }
-    throw new ApiError(body?.error ?? `Erreur ${response.status}.`, response.status, body?.details);
+    throw new ApiError(body?.error ?? body?.message ?? `Erreur ${response.status}.`, response.status, body?.details, body);
   }
 
   return body as T;
@@ -168,4 +180,61 @@ export function getPatientImagingReports(patientId: string): Promise<{ reports: 
 
 export function getFhirLog(): Promise<{ resources: FhirLogEntry[] }> {
   return request<{ resources: FhirLogEntry[] }>("/api/fhir-log");
+}
+
+export function createImmunization(
+  patientId: string,
+  input: CreateImmunizationInput,
+): Promise<{ immunizationId: string }> {
+  return request<{ immunizationId: string }>(`/api/patients/${patientId}/immunizations`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientImmunizations(patientId: string): Promise<{ immunizations: Immunization[] }> {
+  return request<{ immunizations: Immunization[] }>(`/api/patients/${patientId}/immunizations`);
+}
+
+export function createGrowthMeasurement(
+  patientId: string,
+  input: CreateGrowthInput,
+): Promise<{ observationIds: string[] }> {
+  return request<{ observationIds: string[] }>(`/api/patients/${patientId}/growth`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientGrowth(patientId: string): Promise<{ measurements: GrowthMeasurement[] }> {
+  return request<{ measurements: GrowthMeasurement[] }>(`/api/patients/${patientId}/growth`);
+}
+
+export function createAllergy(patientId: string, input: CreateAllergyInput): Promise<{ allergyId: string }> {
+  return request<{ allergyId: string }>(`/api/patients/${patientId}/allergies`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientAllergies(patientId: string): Promise<{ allergies: Allergy[] }> {
+  return request<{ allergies: Allergy[] }>(`/api/patients/${patientId}/allergies`);
+}
+
+// Peut lever une ApiError avec status 409 : error.body porte alors
+// { requiresConfirmation: true, allergy, message } (voir AllergyConflict dans
+// types.ts) — le formulaire de prescription doit afficher cette alerte et
+// laisser le médecin renvoyer la même requête avec `confirmed: true`.
+export function createPrescription(
+  encounterId: string,
+  input: CreatePrescriptionInput,
+): Promise<{ prescriptionId: string }> {
+  return request<{ prescriptionId: string }>(`/api/encounters/${encounterId}/prescriptions`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientPrescriptions(patientId: string): Promise<{ prescriptions: Prescription[] }> {
+  return request<{ prescriptions: Prescription[] }>(`/api/patients/${patientId}/prescriptions`);
 }

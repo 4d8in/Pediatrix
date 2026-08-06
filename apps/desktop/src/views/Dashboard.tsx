@@ -17,8 +17,8 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { ApiError, listPatients } from "../lib/api";
-import type { Patient } from "../lib/types";
+import { ApiError, getDashboardCounters, listPatients } from "../lib/api";
+import type { DashboardCounters, Patient } from "../lib/types";
 
 interface EmergencyAlert {
   isActive: boolean;
@@ -120,6 +120,22 @@ export default function Dashboard({ onOpenRecord, onOpenConsultation, emergencyA
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isDemoData, setIsDemoData] = useState(false);
+  const [counters, setCounters] = useState<DashboardCounters | null>(null);
+
+  // Compteurs réels (paramètres vitaux à prendre / hospitalisés) — voir
+  // GET /api/dashboard/counters. Échec silencieux : ces compteurs restent en
+  // chargement ("…") plutôt que de bloquer le reste du tableau de bord.
+  useEffect(() => {
+    let cancelled = false;
+    getDashboardCounters()
+      .then((data) => {
+        if (!cancelled) setCounters(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Chargement initial : détermine si le backend a des patients réels à
   // afficher, ou si on retombe sur le jeu de démonstration de la maquette.
@@ -175,8 +191,12 @@ export default function Dashboard({ onOpenRecord, onOpenConsultation, emergencyA
 
   const stats = [
     { label: "Patients en charge", value: String(rows.length), icon: Users, color: "blue" as const },
-    { label: "Paramètres vitaux à prendre", value: "4", icon: Activity, color: "amber" as const },
-    { label: "Hospitalisés", value: "5", icon: Bed, color: "blue" as const },
+    {
+      label: "Paramètres vitaux à prendre",
+      value: counters ? String(counters.parametresVitauxAPrendre) : "…",
+      icon: Activity,
+      color: "amber" as const,
+    },
   ];
 
   function toggleSelect(id: string) {
@@ -233,6 +253,21 @@ export default function Dashboard({ onOpenRecord, onOpenConsultation, emergencyA
             </div>
           </div>
         ))}
+
+        <div className="bg-white border border-zinc-200 p-8 shadow-sm flex items-center gap-6 group hover:border-zinc-900 transition-all">
+          <div className="w-12 h-12 flex items-center justify-center bg-zinc-50 text-zinc-300">
+            <Bed className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Hospitalisés</p>
+            <p className="text-3xl font-black text-zinc-300 font-mono tracking-tighter">—</p>
+            {counters && (
+              <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mt-1 leading-relaxed">
+                Non disponible — {counters.hospitalises.raison}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Recherche & scanner */}

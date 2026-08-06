@@ -10,8 +10,10 @@ import type {
   CreatePrescriptionInput,
   CreateReportInput,
   CreateServiceRequestInput,
+  DashboardCounters,
   FhirLogEntry,
   GrowthMeasurement,
+  Stats,
   ImagingReport,
   ImagingRequest,
   Immunization,
@@ -50,6 +52,10 @@ let authToken: string | null = null;
 
 export function setAuthToken(token: string | null): void {
   authToken = token;
+}
+
+export function hasAuthToken(): boolean {
+  return authToken !== null;
 }
 
 // Déclenché sur un 401 (hors /api/auth/login) pour qu'AuthContext puisse
@@ -180,6 +186,14 @@ export function getPatientImagingReports(patientId: string): Promise<{ reports: 
 
 export function getFhirLog(): Promise<{ resources: FhirLogEntry[] }> {
   return request<{ resources: FhirLogEntry[] }>("/api/fhir-log");
+}
+
+export function getStats(): Promise<Stats> {
+  return request<Stats>("/api/stats");
+}
+
+export function getDashboardCounters(): Promise<DashboardCounters> {
+  return request<DashboardCounters>("/api/dashboard/counters");
 }
 
 export function createImmunization(

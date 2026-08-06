@@ -3,6 +3,8 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { healthRoute } from "./routes/health.js";
 import { fhirLogRoute } from "./routes/fhir-log.route.js";
+import { statsRoute } from "./routes/stats.route.js";
+import { dashboardCountersRoute } from "./routes/dashboard-counters.route.js";
 import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
 import { loginRoute } from "./socle/auth/login.route.js";
 import { meRoute } from "./socle/auth/me.route.js";
@@ -84,6 +86,14 @@ await app.register(listPrescriptionsRoute);
 
 // Vitrine d'interopérabilité : dernières ressources FHIR émises.
 await app.register(fhirLogRoute);
+
+// Statistiques du service, calculées à la volée depuis HAPI (Directeur +
+// Administrateur technique) — indépendant du service d'agrégation reporting/Supabase.
+await app.register(statsRoute);
+
+// Compteurs du tableau de bord (infirmière/médecin/directeur), calculés à la
+// volée depuis HAPI — distinct de /api/stats, dont l'accès est restreint.
+await app.register(dashboardCountersRoute);
 
 app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {

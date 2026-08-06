@@ -184,3 +184,26 @@ export interface FhirLogEntry {
   lastUpdated: string | null;
   json: unknown;
 }
+
+export interface UnavailableIndicator {
+  disponible: false;
+  raison: string;
+}
+
+export interface Stats {
+  genereLe: string;
+  patients: { total: number };
+  consultations: { total: number; moisCourant: number };
+  examens: { demandes: number; resultats: number; parType: Record<string, number> };
+  vaccinations: { total: number };
+  prescriptions: { total: number };
+  tauxHospitalisation: UnavailableIndicator;
+  dureeMoyenneSejour: UnavailableIndicator;
+  litsOccupes: UnavailableIndicator;
+  chargeParPraticien: UnavailableIndicator;
+}
+
+export interface DashboardCounters {
+  parametresVitauxAPrendre: number;
+  hospitalises: UnavailableIndicator;
+}

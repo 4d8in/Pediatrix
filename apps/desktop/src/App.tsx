@@ -14,6 +14,7 @@ import {
   Stethoscope,
   Syringe,
   Terminal,
+  BarChart3,
   UserPlus,
   Users as UsersIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import UsersView from "./views/Users";
 import SettingsView from "./views/Settings";
 import Support from "./views/Support";
 import Vaccinations from "./views/Vaccinations";
+import Stats from "./views/Stats";
 import { useAuth } from "./lib/auth-context";
 import type { Role } from "./lib/types";
 import "./App.css";
@@ -50,7 +52,8 @@ type ViewType =
   | "users"
   | "settings"
   | "support"
-  | "vaccinations";
+  | "vaccinations"
+  | "stats";
 
 // Masquage ergonomique uniquement : la barrière réelle est côté backend
 // (preHandler authenticate/authorize sur chaque route, voir apps/backend).
@@ -70,6 +73,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
   { id: "wardMap", label: "Carte des lits", icon: Bed, roles: ["nurse", "doctor"] },
   { id: "coordinationPings", label: "Coordination", icon: Bell, roles: ["nurse", "doctor", "director"] },
+  { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
   { id: "conflictResolver", label: "Conflits sync.", icon: RefreshCcw, roles: ["tech_admin"] },
   { id: "users", label: "Utilisateurs", icon: UsersIcon, roles: ["tech_admin"] },
   { id: "settings", label: "Paramètres", icon: SettingsIcon, roles: ["tech_admin"] },
@@ -172,6 +176,8 @@ function App() {
         return <FhirLog />;
       case "vaccinations":
         return <Vaccinations />;
+      case "stats":
+        return <Stats />;
       case "wardMap":
         return <WardMap />;
       case "coordinationPings":

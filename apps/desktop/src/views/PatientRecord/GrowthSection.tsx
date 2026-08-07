@@ -109,8 +109,12 @@ export default function GrowthSection({
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
                 required
+                pattern="\d{4}-\d{2}-\d{2}"
+                title="Format AAAA-MM-JJ"
+                placeholder="AAAA-MM-JJ"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"

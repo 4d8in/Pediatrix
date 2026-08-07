@@ -143,8 +143,12 @@ export default function Admission() {
                 Date de naissance
               </label>
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
                 required
+                pattern="\d{4}-\d{2}-\d{2}"
+                title="Format AAAA-MM-JJ"
+                placeholder="AAAA-MM-JJ"
                 value={form.birthDate}
                 onChange={(event) => updateField("birthDate", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-mono text-[10px]"

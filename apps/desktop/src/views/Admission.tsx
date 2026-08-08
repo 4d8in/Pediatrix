@@ -121,6 +121,7 @@ export default function Admission() {
               <input
                 type="text"
                 required
+                data-testid="admission-first-name"
                 value={form.firstName}
                 onChange={(event) => updateField("firstName", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
@@ -132,6 +133,7 @@ export default function Admission() {
               <input
                 type="text"
                 required
+                data-testid="admission-last-name"
                 value={form.lastName}
                 onChange={(event) => updateField("lastName", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
@@ -146,6 +148,7 @@ export default function Admission() {
                 type="text"
                 inputMode="numeric"
                 required
+                data-testid="admission-birth-date"
                 pattern="\d{4}-\d{2}-\d{2}"
                 title="Format AAAA-MM-JJ"
                 placeholder="AAAA-MM-JJ"
@@ -157,6 +160,7 @@ export default function Admission() {
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sexe</label>
               <select
+                data-testid="admission-gender"
                 value={form.gender}
                 onChange={(event) => updateField("gender", event.target.value as Gender)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all appearance-none cursor-pointer text-[10px] font-mono tracking-widest"
@@ -180,6 +184,7 @@ export default function Admission() {
               <input
                 type="text"
                 required
+                data-testid="admission-guardian-name"
                 value={form.guardianName}
                 onChange={(event) => updateField("guardianName", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
@@ -188,6 +193,7 @@ export default function Admission() {
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Relation</label>
               <select
+                data-testid="admission-guardian-relationship"
                 value={form.guardianRelationship}
                 onChange={(event) => updateField("guardianRelationship", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all appearance-none cursor-pointer text-[10px] font-mono tracking-widest"
@@ -204,6 +210,7 @@ export default function Admission() {
               <input
                 type="tel"
                 required
+                data-testid="admission-guardian-phone"
                 value={form.guardianPhone}
                 onChange={(event) => updateField("guardianPhone", event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-mono text-[10px] tracking-widest"
@@ -217,6 +224,7 @@ export default function Admission() {
           <button
             type="submit"
             disabled={isSubmitting}
+            data-testid="admission-submit"
             className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
           >
             {isSubmitting ? "Création en cours..." : "Valider l'admission"}

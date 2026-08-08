@@ -30,6 +30,7 @@ export default function VitalsFields({ vitals, onChange }: VitalsFieldsProps) {
             type="number"
             min="0"
             step={field.step}
+            data-testid={`vitals-${field.key}`}
             value={vitals[field.key] ?? ""}
             onChange={(event) => updateValue(field.key, event.target.value)}
             className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-mono text-xs"

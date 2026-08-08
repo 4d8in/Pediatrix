@@ -230,6 +230,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   <input
                     type="text"
                     required
+                    data-testid="exam-request-exam"
                     value={exam}
                     onChange={(event) => setExam(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
@@ -244,6 +245,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   <input
                     type="text"
                     required
+                    data-testid="exam-request-requester"
                     value={requester}
                     onChange={(event) => setRequester(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"

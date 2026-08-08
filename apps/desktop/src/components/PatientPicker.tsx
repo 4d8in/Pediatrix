@@ -70,6 +70,7 @@ export default function PatientPicker({ selected, onSelect, label = "Patient" }:
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
         <input
           type="text"
+          data-testid="patient-picker-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="RECHERCHER_NOM_PATIENT..."

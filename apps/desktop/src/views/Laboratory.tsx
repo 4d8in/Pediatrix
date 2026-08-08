@@ -201,6 +201,7 @@ export default function Laboratory() {
                         <td className="px-6 py-4">
                           <input
                             type="text"
+                            data-testid="lab-result-label-input"
                             value={row.label}
                             onChange={(event) => updateResultRow(index, "label", event.target.value)}
                             placeholder="Ex. : Hémoglobine"
@@ -210,6 +211,7 @@ export default function Laboratory() {
                         <td className="px-6 py-4">
                           <input
                             type="text"
+                            data-testid="lab-result-value-input"
                             value={row.value}
                             onChange={(event) => updateResultRow(index, "value", event.target.value)}
                             placeholder="Ex. : 8.2 g/dL"

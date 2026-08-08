@@ -234,6 +234,7 @@ function App() {
           {navItems.map((item) => (
             <button
               key={item.id}
+              data-testid={`nav-${item.id}`}
               onClick={() => setCurrentView(item.id)}
               className={`w-full flex items-center gap-4 px-4 py-3 transition-all ${
                 activeView === item.id

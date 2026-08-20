@@ -31,10 +31,6 @@ function validate(body: unknown): { input: CreateEncounterInput } | { errors: st
     vitals[key] = value;
   }
 
-  if (Object.keys(vitals).length === 0) {
-    errors.push("Au moins un paramètre vital est requis.");
-  }
-
   if (errors.length > 0) return { errors };
 
   return { input: { reason, notes: notes || undefined, vitals } };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity } from "lucide-react";
 import { cn } from "../../lib/utils";
 import PatientPicker from "../../components/PatientPicker";
@@ -57,8 +57,20 @@ export default function PatientRecord({ emergencyAlert, onTriggerEmergency, init
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Id du patient présélectionné venant du Dashboard, consommé une seule fois
+  // au montage : le dossier se charge directement, sans passer par
+  // PatientPicker. Remis à null si l'utilisateur déselectionne ensuite le
+  // patient (bouton "X"), pour ne pas le voir "ressusciter" via ce deep-link.
+  const initialPatientIdRef = useRef(initialPatientId ?? null);
+  const patientId = patient?.id ?? initialPatientIdRef.current;
+
+  function selectPatient(next: Patient | null) {
+    setPatient(next);
+    if (!next) initialPatientIdRef.current = null;
+  }
+
   const loadRecord = useCallback(() => {
-    if (!patient) {
+    if (!patientId) {
       setRecord(null);
       setReports([]);
       setImagingReports([]);
@@ -72,13 +84,13 @@ export default function PatientRecord({ emergencyAlert, onTriggerEmergency, init
     setIsLoading(true);
     setError(null);
     Promise.all([
-      getPatient(patient.id),
-      getPatientReports(patient.id),
-      getPatientImagingReports(patient.id),
-      getPatientImmunizations(patient.id),
-      getPatientGrowth(patient.id),
-      getPatientAllergies(patient.id),
-      getPatientPrescriptions(patient.id),
+      getPatient(patientId),
+      getPatientReports(patientId),
+      getPatientImagingReports(patientId),
+      getPatientImmunizations(patientId),
+      getPatientGrowth(patientId),
+      getPatientAllergies(patientId),
+      getPatientPrescriptions(patientId),
     ])
       .then(
         ([
@@ -91,6 +103,7 @@ export default function PatientRecord({ emergencyAlert, onTriggerEmergency, init
           prescriptionsData,
         ]) => {
           setRecord(recordData);
+          setPatient(recordData.patient);
           setReports(reportsData.reports);
           setImagingReports(imagingReportsData.reports);
           setImmunizations(immunizationsData.immunizations);
@@ -101,30 +114,11 @@ export default function PatientRecord({ emergencyAlert, onTriggerEmergency, init
       )
       .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du dossier."))
       .finally(() => setIsLoading(false));
-  }, [patient]);
+  }, [patientId]);
 
   useEffect(() => {
     loadRecord();
   }, [loadRecord]);
-
-  // Reçoit un patient présélectionné (venant du Dashboard) : le dossier se
-  // charge directement, sans passer par PatientPicker. Celui-ci reste
-  // disponible ensuite pour chercher un autre patient.
-  useEffect(() => {
-    if (!initialPatientId) return;
-    let cancelled = false;
-    getPatient(initialPatientId)
-      .then((data) => {
-        if (!cancelled) setPatient(data.patient);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Erreur de chargement du patient.");
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPatientId]);
 
   const isEmergencyForPatient =
     !!record && emergencyAlert?.isActive && emergencyAlert.patientId === record.patient.id;
@@ -157,7 +151,7 @@ export default function PatientRecord({ emergencyAlert, onTriggerEmergency, init
       </div>
 
       <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden p-10">
-        <PatientPicker selected={patient} onSelect={setPatient} />
+        <PatientPicker selected={patient} onSelect={selectPatient} />
       </section>
 
       {isLoading && (

@@ -57,7 +57,10 @@ function parseLabRequests(bundle: FhirBundle): LabRequestSummary[] {
 }
 
 export async function listLabRequestsRoute(app: FastifyInstance) {
-  app.get("/api/lab/requests", { preHandler: [authenticate, authorize("lab_tech")] }, async (_request, reply) => {
+  app.get("/api/lab/requests", { preHandler: [authenticate, authorize("lab_tech")] }, async (request, reply) => {
+    // ?status=completed : demandes déjà traitées (historique des résultats envoyés).
+    const { status } = request.query as { status?: string };
+    const requestStatus = status === "completed" ? "completed" : "active";
     try {
       // Cohérence immédiate exigée : la file labo doit refléter les demandes tout
       // juste créées côté Pédiatrie. Sans cet en-tête, HAPI peut réutiliser un
@@ -72,7 +75,7 @@ export async function listLabRequestsRoute(app: FastifyInstance) {
       // Les demandes labo existantes n'ont pas de `category` : le modificateur
       // `:not` les inclut quand même (absence de valeur = "not equal" satisfait).
       const bundle = await hapiClient.get<FhirBundle>(
-        `/ServiceRequest?status=active&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
+        `/ServiceRequest?status=${requestStatus}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
         { "Cache-Control": "no-cache" },
       );
       return reply.send({ requests: parseLabRequests(bundle) });

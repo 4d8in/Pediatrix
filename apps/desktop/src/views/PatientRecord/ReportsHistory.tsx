@@ -2,13 +2,13 @@ import type { Report } from "../../lib/types";
 
 export default function ReportsHistory({ reports }: { reports: Report[] }) {
   return (
-    <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-      <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Résultats de laboratoire</h2>
+    <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+        <h2 className="text-sm font-medium">Résultats de laboratoire</h2>
       </div>
 
       {reports.length === 0 ? (
-        <p className="p-10 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+        <p className="p-10 text-sm text-zinc-400">
           Aucun résultat disponible.
         </p>
       ) : (
@@ -16,10 +16,10 @@ export default function ReportsHistory({ reports }: { reports: Report[] }) {
           {reports.map((report) => (
             <div key={report.id} className="p-8 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-black uppercase tracking-tight text-zinc-900">
+                <p className="text-xs font-medium text-zinc-900">
                   {report.exam ?? "Examen non précisé"}
                 </p>
-                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                <span className="text-sm text-zinc-400">
                   {report.date ? new Date(report.date).toLocaleString("fr-FR") : "Date inconnue"}
                 </span>
               </div>
@@ -31,7 +31,7 @@ export default function ReportsHistory({ reports }: { reports: Report[] }) {
                   {report.results.map((result) => (
                     <span
                       key={result.label}
-                      className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-3 py-1"
+                      className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl"
                     >
                       {result.label}: {result.value}
                     </span>

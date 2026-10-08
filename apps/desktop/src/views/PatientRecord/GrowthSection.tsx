@@ -88,17 +88,17 @@ export default function GrowthSection({
   }
 
   return (
-    <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-      <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Croissance</h2>
+    <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+        <h2 className="text-sm font-medium">Croissance</h2>
       </div>
 
       {canWrite && (
         <form onSubmit={handleSubmit} className="p-8 border-b border-zinc-100 space-y-6">
           {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+            <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
               {errors.map((message) => (
-                <p key={message} className="text-xs font-bold text-red-700">
+                <p key={message} className="text-xs font-medium text-red-700">
                   {message}
                 </p>
               ))}
@@ -107,7 +107,7 @@ export default function GrowthSection({
 
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
+              <label className="text-sm font-medium text-zinc-400">Date</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -117,36 +117,36 @@ export default function GrowthSection({
                 placeholder="AAAA-MM-JJ"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Poids (kg)</label>
+              <label className="text-sm font-medium text-zinc-400">Poids (kg)</label>
               <input
                 type="number"
                 step="0.1"
                 min={0}
                 value={weight}
                 onChange={(event) => setWeight(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taille (cm)</label>
+              <label className="text-sm font-medium text-zinc-400">Taille (cm)</label>
               <input
                 type="number"
                 step="0.1"
                 min={0}
                 value={height}
                 onChange={(event) => setHeight(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label className="text-sm font-medium text-zinc-400">
                 Périmètre crânien (cm)
               </label>
               <input
@@ -155,7 +155,7 @@ export default function GrowthSection({
                 min={0}
                 value={headCircumference}
                 onChange={(event) => setHeadCircumference(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function GrowthSection({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+            className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
             {isSubmitting ? "Enregistrement..." : "Ajouter une mesure"}
           </button>
@@ -171,7 +171,7 @@ export default function GrowthSection({
       )}
 
       {measurements.length === 0 ? (
-        <p className="p-10 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+        <p className="p-10 text-sm text-zinc-400">
           Aucune mesure enregistrée.
         </p>
       ) : (
@@ -184,22 +184,22 @@ export default function GrowthSection({
               <div key={measurement.date} className="p-8 flex items-center justify-between">
                 <div className="flex flex-wrap gap-4">
                   {measurement.weight !== undefined && (
-                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-3 py-1">
+                    <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
                       Poids: {measurement.weight} kg
                     </span>
                   )}
                   {measurement.height !== undefined && (
-                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-3 py-1">
+                    <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
                       Taille: {measurement.height} cm
                     </span>
                   )}
                   {measurement.headCircumference !== undefined && (
-                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-3 py-1">
+                    <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
                       PC: {measurement.headCircumference} cm
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+                <span className="text-sm text-zinc-400">
                   {new Date(measurement.date).toLocaleDateString("fr-FR")}
                 </span>
               </div>

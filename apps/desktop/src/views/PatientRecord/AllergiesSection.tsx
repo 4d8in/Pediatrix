@@ -43,17 +43,17 @@ export default function AllergiesSection({
   }
 
   return (
-    <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-      <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Allergies connues</h2>
+    <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+        <h2 className="text-sm font-medium">Allergies connues</h2>
       </div>
 
       {canWrite && (
         <form onSubmit={handleSubmit} className="p-8 border-b border-zinc-100 space-y-6">
           {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+            <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
               {errors.map((message) => (
-                <p key={message} className="text-xs font-bold text-red-700">
+                <p key={message} className="text-xs font-medium text-red-700">
                   {message}
                 </p>
               ))}
@@ -62,26 +62,26 @@ export default function AllergiesSection({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Substance</label>
+              <label className="text-sm font-medium text-zinc-400">Substance</label>
               <input
                 type="text"
                 required
                 value={substance}
                 onChange={(event) => setSubstance(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 placeholder="Ex. : Pénicilline"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label className="text-sm font-medium text-zinc-400">
                 Réaction (optionnel)
               </label>
               <input
                 type="text"
                 value={reaction}
                 onChange={(event) => setReaction(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 placeholder="Ex. : Éruption cutanée"
               />
             </div>
@@ -90,7 +90,7 @@ export default function AllergiesSection({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+            className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
             {isSubmitting ? "Enregistrement..." : "Ajouter une allergie"}
           </button>
@@ -98,7 +98,7 @@ export default function AllergiesSection({
       )}
 
       {allergies.length === 0 ? (
-        <p className="p-10 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+        <p className="p-10 text-sm text-zinc-400">
           Aucune allergie connue.
         </p>
       ) : (
@@ -106,10 +106,10 @@ export default function AllergiesSection({
           {allergies.map((allergy) => (
             <div key={allergy.id} className="p-8 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-tight text-red-700">{allergy.substance}</p>
+                <p className="text-xs font-medium text-red-700">{allergy.substance}</p>
                 {allergy.reaction && <p className="text-xs text-zinc-600">{allergy.reaction}</p>}
               </div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+              <span className="text-sm text-zinc-400">
                 {allergy.recordedDate ? new Date(allergy.recordedDate).toLocaleDateString("fr-FR") : "Date inconnue"}
               </span>
             </div>

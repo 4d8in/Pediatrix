@@ -16,8 +16,8 @@ export function e2ePassword(): string {
 
 export async function login(page: Page, username: string, password: string): Promise<void> {
   await page.goto("/");
-  await page.getByLabel("Identifiant").fill(username);
-  await page.getByLabel("Mot de passe").fill(password);
+  await page.getByLabel("Identifiant", { exact: true }).fill(username);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page.getByRole("button", { name: "Déconnexion" })).toBeVisible();
 }

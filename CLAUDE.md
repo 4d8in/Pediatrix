@@ -29,7 +29,7 @@ Flux bout-en-bout :
 
 | Couche | Choix |
 |---|---|
-| Client desktop | Tauri v2 (Windows + Linux) + React + TypeScript |
+| Client desktop | Electron (Windows + Linux) + React + TypeScript, packagé avec electron-builder |
 | Backend | Node.js |
 | Interopérabilité | Serveur HAPI FHIR (Docker) |
 | Data store | PostgreSQL |
@@ -37,16 +37,20 @@ Flux bout-en-bout :
 | UI | Tailwind CSS + Shadcn/UI |
 
 Contraintes :
-- Rust = coquille Tauri minimale. **Toute la logique métier est dans le backend Node.js.**
-- Matériel cible modeste : rester léger (pas d'Electron, pas de dépendances lourdes).
+- Electron = coquille minimale (`apps/desktop/electron/` : fenêtre + mises à jour).
+  **Toute la logique métier est dans le backend Node.js.** Pas de `nodeIntegration` dans l'UI.
+- Matériel cible modeste : rester léger (pas de dépendances lourdes dans l'UI).
+- Mises à jour : `electron-updater` en source `generic`, servies par le backend sur le LAN
+  (`GET /updates/:file`) — jamais depuis Internet.
 
 ## Architecture
 
 ```
-Postes Tauri (Accueil · Pédiatrie · Laboratoire)
+Postes Electron (Accueil · Pédiatrie · Laboratoire)
         ↓ LAN (REST/FHIR)
 Backend Node.js  ── SOCLE : identité patient · auth & rôles
-                 └─ MODULES : Pédiatrie · Laboratoire
+                 └─ MODULES : Pédiatrie · Laboratoire · Radiologie (souche)
+                              Vaccination · Croissance · Prescription · Hospitalisation (lits)
         ↓ produisent du FHIR
 Serveur HAPI FHIR (Docker)
         ↓
@@ -70,14 +74,18 @@ Un module ne doit **jamais** importer directement le code d'un autre module.
 | `Observation` | paramètres vitaux, croissance, vaccins |
 | `ServiceRequest` | demande d'examen au laboratoire |
 | `DiagnosticReport` | résultat d'examen |
+| `Immunization` | carnet vaccinal (module Vaccination) |
+| `AllergyIntolerance` / `MedicationRequest` | allergies et prescriptions (module Prescription) |
+| `Location` | services (`wa`) et lits (`bd`, état dans `operationalStatus`) — module Hospitalisation |
+| `Encounter` classe `IMP` | séjour hospitalier (les consultations sont en classe `AMB`) |
 
-Futur (ne pas implémenter) : `ImagingStudy` (radiologie, Orthanc), `MedicationRequest` (pharmacie).
+Futur (ne pas implémenter) : `ImagingStudy` (radiologie, Orthanc), dispensation pharmacie.
 
 ## Rôles utilisateurs
 
 Alignés sur la maquette existante (`App.tsx` → `userRole`) :
 
-`Infirmière` · `Médecin` · `Technicien Labo` · `Directeur` · `Administrateur technique`
+`Infirmière` · `Médecin` · `Technicien Labo` · `Radiologue` · `Directeur` · `Administrateur technique`
 
 Droits (déjà amorcés dans la nav de `App.tsx`) :
 - Consultations / Prescriptions → `Médecin`, `Directeur`
@@ -90,7 +98,7 @@ Le sélecteur de rôle par clic (mode démo) doit être remplacé par une vraie 
 
 ## Frontend : projet neuf + maquette de référence
 
-**Le code est écrit dans un projet neuf et vierge** (Tauri v2 + React + TS + Tailwind).
+**Le code est écrit dans un projet neuf et vierge** (Electron + React + TS + Tailwind).
 La maquette `maquette_logiciel_hospitalier` est une **référence**, pas une base de code :
 on ne l'étend pas, on ne copie pas son `package.json` ni sa config.
 (Elle contient des résidus AI Studio — `@google/genai`, `express`, avatars distants — à ne jamais reprendre.)
@@ -113,10 +121,30 @@ on ne l'étend pas, on ne copie pas son `package.json` ni sa config.
 | Flux FHIR | affiche les vraies ressources émises (vitrine d'interopérabilité, rôle Admin technique) |
 | Tableau de bord | données réelles du flux |
 | Stats | lit PostgreSQL reporting |
+| Radiologie | module-souche (même contrat que le Laboratoire) |
+| Vaccinations | carnet vaccinal (`Immunization`) |
+
+### Écrans ajoutés à la demande explicite du porteur du projet
+| Écran | Rôles | Contenu |
+|---|---|---|
+| File active | infirmière, médecin, directeur | patients admis aujourd'hui, en attente / consultés |
+| Gestion des lits | infirmière, médecin, directeur (lecture), admin technique (état des lits) | lits par service, hospitalisation, transfert, sortie |
+| Paramètres | tous | compte, changement de mot de passe, aide |
+| Comptes | admin technique | création, désactivation, réinitialisation du mot de passe |
+| Supervision | admin technique | état backend / HAPI, volumes, dernières ressources |
+
+Accueil spécialisé par rôle : tableau de bord « soins du jour » (infirmière), résultats
+reçus non lus (médecin), compteurs du jour (labo, radiologie), activité par service
+(directeur, dans Stats).
 
 ### Hors périmètre (présents dans la maquette — NE PAS construire)
-`Prescriptions` · `Vaccinations` · `Croissance` · `WardMap` · `CoordinationPings`
-`ConflictResolver` · `Users` · `Settings` · `Support`
+`WardMap` · `CoordinationPings` · `ConflictResolver` · `Support`
+
+(`Users` et `Settings` ont été ajoutés sous la forme « Comptes » et « Paramètres »,
+à la demande explicite du porteur du projet.)
+
+Croissance et Prescriptions/Allergies existent comme modules backend et sections du
+dossier patient, pas comme écrans dédiés.
 
 Ces écrans relèvent de la vision produit et de l'extensibilité, pas du prototype.
 Ne pas les implémenter, ne pas leur créer de routes backend.
@@ -134,12 +162,12 @@ Un flux complet qui traverse toutes les couches, puis on élargit.
 
 ### Ordre des étapes
 1. `docker-compose` : HAPI FHIR + PostgreSQL → vérifier avec un `POST /Patient`
-2. Scaffold **projet neuf** : Tauri v2 + React + TS + Tailwind, et backend Node.js → hello world bout-en-bout
+2. Scaffold **projet neuf** : Electron + React + TS + Tailwind, et backend Node.js → hello world bout-en-bout
 3. **Tranche verticale** Pédiatrie → Labo (Patient → Encounter/Observation → ServiceRequest → DiagnosticReport → retour médecin)
 4. Auth JWT + matrice de rôles + tests de blocage
 5. Service d'agrégation → PostgreSQL reporting (nb patients, consultations, examens)
 6. Module-souche Radiologie (preuve de modularité)
-7. Finitions : offline-first minimal, packaging Tauri, tests fonctionnels
+7. Finitions : offline-first minimal, packaging Electron + mises à jour LAN, tests fonctionnels
 
 L'étape courante est la seule à traiter. Ne pas anticiper les suivantes.
 

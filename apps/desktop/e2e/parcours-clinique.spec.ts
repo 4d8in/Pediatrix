@@ -66,6 +66,7 @@ test("parcours clinique complet : admission → consultation → labo → dossie
   await page.getByTestId("nav-record").click();
   await page.getByTestId("patient-picker-search").fill(lastName);
   await page.getByRole("button", { name: new RegExp(lastName) }).click();
+  await page.getByRole("button", { name: "Examens", exact: true }).click();
 
   await expect(page.getByText(`${resultLabel}: ${resultValue}`)).toBeVisible();
 });

@@ -190,6 +190,12 @@ export interface UnavailableIndicator {
   raison: string;
 }
 
+export interface AvailableIndicator {
+  disponible: true;
+  valeur: string;
+  detail: string;
+}
+
 export interface Stats {
   genereLe: string;
   patients: { total: number };
@@ -197,13 +203,108 @@ export interface Stats {
   examens: { demandes: number; resultats: number; parType: Record<string, number> };
   vaccinations: { total: number };
   prescriptions: { total: number };
-  tauxHospitalisation: UnavailableIndicator;
-  dureeMoyenneSejour: UnavailableIndicator;
-  litsOccupes: UnavailableIndicator;
+  activiteMensuelle: {
+    consultations: number[];
+    examensLabo: number[];
+    examensImagerie: number[];
+    hospitalisations: number[];
+  };
+  occupationParService: { service: string; total: number; occupes: number }[];
+  tauxHospitalisation: UnavailableIndicator | AvailableIndicator;
+  dureeMoyenneSejour: UnavailableIndicator | AvailableIndicator;
+  litsOccupes: UnavailableIndicator | AvailableIndicator;
   chargeParPraticien: UnavailableIndicator;
 }
 
 export interface DashboardCounters {
   parametresVitauxAPrendre: number;
   hospitalises: UnavailableIndicator;
+}
+
+interface SevenDayCount {
+  total: number;
+  last7Days: number[];
+}
+
+export interface DashboardOverview {
+  consultations: SevenDayCount;
+  examens: SevenDayCount;
+  patients: { total: number; parTrancheAge: number[] };
+  vaccinations: SevenDayCount;
+  activiteMensuelle: { consultations: number[]; examens: number[] };
+  hospitalisation: { enCours: number; litsOccupes: number; litsTotal: number };
+  laboratoire: { termines: number; enAttente: number };
+  examensEnAttente: { id: string; examen: string; patient: string; demandeLe: string | null }[];
+  sexes: { feminin: number; masculin: number; autre: number };
+}
+
+export interface QueueEntry {
+  patientId: string;
+  name: string;
+  birthDate: string | null;
+  gender: Gender;
+  admittedAt: string | null;
+  status: "en_attente" | "consulte";
+  reason: string | null;
+}
+
+export interface HealthStatus {
+  status: "ok" | "degraded";
+  backend: { status: "ok" };
+  hapi: { status: "up" | "down"; fhirVersion: string | null };
+}
+
+export type BedStatus = "U" | "O" | "H" | "C";
+
+export interface Bed {
+  id: string;
+  name: string;
+  status: BedStatus;
+  stay: { stayId: string; patientId: string; patientName: string; since: string | null; reason: string | null } | null;
+}
+
+export interface Ward {
+  id: string;
+  name: string;
+  beds: Bed[];
+}
+
+export interface PatientStay {
+  id: string;
+  inProgress: boolean;
+  start: string | null;
+  end: string | null;
+  reason: string | null;
+  beds: { name: string; start: string | null; end: string | null }[];
+}
+
+export interface UserAccount {
+  username: string;
+  displayName: string;
+  role: Role;
+  active: boolean;
+}
+
+export interface RecentResult {
+  id: string;
+  patientId: string;
+  patientName: string;
+  exam: string;
+  kind: "laboratoire" | "imagerie";
+  issued: string | null;
+  conclusion: string | null;
+  read: boolean;
+}
+
+export interface RequestSummary {
+  enAttente: number;
+  rendusAujourdhui: number;
+  delaiMoyenHeures: number | null;
+}
+
+export interface UserProfile {
+  displayName: string;
+  phone: string | null;
+  email: string | null;
+  photo: { contentType: string; data: string } | null;
 }

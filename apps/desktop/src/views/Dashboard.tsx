@@ -1,58 +1,20 @@
 import { useEffect, useState } from "react";
-import {
-  Users,
-  FlaskConical,
-  Bell,
-  Activity,
-  QrCode,
-  Camera,
-  Search,
-  ArrowRight,
-  ChevronRight,
-  Bed,
-  Printer,
-  FileCheck,
-  CheckSquare,
-  Square,
-  Plus,
-} from "lucide-react";
+import { BedDouble, CalendarCheck, ChevronRight, FlaskConical, Info, MoreVertical, Plus, Syringe, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "../lib/utils";
-import { ApiError, getDashboardCounters, listPatients } from "../lib/api";
-import type { DashboardCounters, Patient } from "../lib/types";
-
-interface EmergencyAlert {
-  isActive: boolean;
-  patientId: string | null;
-  patientName: string | null;
-  isResolved: boolean;
-  resolvedTime: string | null;
-}
+import { useAuth } from "../lib/auth-context";
+import RecentResults from "../components/RecentResults";
+import { ApiError, getDashboardOverview, listPatients } from "../lib/api";
+import type { DashboardOverview, Patient } from "../lib/types";
+import { CHART_COLORS, MiniBars, MonthlyBars, Pie, SegmentGauge, Sparkline } from "../components/charts";
 
 interface DashboardProps {
+  search: string;
   onOpenRecord: (patientId: string) => void;
   onOpenConsultation?: (patientId: string) => void;
-  emergencyAlert?: EmergencyAlert;
 }
 
-interface PatientRow {
-  id: string;
-  name: string;
-  age: string;
-  admission: string;
-  motif: string;
-  status: string;
-  statusColor: "blue" | "green" | "gray";
-}
-
-// Données de démonstration de la maquette de référence — affichées uniquement
-// quand le backend ne renvoie aucun patient réel (voir chargement plus bas).
-const DEMO_PATIENTS: PatientRow[] = [
-  { id: "demo-1", name: "Amadou Bah", age: "4 ans", admission: "17/04", motif: "Fièvre", status: "Hospitalisé", statusColor: "blue" },
-  { id: "demo-2", name: "Fatimata Sy", age: "2 ans", admission: "18/04", motif: "Toux", status: "En consultation", statusColor: "green" },
-  { id: "demo-3", name: "Ibrahima Diop", age: "7 ans", admission: "18/04", motif: "Diarrhée", status: "En attente", statusColor: "gray" },
-];
-
-const AVATAR_COLORS = ["bg-blue-600", "bg-amber-600", "bg-zinc-900", "bg-emerald-600", "bg-violet-600"];
+const AVATAR_COLORS = ["bg-[#1A6FD4]", "bg-[#0B2A4F]", "bg-sky-500", "bg-indigo-500", "bg-blue-400"];
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -72,7 +34,7 @@ function PatientAvatar({ name }: { name: string }) {
   return (
     <div
       className={cn(
-        "w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white",
         colorFor(name),
       )}
     >
@@ -96,403 +58,343 @@ function computeAge(birthDate: string): string {
   return `${years} ans`;
 }
 
-// Le modèle Patient (socle) ne porte ni motif, ni statut d'hospitalisation, ni
-// date d'admission — ces notions relèveraient d'un futur module Encounter de
-// suivi de séjour. On l'affiche donc honnêtement comme "Non renseigné" plutôt
-// que d'inventer une valeur clinique.
-function toRow(patient: Patient): PatientRow {
-  return {
-    id: patient.id,
-    name: `${patient.firstName} ${patient.lastName}`,
-    age: computeAge(patient.birthDate),
-    admission: "—",
-    motif: "Non renseigné",
-    status: "Non renseigné",
-    statusColor: "gray",
-  };
+const GENDER_LABELS: Record<Patient["gender"], string> = {
+  male: "Masculin",
+  female: "Féminin",
+  other: "Autre",
+  unknown: "Non renseigné",
+};
+
+function formatDate(date: string): string {
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString("fr-FR");
 }
 
-export default function Dashboard({ onOpenRecord, onOpenConsultation, emergencyAlert }: DashboardProps) {
-  const [isScanning, setIsScanning] = useState(false);
-  const [patientSearch, setPatientSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [rows, setRows] = useState<PatientRow[]>([]);
+interface CardProps {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  action?: React.ReactNode;
+}
+
+function Card({ title, children, className, action }: CardProps) {
+  return (
+    <section className={cn("rounded-[18px] border border-zinc-200/70 bg-white p-5", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg text-zinc-500">{title}</h2>
+        {action ?? <MoreVertical className="h-5 w-5 text-zinc-700" aria-hidden />}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+interface StatCardProps {
+  label: string;
+  value: number | undefined;
+  icon: LucideIcon;
+  caption: string;
+  chart: React.ReactNode;
+}
+
+function StatCard({ label, value, icon: Icon, caption, chart }: StatCardProps) {
+  return (
+    <div className="rounded-[18px] border border-zinc-200/70 bg-white p-4">
+      <div className="flex items-start justify-between">
+        <p className="flex items-center gap-2 text-lg text-zinc-500">
+          {label} <Info className="h-4 w-4 text-zinc-400" />
+        </p>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 text-[#1A6FD4]">
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <p className="text-[26px] font-medium text-zinc-900">{value ?? "…"}</p>
+        {chart}
+      </div>
+      <p className="mt-2 text-xs text-zinc-500">{caption}</p>
+    </div>
+  );
+}
+
+function sum(values: number[] | undefined): number {
+  return (values ?? []).reduce((total, value) => total + value, 0);
+}
+
+function percent(part: number, total: number): string {
+  return total > 0 ? `${Math.round((part / total) * 100)} %` : "—";
+}
+
+export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: DashboardProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isDemoData, setIsDemoData] = useState(false);
-  const [counters, setCounters] = useState<DashboardCounters | null>(null);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const { user } = useAuth();
+  const [breakdown, setBreakdown] = useState<"sexe" | "age">("sexe");
 
-  // Compteurs réels (paramètres vitaux à prendre / hospitalisés) — voir
-  // GET /api/dashboard/counters. Échec silencieux : ces compteurs restent en
-  // chargement ("…") plutôt que de bloquer le reste du tableau de bord.
+  // Indicateurs et graphiques, tous calculés par le backend (GET /api/dashboard/overview).
   useEffect(() => {
     let cancelled = false;
-    getDashboardCounters()
+    getDashboardOverview()
       .then((data) => {
-        if (!cancelled) setCounters(data);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Chargement initial : détermine si le backend a des patients réels à
-  // afficher, ou si on retombe sur le jeu de démonstration de la maquette.
-  useEffect(() => {
-    let cancelled = false;
-    listPatients()
-      .then((data) => {
-        if (cancelled) return;
-        setLoadError(null);
-        if (data.patients.length > 0) {
-          setIsDemoData(false);
-          setRows(data.patients.map(toRow));
-        } else {
-          setIsDemoData(true);
-          setRows(DEMO_PATIENTS);
-        }
+        if (!cancelled) setOverview(data);
       })
       .catch((err) => {
-        if (cancelled) return;
-        setLoadError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.");
-        setIsDemoData(true);
-        setRows(DEMO_PATIENTS);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setLoadError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.");
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Recherche : filtre le backend réel, ou le jeu de démonstration en local
-  // s'il n'y a pas de patients réels à interroger.
+  // Liste des patients (backend réel uniquement), filtrée par la recherche de l'en-tête.
   useEffect(() => {
-    if (isDemoData) {
-      const query = patientSearch.trim().toLowerCase();
-      setRows(
-        query
-          ? DEMO_PATIENTS.filter((p) => p.name.toLowerCase().includes(query) || p.id.includes(query))
-          : DEMO_PATIENTS,
-      );
-      return;
-    }
-
+    let cancelled = false;
     const timer = setTimeout(() => {
-      listPatients(patientSearch.trim() || undefined)
-        .then((data) => setRows(data.patients.map(toRow)))
-        .catch(() => undefined);
+      listPatients(search.trim() || undefined)
+        .then((data) => {
+          if (cancelled) return;
+          setLoadError(null);
+          setPatients(data.patients);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setLoadError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.");
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
     }, 300);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientSearch]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search]);
 
-  const stats = [
-    { label: "Patients en charge", value: String(rows.length), icon: Users, color: "blue" as const },
-    {
-      label: "Paramètres vitaux à prendre",
-      value: counters ? String(counters.parametresVitauxAPrendre) : "…",
-      icon: Activity,
-      color: "amber" as const,
-    },
-  ];
-
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-  }
-
-  function selectAll() {
-    if (selectedIds.length === rows.length) setSelectedIds([]);
-    else setSelectedIds(rows.map((p) => p.id));
-  }
+  const lab = overview?.laboratoire;
+  const labTotal = (lab?.termines ?? 0) + (lab?.enAttente ?? 0);
+  const sexes = overview?.sexes;
+  const ageGroups = overview?.patients.parTrancheAge ?? [0, 0, 0, 0];
+  const breakdownSlices =
+    breakdown === "sexe"
+      ? [
+          { label: "Féminin", value: sexes?.feminin ?? 0, color: CHART_COLORS.dark },
+          { label: "Masculin", value: sexes?.masculin ?? 0, color: "#5AA2F0" },
+          { label: "Autre / non renseigné", value: sexes?.autre ?? 0, color: "#D4D4D8" },
+        ]
+      : [
+          { label: "Moins de 1 an", value: ageGroups[0], color: "#0B2A4F" },
+          { label: "1 à 4 ans", value: ageGroups[1], color: CHART_COLORS.dark },
+          { label: "5 à 9 ans", value: ageGroups[2], color: "#5AA2F0" },
+          { label: "10 ans et plus", value: ageGroups[3], color: CHART_COLORS.light },
+        ];
+  const breakdownTotal = breakdownSlices.reduce((total, slice) => total + slice.value, 0);
 
   return (
-    <div className="p-10 space-y-8 relative z-10">
-      {/* En-tête */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-900 flex items-center gap-3">
-          <span className="w-8 h-px bg-zinc-900"></span>
-          Tableau_de_Bord
-        </h1>
-        <button
-          onClick={() => selectedIds.length === 1 && onOpenConsultation?.(selectedIds[0])}
-          disabled={selectedIds.length !== 1}
-          title={
-            selectedIds.length === 1
-              ? undefined
-              : "Sélectionnez un seul patient dans la liste (case à cocher) pour activer ce bouton"
-          }
-          className="bg-[#22C55E] text-white px-6 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-[#16a34a] transition-all shadow-lg shadow-green-500/10 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#22C55E]"
-        >
-          <Plus className="w-4 h-4" /> Saisir paramètres vitaux
-        </button>
+    <div className="space-y-4">
+      <div className="pb-2">
+        <h1 className="text-[22px] font-medium text-zinc-900">Tableau de bord</h1>
+        <p className="mt-1 text-sm text-zinc-500">Vue d'ensemble de l'activité du service</p>
       </div>
-
-      {/* Compteurs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white border border-zinc-200 p-8 shadow-sm flex items-center gap-6 group hover:border-zinc-900 transition-all"
-          >
-            <div
-              className={cn(
-                "w-12 h-12 flex items-center justify-center transition-colors",
-                stat.color === "amber"
-                  ? "bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white"
-                  : "bg-zinc-50 text-zinc-900 group-hover:bg-zinc-900 group-hover:text-white",
-              )}
-            >
-              <stat.icon className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">{stat.label}</p>
-              <p className="text-3xl font-black text-zinc-900 font-mono tracking-tighter">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-
-        <div className="bg-white border border-zinc-200 p-8 shadow-sm flex items-center gap-6 group hover:border-zinc-900 transition-all">
-          <div className="w-12 h-12 flex items-center justify-center bg-zinc-50 text-zinc-300">
-            <Bed className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Hospitalisés</p>
-            <p className="text-3xl font-black text-zinc-300 font-mono tracking-tighter">—</p>
-            {counters && (
-              <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mt-1 leading-relaxed">
-                Non disponible — {counters.hospitalises.raison}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Recherche & scanner */}
-      <div className="space-y-4 max-w-4xl">
-        <div className="flex gap-4">
-          <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
-            <input
-              type="text"
-              placeholder="RECHERCHER_PATIENT_OU_ID..."
-              value={patientSearch}
-              onChange={(e) => setPatientSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border border-zinc-200 outline-none focus:border-zinc-900 font-bold text-xs uppercase tracking-widest transition-all shadow-sm"
-            />
-          </div>
-          <button
-            onClick={() => setIsScanning(!isScanning)}
-            className={cn(
-              "px-6 py-4 border flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all",
-              isScanning ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-900 border-zinc-200 hover:border-zinc-900",
-            )}
-          >
-            <QrCode className="w-4 h-4" /> Scanner
-          </button>
-        </div>
-
-        {isScanning && (
-          <div className="bg-zinc-100 border-2 border-dashed border-zinc-200 p-10">
-            <div className="max-w-sm mx-auto flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 bg-zinc-200 flex items-center justify-center rounded-2xl relative overflow-hidden">
-                <Camera className="w-8 h-8 text-zinc-400" />
-                <div className="absolute inset-0 border-2 border-zinc-900/10 animate-pulse"></div>
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500/30 -translate-y-1/2"></div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-widest text-zinc-900">Scan_En_Cours...</p>
-                <p className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                  Pointez la caméra vers le QR code du patient
-                </p>
-              </div>
-
-              <div className="w-full space-y-4 pt-4 border-t border-zinc-200">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                    Saisir l'ID manuellement
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="PED-XXXX-XXXX"
-                      className="flex-1 bg-white border border-zinc-200 p-2 text-[10px] font-mono outline-none focus:border-zinc-900"
-                    />
-                    <button className="bg-zinc-900 text-white px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                      OK
-                    </button>
-                  </div>
-                </div>
-
-                {rows[0] && (
-                  <div
-                    className="p-4 bg-blue-50 border border-blue-100 flex items-start gap-4 text-left cursor-pointer hover:bg-blue-100 transition-all group"
-                    onClick={() => {
-                      setPatientSearch(`${rows[0].name} ${rows[0].id}`);
-                      setIsScanning(false);
-                    }}
-                  >
-                    <div className="p-2 bg-blue-600 text-white rounded-lg">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-blue-700">Démo: Scan réussi</p>
-                      <p className="text-[11px] font-bold text-blue-900">
-                        {rows[0].name} ({rows[0].id})
-                      </p>
-                      <div className="mt-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-blue-600 group-hover:underline">
-                        Ouvrir le dossier <ArrowRight className="w-3 h-3" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
       {loadError && (
-        <div className="bg-red-50 border border-red-100 p-4 text-[11px] font-bold text-red-700">{loadError}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError}</div>
       )}
 
-      {/* Bannière d'alerte laboratoire — exemple de démonstration, non connecté
-          à un flux de notifications réel (aucun endpoint "derniers résultats
-          reçus" n'existe côté backend à ce stade). */}
-      <div className="bg-[#FFF8E6] border border-amber-100 p-5 flex items-center justify-between group cursor-pointer hover:bg-amber-50 transition-colors">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-amber-200 text-amber-700">
-            <Bell className="w-4 h-4 fill-amber-700" />
-          </div>
-          <p className="text-[12px] font-bold text-amber-900">
-            <FlaskConical className="inline w-3 h-3 mb-0.5" /> Résultats reçus (exemple) —{" "}
-            <span className="font-black">{rows[0]?.name ?? "Amadou Bah"}</span> —{" "}
-            <span className="font-mono">NFS + Goutte épaisse</span> →{" "}
-            <span className="underline" onClick={() => rows[0] && onOpenRecord(rows[0].id)}>
-              Cliquer pour consulter
-            </span>
-          </p>
-        </div>
-        <ChevronRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard
+          label="Consultations"
+          value={overview?.consultations.total}
+          icon={CalendarCheck}
+          chart={<Sparkline values={overview?.consultations.last7Days ?? [0, 0]} />}
+          caption={`${sum(overview?.consultations.last7Days)} consultation(s) ces 7 derniers jours`}
+        />
+        <StatCard
+          label="Examens"
+          value={overview?.examens.total}
+          icon={FlaskConical}
+          chart={<MiniBars values={overview?.examens.last7Days ?? []} />}
+          caption={`${lab?.enAttente ?? 0} examen(s) en attente au laboratoire`}
+        />
+        <StatCard
+          label="Patients"
+          value={overview?.patients.total}
+          icon={Users}
+          chart={<MiniBars values={overview?.patients.parTrancheAge ?? []} />}
+          caption="Répartition : < 1 an, 1–4 ans, 5–9 ans, 10 ans et +"
+        />
+        <StatCard
+          label="Hospitalisés"
+          value={overview?.hospitalisation.enCours}
+          icon={BedDouble}
+          chart={
+            <MiniBars
+              values={[overview?.hospitalisation.litsOccupes ?? 0, Math.max((overview?.hospitalisation.litsTotal ?? 0) - (overview?.hospitalisation.litsOccupes ?? 0), 0)]}
+            />
+          }
+          caption={
+            overview && overview.hospitalisation.litsTotal > 0
+              ? `${overview.hospitalisation.litsOccupes} lit(s) occupé(s) sur ${overview.hospitalisation.litsTotal}`
+              : "Aucun lit configuré"
+          }
+        />
+        <StatCard
+          label="Vaccinations"
+          value={overview?.vaccinations.total}
+          icon={Syringe}
+          chart={<MiniBars values={overview?.vaccinations.last7Days ?? []} />}
+          caption={`${sum(overview?.vaccinations.last7Days)} vaccin(s) administré(s) ces 7 derniers jours`}
+        />
       </div>
 
-      {/* Liste des patients */}
-      <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-        <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Patients_Récents</h2>
-          {isDemoData && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
-              Données de démonstration
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_1fr_0.9fr]">
+        <Card title="Activité mensuelle">
+          <div className="my-4 flex justify-center gap-4 text-sm text-zinc-700">
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> Consultations
             </span>
-          )}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> Examens demandés
+            </span>
+          </div>
+          <MonthlyBars
+            primary={overview?.activiteMensuelle.consultations ?? new Array(12).fill(0)}
+            secondary={overview?.activiteMensuelle.examens ?? new Array(12).fill(0)}
+          />
+        </Card>
+
+        <Card title="Laboratoire" className="flex flex-col">
+          <div className="relative mt-6 flex flex-1 justify-center">
+            <SegmentGauge done={lab?.termines ?? 0} pending={lab?.enAttente ?? 0} />
+            <div className="absolute bottom-3 text-center">
+              <p className="text-[26px] font-medium">{labTotal}</p>
+              <p className="text-sm text-[#1A6FD4]">{percent(lab?.termines ?? 0, labTotal)}</p>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center gap-2 text-sm text-zinc-600">
+            <span className="flex items-center gap-2 whitespace-nowrap rounded-full border border-zinc-200 px-3 py-1">
+              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> Terminés ·{" "}
+              <b className="font-medium text-zinc-900">{lab?.termines ?? 0}</b>
+            </span>
+            <span className="flex items-center gap-2 whitespace-nowrap rounded-full border border-zinc-200 px-3 py-1">
+              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> En attente ·{" "}
+              <b className="font-medium text-zinc-900">{lab?.enAttente ?? 0}</b>
+            </span>
+          </div>
+        </Card>
+
+        <Card title="Examens en attente">
+          <div className="mt-4 space-y-3">
+            {overview && overview.examensEnAttente.length === 0 && (
+              <p className="py-8 text-center text-sm text-zinc-400">Aucun examen en attente.</p>
+            )}
+            {overview?.examensEnAttente.map((exam) => {
+              const date = exam.demandeLe ? new Date(exam.demandeLe) : null;
+              return (
+                <div key={exam.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3">
+                  <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-[#1A6FD4]/10 text-[#1A6FD4]">
+                    <span className="text-[10px] capitalize">
+                      {date ? date.toLocaleDateString("fr-FR", { weekday: "short" }) : "—"}
+                    </span>
+                    <span className="text-lg leading-none">{date ? date.getDate() : "—"}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-zinc-900">{exam.examen}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {exam.patient}
+                      {date && ` · ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-zinc-700" />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {user?.role === "doctor" && <RecentResults onOpenRecord={onOpenRecord} />}
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2.25fr_0.9fr]">
+        <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-lg text-zinc-500">Patients récents</h2>
+            <button
+              onClick={() => selectedId && onOpenConsultation?.(selectedId)}
+              disabled={!selectedId}
+              title={selectedId ? undefined : "Sélectionnez un patient dans la liste pour activer ce bouton"}
+              className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-4 py-2 text-sm text-white transition hover:bg-[#155bb0] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="h-4 w-4" /> Saisir paramètres vitaux
+            </button>
+          </div>
+
+          <table className="mt-4 w-full text-left text-sm">
             <thead>
-              <tr className="bg-white text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-zinc-50">
-                <th className="px-8 py-4 w-10">
-                  <button onClick={selectAll} className="text-zinc-300 hover:text-zinc-600">
-                    {rows.length > 0 && selectedIds.length === rows.length ? (
-                      <CheckSquare className="w-4 h-4 text-zinc-900" />
-                    ) : (
-                      <Square className="w-4 h-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="px-8 py-4">Nom</th>
-                <th className="px-8 py-4">Âge</th>
-                <th className="px-8 py-4">Admission</th>
-                <th className="px-8 py-4">Motif</th>
-                <th className="px-8 py-4">Statut</th>
-                <th className="px-8 py-4 text-right">Action</th>
+              <tr className="border-b border-zinc-200 text-zinc-500">
+                <th className="w-10 py-3 font-normal" />
+                <th className="py-3 font-normal">Nom du patient</th>
+                <th className="py-3 font-normal">Âge</th>
+                <th className="py-3 font-normal">Date de naissance</th>
+                <th className="py-3 font-normal">Sexe</th>
+                <th className="py-3 text-right font-normal">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-50">
+            <tbody className="divide-y divide-zinc-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-8 py-10 text-center text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-                    Chargement des patients...
+                  <td colSpan={6} className="py-10 text-center text-zinc-400">
+                    Chargement des patients…
                   </td>
                 </tr>
               )}
-              {!isLoading && rows.length === 0 && (
+              {!isLoading && patients.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-8 py-10 text-center text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-                    Aucun patient trouvé
+                  <td colSpan={6} className="py-10 text-center text-zinc-400">
+                    Aucun patient pour le moment.
                   </td>
                 </tr>
               )}
-              {rows.map((patient) => {
-                const isEmergency = patient.id === emergencyAlert?.patientId && emergencyAlert?.isActive;
-                const isRecentResolved = patient.id === emergencyAlert?.patientId && emergencyAlert?.isResolved;
+              {patients.map((patient) => {
+                const name = `${patient.firstName} ${patient.lastName}`;
+                const isSelected = selectedId === patient.id;
                 return (
                   <tr
                     key={patient.id}
                     onClick={() => onOpenRecord(patient.id)}
-                    className={cn(
-                      "hover:bg-zinc-50/30 transition-colors group cursor-pointer",
-                      isEmergency && "bg-red-50/50",
-                      selectedIds.includes(patient.id) && "bg-blue-50/30",
-                    )}
+                    className={cn("cursor-pointer transition hover:bg-[#F4F7FB]", isSelected && "bg-[#1A6FD4]/5")}
                   >
-                    <td className="px-8 py-5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSelect(patient.id);
-                        }}
-                        className={cn(
-                          "transition-colors",
-                          selectedIds.includes(patient.id) ? "text-zinc-900" : "text-zinc-200 group-hover:text-zinc-400",
-                        )}
-                      >
-                        {selectedIds.includes(patient.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                      </button>
+                    <td className="py-3">
+                      <input
+                        type="radio"
+                        name="dashboard-patient"
+                        aria-label={`Sélectionner ${name}`}
+                        checked={isSelected}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => setSelectedId(patient.id)}
+                        className="h-4 w-4 accent-[#1A6FD4]"
+                      />
                     </td>
-                    <td className="px-8 py-5 relative">
-                      {isEmergency && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600 animate-pulse"></div>}
-                      <div className="flex items-center gap-4">
-                        <PatientAvatar name={patient.name} />
-                        <span className="text-xs font-black uppercase tracking-tight text-zinc-900">{patient.name}</span>
-                        {isEmergency && (
-                          <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 animate-pulse">URGENCE ACTIVE</span>
-                        )}
-                        {isRecentResolved && (
-                          <span className="bg-green-500 text-white text-[8px] font-black px-2 py-0.5">
-                            Urgence résolue — {emergencyAlert?.resolvedTime}
-                          </span>
-                        )}
+                    <td className="py-3">
+                      <div className="flex items-center gap-3">
+                        <PatientAvatar name={name} />
+                        <span className="text-zinc-900">{name}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-xs text-zinc-500 font-medium">{patient.age}</td>
-                    <td className="px-8 py-5 text-[10px] font-mono text-zinc-400">{patient.admission}</td>
-                    <td className="px-8 py-5 text-xs text-zinc-600 font-medium uppercase tracking-wide">{patient.motif}</td>
-                    <td className="px-8 py-5">
-                      <span
-                        className={cn(
-                          "px-3 py-1 text-[9px] font-black uppercase tracking-widest",
-                          patient.statusColor === "blue"
-                            ? "bg-blue-50 text-blue-700 border border-blue-100"
-                            : patient.statusColor === "green"
-                              ? "bg-green-50 text-green-700 border border-green-100"
-                              : "bg-zinc-100 text-zinc-500 border border-zinc-200",
-                        )}
-                      >
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
+                    <td className="py-3 text-zinc-700">{computeAge(patient.birthDate)}</td>
+                    <td className="py-3 text-zinc-700">{formatDate(patient.birthDate)}</td>
+                    <td className="py-3 text-zinc-700">{GENDER_LABELS[patient.gender]}</td>
+                    <td className="py-3 text-right">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenRecord(patient.id);
                         }}
-                        className="text-zinc-300 hover:text-[#1A6FD4] transition-colors p-2"
+                        className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-[#1A6FD4]"
                         title="Consulter le dossier"
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
@@ -500,44 +402,40 @@ export default function Dashboard({ onOpenRecord, onOpenConsultation, emergencyA
               })}
             </tbody>
           </table>
-        </div>
-        <div className="p-8 border-t border-zinc-100 bg-zinc-50/30 text-center">
-          <button className="text-[10px] font-black uppercase tracking-widest text-[#1A6FD4] hover:underline">
-            Voir tous les patients →
-          </button>
-        </div>
+        </section>
+
+        <Card
+          title="Répartition des patients"
+          action={
+            <select
+              aria-label="Critère de répartition"
+              value={breakdown}
+              onChange={(event) => setBreakdown(event.target.value as "sexe" | "age")}
+              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-[#1A6FD4]"
+            >
+              <option value="sexe">Par sexe</option>
+              <option value="age">Par âge</option>
+            </select>
+          }
+        >
+          <div className="mt-4 flex flex-col items-center gap-5">
+            <Pie slices={breakdownSlices} />
+            <ul className="w-full space-y-2 text-sm">
+              {breakdownSlices.map((slice) => (
+                <li key={slice.label} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-zinc-700">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: slice.color }} />
+                    {slice.label}
+                  </span>
+                  <span className="text-zinc-500">
+                    {slice.value} · {percent(slice.value, breakdownTotal)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
       </div>
-
-      {/* Barre d'actions groupées */}
-      {selectedIds.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-zinc-900 text-white px-10 py-5 shadow-2xl flex items-center gap-10 border border-white/5">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white/10 flex items-center justify-center font-black text-xs">{selectedIds.length}</div>
-            <span className="text-[10px] font-black uppercase tracking-widest">Patients Sélectionnés</span>
-          </div>
-
-          <div className="h-10 w-px bg-white/10"></div>
-
-          <div className="flex gap-4">
-            <button className="flex items-center gap-3 px-6 py-3 bg-white text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all">
-              <Printer className="w-4 h-4" /> Impression en lot
-            </button>
-            <button
-              disabled
-              title="Non géré par le backend : aucun modèle Admission / dischargeDateTime n'existe encore côté serveur."
-              className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest opacity-40 cursor-not-allowed"
-            >
-              <FileCheck className="w-4 h-4" /> Valider décharge
-            </button>
-            <button
-              onClick={() => setSelectedIds([])}
-              className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white"
-            >
-              Annuler ×
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,7 +1,23 @@
-# Tauri + React + Typescript
+# Pédiatrix — poste desktop
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Interface React + TypeScript + Tailwind, empaquetée avec Electron.
 
-## Recommended IDE Setup
+| Dossier | Rôle |
+|---|---|
+| `src/` | interface React (aucune logique métier : tout passe par le backend) |
+| `electron/main.ts` | processus principal : fenêtre, protocole `app://pediatrix` |
+| `electron/preload.ts` | pont minimal vers l'UI (API de mise à jour uniquement) |
+| `electron/updater.ts` | mises à jour via le backend sur le LAN |
+| `electron-builder.json5` | packaging Linux (AppImage, .deb) et Windows (NSIS) |
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Commandes
+
+```bash
+npm run dev            # UI web seule (http://localhost:1420), utilisée par Playwright
+npm run electron:dev   # application Electron en développement
+npm run dist           # paquets Linux dans release/
+npm run dist:win       # installeur Windows (sur une machine Windows)
+npm run test:e2e       # tests Playwright
+```
+
+Publication d'une mise à jour : voir [RELEASING.md](RELEASING.md).

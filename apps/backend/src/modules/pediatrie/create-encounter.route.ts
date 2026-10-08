@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { PLAUSIBLE_RANGES, checkRange } from "../../lib/validation.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -24,8 +25,9 @@ function validate(body: unknown): { input: CreateEncounterInput } | { errors: st
     if (raw === undefined || raw === null || raw === "") continue;
 
     const value = Number(raw);
-    if (!Number.isFinite(value) || value <= 0) {
-      errors.push(`Le paramètre "${key}" doit être un nombre positif.`);
+    const rangeError = checkRange(value, PLAUSIBLE_RANGES[key], VITAL_LOINC_CODES[key].display);
+    if (rangeError) {
+      errors.push(rangeError);
       continue;
     }
     vitals[key] = value;

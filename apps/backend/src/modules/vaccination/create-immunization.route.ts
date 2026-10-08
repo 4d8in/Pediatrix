@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { checkPastDate } from "../../lib/validation.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
@@ -18,7 +19,12 @@ function validate(body: unknown): { input: CreateImmunizationInput } | { errors:
       : undefined;
 
   if (!vaccine) errors.push("Le nom du vaccin est requis.");
-  if (!date) errors.push("La date d'administration est requise.");
+  if (!date) {
+    errors.push("La date d'administration est requise.");
+  } else {
+    const dateError = checkPastDate(date, "La date d'administration");
+    if (dateError) errors.push(dateError);
+  }
 
   if (errors.length > 0) return { errors };
 

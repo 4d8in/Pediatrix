@@ -55,23 +55,23 @@ export default function Admission() {
 
   if (createdPatient) {
     return (
-      <div className="p-10 max-w-xl mx-auto space-y-8">
-        <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="max-w-xl mx-auto space-y-6">
+        <div className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
           <div className="bg-green-500 p-8 flex flex-col items-center text-white space-y-4">
             <CheckCircle2 className="w-16 h-16" />
             <div className="text-center">
-              <h2 className="text-xl font-black uppercase tracking-[0.2em]">Dossier créé</h2>
-              <p className="text-xs font-mono font-bold opacity-80 uppercase tracking-widest">
+              <h2 className="text-xl font-medium">Dossier créé</h2>
+              <p className="text-xs font-medium opacity-80">
                 Référence : {createdPatient.id}
               </p>
             </div>
           </div>
 
           <div className="p-10 space-y-6 text-center">
-            <p className="text-sm font-black text-zinc-900">
+            <p className="text-sm font-medium text-zinc-900">
               {createdPatient.firstName.toUpperCase()} {createdPatient.lastName.toUpperCase()}
             </p>
-            <p className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+            <p className="text-sm font-medium text-zinc-400">
               Né(e) le {createdPatient.birthDate}
             </p>
 
@@ -81,7 +81,7 @@ export default function Admission() {
                 setCreatedPatient(null);
                 setForm(EMPTY_FORM);
               }}
-              className="w-full bg-zinc-900 text-white px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all"
+              className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-sm font-medium hover:bg-[#155bb0] transition-all rounded-full"
             >
               Nouvelle admission
             </button>
@@ -92,56 +92,56 @@ export default function Admission() {
   }
 
   return (
-    <div className="p-10 max-w-5xl mx-auto space-y-10">
-      <div className="border-b border-zinc-200 pb-10">
-        <h1 className="text-3xl font-black text-zinc-900 uppercase tracking-[0.2em] mb-3">Admission</h1>
-        <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest font-bold">
+    <div className="max-w-5xl space-y-6">
+      <div className="pb-2">
+        <h1 className="text-[22px] font-medium text-zinc-900 mb-1">Admission</h1>
+        <p className="text-sm text-zinc-400 font-medium">
           Enregistrement d'un nouveau patient — Service Pédiatrie
         </p>
       </div>
 
       <form className="space-y-10 pb-20" onSubmit={handleSubmit}>
         {errors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 p-6 space-y-2">
+          <div className="bg-red-50 border border-red-200 p-6 space-y-2 rounded-[18px]">
             {errors.map((message) => (
-              <p key={message} className="text-xs font-bold text-red-700">
+              <p key={message} className="text-xs font-medium text-red-700">
                 {message}
               </p>
             ))}
           </div>
         )}
 
-        <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Identité de l'enfant</h2>
+        <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+          <div className="bg-white px-8 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-medium">Identité de l'enfant</h2>
           </div>
           <div className="p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prénom</label>
+              <label className="text-sm font-medium text-zinc-400">Prénom</label>
               <input
                 type="text"
                 required
                 data-testid="admission-first-name"
                 value={form.firstName}
                 onChange={(event) => updateField("firstName", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
-                placeholder="AMINA"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all font-medium text-xs rounded-xl"
+                placeholder="Amina"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</label>
+              <label className="text-sm font-medium text-zinc-400">Nom</label>
               <input
                 type="text"
                 required
                 data-testid="admission-last-name"
                 value={form.lastName}
                 onChange={(event) => updateField("lastName", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
-                placeholder="OSEI"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all font-medium text-xs rounded-xl"
+                placeholder="Osei"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label className="text-sm font-medium text-zinc-400">
                 Date de naissance
               </label>
               <input
@@ -154,31 +154,31 @@ export default function Admission() {
                 placeholder="AAAA-MM-JJ"
                 value={form.birthDate}
                 onChange={(event) => updateField("birthDate", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-mono text-[10px]"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-sm rounded-xl"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sexe</label>
+              <label className="text-sm font-medium text-zinc-400">Sexe</label>
               <select
                 data-testid="admission-gender"
                 value={form.gender}
                 onChange={(event) => updateField("gender", event.target.value as Gender)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all appearance-none cursor-pointer text-[10px] font-mono tracking-widest"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all appearance-none cursor-pointer text-sm rounded-xl"
               >
-                <option value="female">FÉMININ</option>
-                <option value="male">MASCULIN</option>
+                <option value="female">Féminin</option>
+                <option value="male">Masculin</option>
               </select>
             </div>
           </div>
         </section>
 
-        <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Contact du tuteur</h2>
+        <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+          <div className="bg-white px-8 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-medium">Contact du tuteur</h2>
           </div>
           <div className="p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label className="text-sm font-medium text-zinc-400">
                 Nom complet du tuteur
               </label>
               <input
@@ -187,34 +187,34 @@ export default function Admission() {
                 data-testid="admission-guardian-name"
                 value={form.guardianName}
                 onChange={(event) => updateField("guardianName", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-bold text-xs uppercase"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all font-medium text-xs rounded-xl"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Relation</label>
+              <label className="text-sm font-medium text-zinc-400">Relation</label>
               <select
                 data-testid="admission-guardian-relationship"
                 value={form.guardianRelationship}
                 onChange={(event) => updateField("guardianRelationship", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all appearance-none cursor-pointer text-[10px] font-mono tracking-widest"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all appearance-none cursor-pointer text-sm rounded-xl"
               >
-                <option value="">CHOISIR</option>
-                <option value="Mère">MÈRE</option>
-                <option value="Père">PÈRE</option>
-                <option value="Tuteur légal">TUTEUR LÉGAL</option>
-                <option value="Autre">AUTRE</option>
+                <option value="">Choisir</option>
+                <option value="Mère">Mère</option>
+                <option value="Père">Père</option>
+                <option value="Tuteur légal">Tuteur légal</option>
+                <option value="Autre">Autre</option>
               </select>
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Téléphone</label>
+              <label className="text-sm font-medium text-zinc-400">Téléphone</label>
               <input
                 type="tel"
                 required
                 data-testid="admission-guardian-phone"
                 value={form.guardianPhone}
                 onChange={(event) => updateField("guardianPhone", event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all font-mono text-[10px] tracking-widest"
-                placeholder="+221_XX_XXX_XX_XX"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-sm rounded-xl"
+                placeholder="+221 XX XXX XX XX"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function Admission() {
             type="submit"
             disabled={isSubmitting}
             data-testid="admission-submit"
-            className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+            className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
             {isSubmitting ? "Création en cours..." : "Valider l'admission"}
           </button>

@@ -11,8 +11,8 @@ test("login medecin1 réussi → accès à un écran autorisé", async ({ page }
 
 test("login avec mauvais mot de passe → erreur, pas d'accès", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("Identifiant").fill("medecin1");
-  await page.getByLabel("Mot de passe").fill("mot-de-passe-incorrect");
+  await page.getByLabel("Identifiant", { exact: true }).fill("medecin1");
+  await page.getByLabel("Mot de passe", { exact: true }).fill("mot-de-passe-incorrect");
   await page.getByRole("button", { name: "Se connecter" }).click();
 
   await expect(page.getByText("Identifiant ou mot de passe incorrect.")).toBeVisible();

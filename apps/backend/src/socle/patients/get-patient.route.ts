@@ -81,7 +81,7 @@ export async function getPatientRoute(app: FastifyInstance) {
       const patient = fromFhirPatient(patientResource);
 
       const bundle = await hapiClient.get<FhirBundle>(
-        `/Encounter?patient=${id}&_revinclude=Observation:encounter&_sort=-date`,
+        `/Encounter?patient=${id}&class=AMB&_revinclude=Observation:encounter&_sort=-date`,
       );
       const consultations = parseConsultations(bundle);
 

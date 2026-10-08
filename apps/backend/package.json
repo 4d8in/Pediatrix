@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "reporting:start": "tsx src/reporting/worker.ts",
-    "reporting:once": "tsx src/reporting/run-once.ts"
+    "reporting:once": "tsx src/reporting/run-once.ts",
+    "test": "tsc -p tsconfig.test.json && node --import tsx --test \"test/*.test.ts\""
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",

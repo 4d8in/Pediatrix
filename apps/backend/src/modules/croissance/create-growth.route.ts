@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { PLAUSIBLE_RANGES, checkPastDate, checkRange } from "../../lib/validation.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
@@ -18,7 +19,22 @@ function validate(body: unknown): { input: CreateGrowthInput } | { errors: strin
   const height = typeof b.height === "number" ? b.height : undefined;
   const headCircumference = typeof b.headCircumference === "number" ? b.headCircumference : undefined;
 
-  if (!date) errors.push("La date de la mesure est requise.");
+  if (!date) {
+    errors.push("La date de la mesure est requise.");
+  } else {
+    const dateError = checkPastDate(date, "La date de la mesure");
+    if (dateError) errors.push(dateError);
+  }
+  const measures: [number | undefined, keyof typeof PLAUSIBLE_RANGES, string][] = [
+    [weight, "weight", "Le poids"],
+    [height, "height", "La taille"],
+    [headCircumference, "headCircumference", "Le périmètre crânien"],
+  ];
+  for (const [value, key, label] of measures) {
+    if (value === undefined) continue;
+    const rangeError = checkRange(value, PLAUSIBLE_RANGES[key], label);
+    if (rangeError) errors.push(rangeError);
+  }
   if (weight === undefined && height === undefined && headCircumference === undefined) {
     errors.push("Au moins une mesure (poids, taille ou périmètre crânien) est requise.");
   }

@@ -14,10 +14,10 @@ export default function ConsultationHistoryItem({ consultation }: { consultation
   return (
     <div className="p-8 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-tight text-zinc-900">
+        <p className="text-xs font-medium text-zinc-900">
           {consultation.reason ?? "Motif non renseigné"}
         </p>
-        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+        <span className="text-sm text-zinc-400">
           {consultation.date ? new Date(consultation.date).toLocaleString("fr-FR") : "Date inconnue"}
         </span>
       </div>
@@ -29,7 +29,7 @@ export default function ConsultationHistoryItem({ consultation }: { consultation
           {vitalsPresent.map((vital) => (
             <span
               key={vital.key}
-              className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-3 py-1"
+              className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl"
             >
               {vital.label}: {consultation.vitals[vital.key]} {vital.unit}
             </span>

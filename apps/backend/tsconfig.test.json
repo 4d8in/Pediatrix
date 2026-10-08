@@ -1,0 +1,6 @@
+{
+  // Contrôle de types des tests unitaires (non inclus dans le build : rootDir = src).
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "rootDir": "." },
+  "include": ["src", "test"]
+}

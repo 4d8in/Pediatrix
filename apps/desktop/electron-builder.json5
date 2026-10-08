@@ -1,0 +1,41 @@
+// Configuration de packaging, inspirée de Klyra (electron-builder + electron-updater).
+// @see https://www.electron.build/configuration/configuration
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.pediatrix.desktop",
+  "productName": "Pediatrix",
+  "asar": true,
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": ["dist", "dist-electron", "build/icon.png"],
+  // Source des mises à jour : le backend Pédiatrix sur le LAN (pas GitHub).
+  // L'URL réelle est fixée au lancement dans electron/updater.ts ; celle-ci
+  // sert à générer latest.yml / latest-linux.yml.
+  "publish": [
+    {
+      "provider": "generic",
+      "url": "http://localhost:3001/updates"
+    }
+  ],
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "icon": "build/icon.png",
+    "category": "Medical",
+    "artifactName": "${productName}-linux-${arch}.${ext}",
+    "maintainer": "Pediatrix"
+  },
+  "win": {
+    "target": ["nsis"],
+    "icon": "build/icon.ico",
+    "artifactName": "${productName}-windows-${arch}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Pédiatrix"
+  }
+}

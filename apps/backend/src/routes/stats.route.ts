@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../lib/hapi-client.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
+import { computeHospitalisationStats, computeMonthlyActivity } from "../lib/hospitalisation-stats.js";
+import { IMAGING_CATEGORY_CODE } from "../lib/service-category.js";
 
 interface CountBundle {
   total?: number;
@@ -83,6 +85,10 @@ function unavailable(raison: string) {
   return { disponible: false as const, raison };
 }
 
+function available(valeur: string, detail: string) {
+  return { disponible: true as const, valeur, detail };
+}
+
 export async function statsRoute(app: FastifyInstance) {
   app.get(
     "/api/stats",
@@ -102,13 +108,17 @@ export async function statsRoute(app: FastifyInstance) {
           examensParType,
         ] = await Promise.all([
           countResource("Patient"),
-          countResource("Encounter"),
-          countResource("Encounter", `&date=ge${start}&date=lt${end}`),
+          countResource("Encounter", "&class=AMB"),
+          countResource("Encounter", `&class=AMB&date=ge${start}&date=lt${end}`),
           countResource("ServiceRequest"),
           countResource("DiagnosticReport"),
           countResource("Immunization"),
           countResource("MedicationRequest"),
           countExamensParType(),
+        ]);
+        const [hospitalisation, activiteMensuelle] = await Promise.all([
+          computeHospitalisationStats(),
+          computeMonthlyActivity(IMAGING_CATEGORY_CODE),
         ]);
 
         return reply.send({
@@ -118,13 +128,27 @@ export async function statsRoute(app: FastifyInstance) {
           examens: { demandes: nbDemandesExamen, resultats: nbRapports, parType: examensParType },
           vaccinations: { total: nbVaccinations },
           prescriptions: { total: nbPrescriptions },
-          tauxHospitalisation: unavailable(
-            "Aucune notion d'admission/décharge dans le socle FHIR actuel (pas de champ dischargeDateTime).",
-          ),
-          dureeMoyenneSejour: unavailable(
-            "Même limite que le taux d'hospitalisation : sans date de décharge, la durée de séjour ne peut pas être calculée.",
-          ),
-          litsOccupes: unavailable("Aucune ressource de gestion des lits (Location) dans le socle FHIR actuel."),
+          activiteMensuelle,
+          occupationParService: hospitalisation.parService,
+          // Taux d'hospitalisation = séjours / consultations (tous deux cumulés depuis le début).
+          tauxHospitalisation:
+            nbConsultations > 0
+              ? available(
+                  `${Math.round((hospitalisation.sejoursTotal / nbConsultations) * 1000) / 10} %`,
+                  `${hospitalisation.sejoursTotal} hospitalisation(s) pour ${nbConsultations} consultation(s)`,
+                )
+              : unavailable("Aucune consultation enregistrée : le taux ne peut pas encore être calculé."),
+          dureeMoyenneSejour:
+            hospitalisation.dureeMoyenneJours !== null
+              ? available(`${hospitalisation.dureeMoyenneJours} j`, "Moyenne des séjours terminés")
+              : unavailable("Aucun séjour terminé pour le moment."),
+          litsOccupes:
+            hospitalisation.litsTotal > 0
+              ? available(
+                  `${hospitalisation.litsOccupes} / ${hospitalisation.litsTotal}`,
+                  `${Math.round((hospitalisation.litsOccupes / hospitalisation.litsTotal) * 100)} % d'occupation`,
+                )
+              : unavailable("Aucun lit configuré (script seed-beds.ts non lancé)."),
           chargeParPraticien: unavailable(
             "Encounter ne référence pas de Practitioner structuré dans ce socle : le champ « demandeur » des examens est du texte libre, pas un lien fiable vers un utilisateur.",
           ),

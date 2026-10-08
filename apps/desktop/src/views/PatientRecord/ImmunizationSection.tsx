@@ -49,17 +49,17 @@ export default function ImmunizationSection({
   }
 
   return (
-    <section className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
-      <div className="bg-zinc-50/50 px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Carnet vaccinal</h2>
+    <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+        <h2 className="text-sm font-medium">Carnet vaccinal</h2>
       </div>
 
       {canWrite && (
         <form onSubmit={handleSubmit} className="p-8 border-b border-zinc-100 space-y-6">
           {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 p-4 space-y-2">
+            <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
               {errors.map((message) => (
-                <p key={message} className="text-xs font-bold text-red-700">
+                <p key={message} className="text-xs font-medium text-red-700">
                   {message}
                 </p>
               ))}
@@ -68,19 +68,19 @@ export default function ImmunizationSection({
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Vaccin</label>
+              <label className="text-sm font-medium text-zinc-400">Vaccin</label>
               <input
                 type="text"
                 required
                 value={vaccine}
                 onChange={(event) => setVaccine(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 placeholder="Ex. : BCG"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
+              <label className="text-sm font-medium text-zinc-400">Date</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -90,12 +90,12 @@ export default function ImmunizationSection({
                 placeholder="AAAA-MM-JJ"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label className="text-sm font-medium text-zinc-400">
                 Dose (optionnel)
               </label>
               <input
@@ -103,7 +103,7 @@ export default function ImmunizationSection({
                 min={1}
                 value={doseNumber}
                 onChange={(event) => setDoseNumber(event.target.value)}
-                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-zinc-900 outline-none transition-all text-xs"
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 placeholder="Ex. : 3"
               />
             </div>
@@ -112,7 +112,7 @@ export default function ImmunizationSection({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-10 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-50"
+            className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
             {isSubmitting ? "Enregistrement..." : "Ajouter au carnet"}
           </button>
@@ -120,7 +120,7 @@ export default function ImmunizationSection({
       )}
 
       {immunizations.length === 0 ? (
-        <p className="p-10 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+        <p className="p-10 text-sm text-zinc-400">
           Aucun vaccin enregistré.
         </p>
       ) : (
@@ -128,13 +128,13 @@ export default function ImmunizationSection({
           {immunizations.map((immunization) => (
             <div key={immunization.id} className="p-8 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-tight text-zinc-900">
+                <p className="text-xs font-medium text-zinc-900">
                   {immunization.vaccine ?? "Vaccin non précisé"}
                   {immunization.doseNumber ? ` — dose ${immunization.doseNumber}` : ""}
                 </p>
                 {immunization.notes && <p className="text-xs text-zinc-600">{immunization.notes}</p>}
               </div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
+              <span className="text-sm text-zinc-400">
                 {immunization.date ? new Date(immunization.date).toLocaleDateString("fr-FR") : "Date inconnue"}
               </span>
             </div>

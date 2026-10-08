@@ -12,7 +12,7 @@ async function countResource(resourceType: string, extraParams = ""): Promise<nu
 export async function countTotaux() {
   const [nbPatients, nbConsultations, nbDemandesExamen, nbRapports] = await Promise.all([
     countResource("Patient"),
-    countResource("Encounter"),
+    countResource("Encounter", "&class=AMB"),
     countResource("ServiceRequest"),
     countResource("DiagnosticReport"),
   ]);
@@ -37,7 +37,7 @@ export async function countConsultationsParJour(windowDays: number): Promise<Rec
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
     const dayStartStr = toDateOnly(dayStart);
-    const nb = await countResource("Encounter", `&date=ge${dayStartStr}&date=lt${toDateOnly(dayEnd)}`);
+    const nb = await countResource("Encounter", `&class=AMB&date=ge${dayStartStr}&date=lt${toDateOnly(dayEnd)}`);
     result[dayStartStr] = nb;
   }
 

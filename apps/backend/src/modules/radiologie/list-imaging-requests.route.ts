@@ -60,12 +60,15 @@ export async function listImagingRequestsRoute(app: FastifyInstance) {
   app.get(
     "/api/imaging/requests",
     { preHandler: [authenticate, authorize("radiologist")] },
-    async (_request, reply) => {
+    async (request, reply) => {
+    // ?status=completed : demandes déjà traitées (historique des résultats envoyés).
+    const { status } = request.query as { status?: string };
+    const requestStatus = status === "completed" ? "completed" : "active";
       try {
         // Cf. list-lab-requests.route.ts : même besoin de cohérence immédiate
         // juste après la création d'une demande côté Pédiatrie.
         const bundle = await hapiClient.get<FhirBundle>(
-          `/ServiceRequest?status=active&category=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
+          `/ServiceRequest?status=${requestStatus}&category=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
           { "Cache-Control": "no-cache" },
         );
         return reply.send({ requests: parseImagingRequests(bundle) });

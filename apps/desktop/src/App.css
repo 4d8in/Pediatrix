@@ -1,1 +1,30 @@
 @import "tailwindcss";
+/* Police embarquée dans le paquet (aucun chargement distant : offline-first). */
+@import "@fontsource-variable/dm-sans";
+
+@theme {
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Barres de défilement fines et discrètes (Chromium / Electron). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}

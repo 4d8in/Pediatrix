@@ -186,6 +186,50 @@ req GET "/api/patients" "$TOKEN_ADMIN"
 check "GET /api/patients (admin technique, interdit)" "403" "$REQ_CODE"
 echo ""
 
+# --- 4 bis. Gestion des lits (module Hospitalisation) ----------------------------
+
+echo "--- Gestion des lits ---"
+req GET "/api/beds" "$TOKEN_DIRECTOR"
+check "GET /api/beds (directeur, autorisé en lecture)" "200" "$REQ_CODE"
+
+req GET "/api/beds" "$TOKEN_LAB"
+check "GET /api/beds (technicien labo, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/hospitalisations" "$TOKEN_DIRECTOR" '{}'
+check "POST /api/hospitalisations (directeur, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/hospitalisations" "$TOKEN_LAB" '{}'
+check "POST /api/hospitalisations (technicien labo, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/beds/bed-ped-01/status" "$TOKEN_DOCTOR" '{"status":"C"}'
+check "POST /api/beds/:id/status (médecin, interdit)" "403" "$REQ_CODE"
+
+req GET "/api/beds" ""
+check "GET /api/beds (sans token)" "401" "$REQ_CODE"
+
+req GET "/api/me/profile" ""
+check "GET /api/me/profile (sans token)" "401" "$REQ_CODE"
+
+req GET "/api/me/profile" "$TOKEN_LAB"
+check "GET /api/me/profile (technicien labo, son propre profil)" "200" "$REQ_CODE"
+echo ""
+
+# --- 4 ter. Gestion des comptes (administrateur technique uniquement) -----------
+
+echo "--- Gestion des comptes ---"
+req GET "/api/users" "$TOKEN_ADMIN"
+check "GET /api/users (admin technique, autorisé)" "200" "$REQ_CODE"
+
+req GET "/api/users" "$TOKEN_DIRECTOR"
+check "GET /api/users (directeur, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/users" "$TOKEN_DOCTOR" '{}'
+check "POST /api/users (médecin, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/users/medecin1/active" "$TOKEN_NURSE" '{"active":false}'
+check "POST /api/users/:username/active (infirmière, interdit)" "403" "$REQ_CODE"
+echo ""
+
 # --- 5. Appels sans token (401 attendu) ---------------------------------------
 
 echo "--- Appels sans token (401 attendu) ---"

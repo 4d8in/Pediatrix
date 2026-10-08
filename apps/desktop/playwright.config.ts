@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Cible l'UI web servie par Vite (localhost:1420), pas la coquille Tauri.
+// Cible l'UI web servie par Vite (localhost:1420), pas la coquille Electron.
 // Suppose que HAPI FHIR + PostgreSQL (docker compose) et le backend Node
 // (port 3001) tournent déjà — voir apps/desktop/e2e/README.md.
 export default defineConfig({

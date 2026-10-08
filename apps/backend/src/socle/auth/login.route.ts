@@ -31,6 +31,10 @@ export async function loginRoute(app: FastifyInstance) {
       return reply.code(401).send({ error: "Identifiant ou mot de passe incorrect." });
     }
 
+    if (user.disabled) {
+      return reply.code(403).send({ error: "Compte désactivé. Contactez l'administrateur technique." });
+    }
+
     const token = await reply.jwtSign({ sub: user.practitionerId, role: user.role, name: user.displayName });
     return reply.send({ token, user: { id: user.practitionerId, role: user.role, name: user.displayName } });
   });

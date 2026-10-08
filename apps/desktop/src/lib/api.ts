@@ -11,6 +11,17 @@ import type {
   CreateReportInput,
   CreateServiceRequestInput,
   DashboardCounters,
+  DashboardOverview,
+  QueueEntry,
+  HealthStatus,
+  BedStatus,
+  Ward,
+  PatientStay,
+  UserAccount,
+  RecentResult,
+  RequestSummary,
+  UserProfile,
+  Role,
   FhirLogEntry,
   GrowthMeasurement,
   Stats,
@@ -138,8 +149,8 @@ export function createServiceRequest(
   });
 }
 
-export function listLabRequests(): Promise<{ requests: LabRequest[] }> {
-  return request<{ requests: LabRequest[] }>("/api/lab/requests");
+export function listLabRequests(status: "active" | "completed" = "active"): Promise<{ requests: LabRequest[] }> {
+  return request<{ requests: LabRequest[] }>(`/api/lab/requests?status=${status}`);
 }
 
 export function createReport(
@@ -166,8 +177,10 @@ export function createImagingRequest(
   });
 }
 
-export function listImagingRequests(): Promise<{ requests: ImagingRequest[] }> {
-  return request<{ requests: ImagingRequest[] }>("/api/imaging/requests");
+export function listImagingRequests(
+  status: "active" | "completed" = "active",
+): Promise<{ requests: ImagingRequest[] }> {
+  return request<{ requests: ImagingRequest[] }>(`/api/imaging/requests?status=${status}`);
 }
 
 export function createImagingReport(
@@ -194,6 +207,10 @@ export function getStats(): Promise<Stats> {
 
 export function getDashboardCounters(): Promise<DashboardCounters> {
   return request<DashboardCounters>("/api/dashboard/counters");
+}
+
+export function getDashboardOverview(): Promise<DashboardOverview> {
+  return request<DashboardOverview>("/api/dashboard/overview");
 }
 
 export function createImmunization(
@@ -251,4 +268,102 @@ export function createPrescription(
 
 export function getPatientPrescriptions(patientId: string): Promise<{ prescriptions: Prescription[] }> {
   return request<{ prescriptions: Prescription[] }>(`/api/patients/${patientId}/prescriptions`);
+}
+
+export function getActiveQueue(): Promise<{ queue: QueueEntry[] }> {
+  return request<{ queue: QueueEntry[] }>("/api/queue");
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/api/auth/password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export const BACKEND_BASE_URL = BACKEND_URL;
+
+export function getHealth(): Promise<HealthStatus> {
+  return request<HealthStatus>("/api/health");
+}
+
+export function listBeds(): Promise<{ wards: Ward[] }> {
+  return request<{ wards: Ward[] }>("/api/beds");
+}
+
+export function hospitalise(patientId: string, bedId: string, reason: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/api/hospitalisations", {
+    method: "POST",
+    body: JSON.stringify({ patientId, bedId, reason }),
+  });
+}
+
+export function transferStay(stayId: string, bedId: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/hospitalisations/${stayId}/transfer`, {
+    method: "POST",
+    body: JSON.stringify({ bedId }),
+  });
+}
+
+export function dischargeStay(stayId: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/hospitalisations/${stayId}/discharge`, { method: "POST", body: "{}" });
+}
+
+export function setBedStatus(bedId: string, status: Exclude<BedStatus, "O">): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/beds/${bedId}/status`, { method: "POST", body: JSON.stringify({ status }) });
+}
+
+export function getPatientStays(patientId: string): Promise<{ stays: PatientStay[] }> {
+  return request<{ stays: PatientStay[] }>(`/api/patients/${patientId}/stays`);
+}
+
+export function listUserAccounts(): Promise<{ users: UserAccount[] }> {
+  return request<{ users: UserAccount[] }>("/api/users");
+}
+
+export function createUserAccount(input: {
+  username: string;
+  displayName: string;
+  role: Role;
+  password: string;
+}): Promise<{ username: string }> {
+  return request<{ username: string }>("/api/users", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function resetUserPassword(username: string, password: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/users/${encodeURIComponent(username)}/password`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+}
+
+export function setUserActive(username: string, active: boolean): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/users/${encodeURIComponent(username)}/active`, {
+    method: "POST",
+    body: JSON.stringify({ active }),
+  });
+}
+
+export function getRecentResults(): Promise<{ results: RecentResult[] }> {
+  return request<{ results: RecentResult[] }>("/api/results/recent");
+}
+
+export function markResultRead(reportId: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/results/${reportId}/read`, { method: "POST", body: "{}" });
+}
+
+export function getLabSummary(): Promise<RequestSummary> {
+  return request<RequestSummary>("/api/lab/summary");
+}
+
+export function getImagingSummary(): Promise<RequestSummary> {
+  return request<RequestSummary>("/api/imaging/summary");
+}
+
+export function getMyProfile(): Promise<UserProfile> {
+  return request<UserProfile>("/api/me/profile");
+}
+
+export function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
+  return request<UserProfile>("/api/me/profile", { method: "PUT", body: JSON.stringify(profile) });
 }

@@ -80,7 +80,7 @@ export async function dashboardCountersRoute(app: FastifyInstance) {
         // vitaux du jour, sans supposer de modèle absent du socle.
         const [encountersToday, vitalsObservationsToday] = await Promise.all([
           fetchAllEntries<FhirEncounterElement>(
-            `/Encounter?date=ge${start}&date=lt${end}&_elements=id&_count=100`,
+            `/Encounter?class=AMB&date=ge${start}&date=lt${end}&_elements=id&_count=100`,
           ),
           fetchAllEntries<FhirObservationElement>(
             `/Observation?code=${VITALS_CODES}&date=ge${start}&date=lt${end}&_elements=encounter&_count=100`,

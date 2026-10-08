@@ -1,22 +1,22 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity,
-  Bed,
-  Bell,
+  BedDouble,
+  CircleUserRound,
   FileText,
   FlaskConical,
-  HelpCircle,
   LayoutDashboard,
+  ListOrdered,
   LogOut,
-  RefreshCcw,
-  ScanLine,
+  MonitorCheck,
   Settings as SettingsIcon,
+  Search,
+  ScanLine,
   Stethoscope,
   Syringe,
   Terminal,
   BarChart3,
   UserPlus,
-  Users as UsersIcon,
+  UsersRound,
 } from "lucide-react";
 import Dashboard from "./views/Dashboard";
 import Admission from "./views/Admission";
@@ -26,16 +26,21 @@ import Laboratory from "./views/Laboratory";
 import Radiology from "./views/Radiology";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
-import WardMap from "./views/WardMap";
-import CoordinationPings from "./views/CoordinationPings";
-import ConflictResolver from "./views/ConflictResolver";
-import UsersView from "./views/Users";
-import SettingsView from "./views/Settings";
-import Support from "./views/Support";
 import Vaccinations from "./views/Vaccinations";
 import Stats from "./views/Stats";
+import ActiveQueue from "./views/ActiveQueue";
+import Settings from "./views/Settings";
+import Supervision from "./views/Supervision";
+import Beds from "./views/Beds";
+import NurseDashboard from "./views/NurseDashboard";
+import Accounts from "./views/Accounts";
+import Profile, { photoSrc } from "./views/Profile";
+import { getMyProfile } from "./lib/api";
+import UpdateBanner from "./components/UpdateBanner";
+import ConnectionBanner from "./components/ConnectionBanner";
+import { LogoBadge } from "./components/Logo";
 import { useAuth } from "./lib/auth-context";
-import type { Role } from "./lib/types";
+import type { Role, UserProfile } from "./lib/types";
 import "./App.css";
 
 type ViewType =
@@ -46,96 +51,71 @@ type ViewType =
   | "laboratory"
   | "radiology"
   | "fhirLog"
-  | "wardMap"
-  | "coordinationPings"
-  | "conflictResolver"
-  | "users"
-  | "settings"
-  | "support"
   | "vaccinations"
-  | "stats";
+  | "stats"
+  | "queue"
+  | "settings"
+  | "supervision"
+  | "beds"
+  | "accounts"
+  | "profile";
 
 // Masquage ergonomique uniquement : la barrière réelle est côté backend
 // (preHandler authenticate/authorize sur chaque route, voir apps/backend).
 const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Role[] }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, roles: ["nurse", "doctor", "director"] },
+  { id: "queue", label: "File active", icon: ListOrdered, roles: ["nurse", "doctor", "director"] },
   { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor"] },
   { id: "consultations", label: "Consultations", icon: Stethoscope, roles: ["doctor"] },
+  { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
+  { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
   {
     id: "record",
     label: "Dossier patient",
     icon: FileText,
     roles: ["nurse", "doctor", "lab_tech", "radiologist", "director"],
   },
-  { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
-  { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
+  { id: "supervision", label: "Supervision", icon: MonitorCheck, roles: ["tech_admin"] },
+  { id: "accounts", label: "Comptes", icon: UsersRound, roles: ["tech_admin"] },
   { id: "fhirLog", label: "Flux FHIR", icon: Terminal, roles: ["tech_admin"] },
+  { id: "beds", label: "Gestion des lits", icon: BedDouble, roles: ["nurse", "doctor", "director", "tech_admin"] },
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
-  { id: "wardMap", label: "Carte des lits", icon: Bed, roles: ["nurse", "doctor"] },
-  { id: "coordinationPings", label: "Coordination", icon: Bell, roles: ["nurse", "doctor", "director"] },
   { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
-  { id: "conflictResolver", label: "Conflits sync.", icon: RefreshCcw, roles: ["tech_admin"] },
-  { id: "users", label: "Utilisateurs", icon: UsersIcon, roles: ["tech_admin"] },
-  { id: "settings", label: "Paramètres", icon: SettingsIcon, roles: ["tech_admin"] },
   {
-    id: "support",
-    label: "Support",
-    icon: HelpCircle,
+    id: "profile",
+    label: "Mon profil",
+    icon: CircleUserRound,
+    roles: ["nurse", "doctor", "lab_tech", "radiologist", "director", "tech_admin"],
+  },
+  {
+    id: "settings",
+    label: "Paramètres",
+    icon: SettingsIcon,
     roles: ["nurse", "doctor", "lab_tech", "radiologist", "director", "tech_admin"],
   },
 ];
-
-interface EmergencyAlert {
-  isActive: boolean;
-  patientId: string | null;
-  patientName: string | null;
-  reportedBy: string | null;
-  time: string | null;
-  isResolved: boolean;
-  resolvedTime: string | null;
-}
-
-const EMPTY_EMERGENCY_ALERT: EmergencyAlert = {
-  isActive: false,
-  patientId: null,
-  patientName: null,
-  reportedBy: null,
-  time: null,
-  isResolved: false,
-  resolvedTime: null,
-};
 
 function App() {
   const { user, logout, sessionExpired } = useAuth();
   const navItems = useMemo(() => NAV_ITEMS.filter((item) => user && item.roles.includes(user.role)), [user]);
   const [currentView, setCurrentView] = useState<ViewType | null>(null);
-  const [emergencyAlert, setEmergencyAlert] = useState<EmergencyAlert>(EMPTY_EMERGENCY_ALERT);
   const [recordPatientId, setRecordPatientId] = useState<string | null>(null);
   const [consultationPatientId, setConsultationPatientId] = useState<string | null>(null);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  // Profil (nom affiché, photo) pour la barre du haut, rechargé à chaque connexion.
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+    getMyProfile().then(setProfile).catch(() => undefined);
+  }, [user]);
+  const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
   if (!user) {
     return <Login notice={sessionExpired ? "Session expirée, veuillez vous reconnecter." : undefined} />;
-  }
-
-  function triggerEmergency(patientId: string, patientName: string) {
-    setEmergencyAlert({
-      isActive: true,
-      patientId,
-      patientName,
-      reportedBy: user!.name,
-      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-      isResolved: false,
-      resolvedTime: null,
-    });
-  }
-
-  function dismissEmergency() {
-    setEmergencyAlert((prev) => ({
-      ...prev,
-      isActive: false,
-      isResolved: true,
-      resolvedTime: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    }));
   }
 
   const activeView = currentView && navItems.some((item) => item.id === currentView) ? currentView : navItems[0]?.id;
@@ -143,8 +123,21 @@ function App() {
   function renderContent() {
     switch (activeView) {
       case "dashboard":
+        if (user?.role === "nurse") {
+          return (
+            <NurseDashboard
+              onOpenRecord={(patientId) => {
+                setRecordPatientId(patientId);
+                setCurrentView("record");
+              }}
+              onOpenBeds={() => setCurrentView("beds")}
+              onOpenQueue={() => setCurrentView("queue")}
+            />
+          );
+        }
         return (
           <Dashboard
+            search={patientSearch}
             onOpenRecord={(patientId) => {
               setRecordPatientId(patientId);
               setCurrentView("record");
@@ -153,7 +146,6 @@ function App() {
               setConsultationPatientId(patientId);
               setCurrentView("consultations");
             }}
-            emergencyAlert={emergencyAlert}
           />
         );
       case "admission":
@@ -161,13 +153,7 @@ function App() {
       case "consultations":
         return <Consultations initialPatientId={consultationPatientId} />;
       case "record":
-        return (
-          <PatientRecord
-            initialPatientId={recordPatientId}
-            emergencyAlert={emergencyAlert}
-            onTriggerEmergency={triggerEmergency}
-          />
-        );
+        return <PatientRecord initialPatientId={recordPatientId} />;
       case "laboratory":
         return <Laboratory />;
       case "radiology":
@@ -178,105 +164,142 @@ function App() {
         return <Vaccinations />;
       case "stats":
         return <Stats />;
-      case "wardMap":
-        return <WardMap />;
-      case "coordinationPings":
-        return <CoordinationPings />;
-      case "conflictResolver":
-        return <ConflictResolver onClose={() => setCurrentView(navItems[0]?.id ?? null)} />;
-      case "users":
-        return <UsersView />;
+      case "queue":
+        return (
+          <ActiveQueue
+            onOpenRecord={(patientId) => {
+              setRecordPatientId(patientId);
+              setCurrentView("record");
+            }}
+            onOpenConsultation={
+              user?.role === "doctor"
+                ? (patientId) => {
+                    setConsultationPatientId(patientId);
+                    setCurrentView("consultations");
+                  }
+                : undefined
+            }
+          />
+        );
       case "settings":
-        return <SettingsView />;
-      case "support":
-        return <Support />;
+        return <Settings />;
+      case "supervision":
+        return <Supervision />;
+      case "beds":
+        return <Beds />;
+      case "accounts":
+        return <Accounts />;
+      case "profile":
+        return <Profile onSaved={setProfile} />;
       default:
         return null;
     }
   }
 
-  const activeLabel = navItems.find((item) => item.id === activeView)?.label;
-
   return (
-    <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans overflow-hidden">
-      {emergencyAlert.isActive && (
-        <div className="fixed top-0 left-0 right-0 z-[200] bg-red-600 text-white">
-          <div className="px-10 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-10 h-10 bg-white/20 flex items-center justify-center animate-pulse">
-                <Activity className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Urgence signalée</span>
-                <p className="text-sm font-black uppercase tracking-tight">
-                  {emergencyAlert.patientName} — Signalé par {emergencyAlert.reportedBy} — {emergencyAlert.time}
-                </p>
-              </div>
-            </div>
-            {(user.role === "doctor" || user.role === "director") && (
-              <button
-                onClick={dismissEmergency}
-                className="bg-white text-red-600 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-100 transition-all"
-              >
-                Désactiver l'alerte ×
-              </button>
-            )}
-          </div>
+    <div className="flex h-screen bg-[#F4F7FB] font-sans text-zinc-900">
+      {/* Barre latérale : logo + navigation par rôle (maquette de référence). */}
+      <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200/70 bg-white">
+        <div className="flex h-16 items-center gap-2.5 px-5">
+          <LogoBadge className="h-9 w-9" />
+          <span className="text-xl font-semibold text-[#0B2A4F]">Pédiatrix</span>
         </div>
-      )}
-      <aside className="w-[280px] bg-[#1A2332] flex flex-col shrink-0 text-white">
-        <div className="p-8 border-b border-white/5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#1A6FD4] flex items-center justify-center font-black text-xl">P</div>
-          <h1 className="text-xl font-bold tracking-tight">Pédiatrix</h1>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => (
             <button
               key={item.id}
               data-testid={`nav-${item.id}`}
               onClick={() => setCurrentView(item.id)}
-              className={`w-full flex items-center gap-4 px-4 py-3 transition-all ${
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                 activeView === item.id
-                  ? "bg-[#1A6FD4] text-white shadow-lg shadow-blue-500/20"
-                  : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                  ? "bg-[#1A6FD4]/10 font-medium text-[#1A6FD4]"
+                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[11px] font-bold uppercase tracking-widest">{item.label}</span>
+              <item.icon className="h-[18px] w-[18px]" />
+              {item.label}
             </button>
           ))}
         </nav>
-
-        <div className="p-4 border-t border-white/5 space-y-1">
-          <div className="px-4 py-2">
-            <p className="text-xs font-bold text-white truncate">{user.name}</p>
-          </div>
+        <div className="border-t border-zinc-100 p-3">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-4 px-4 py-3 text-zinc-400 hover:bg-white/5 hover:text-white transition-all"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600 transition hover:bg-red-50 hover:text-red-600"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="text-[11px] font-bold uppercase tracking-widest">Déconnexion</span>
+            <LogOut className="h-[18px] w-[18px]" />
+            Déconnexion
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 border-b border-zinc-200 px-10 flex items-center gap-4 bg-white shrink-0">
-          <span className="text-[10px] uppercase font-mono tracking-[0.2em] text-zinc-400 font-semibold">
-            Pédiatrix
-          </span>
-          <span className="text-zinc-300 font-mono">/</span>
-          <span className="text-xs font-black tracking-tight text-zinc-900 uppercase tracking-widest">
-            {activeLabel}
-          </span>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Barre du haut : recherche patient + utilisateur connecté. */}
+        <header className="flex h-16 shrink-0 items-center justify-between gap-6 border-b border-zinc-200/70 bg-white px-6">
+          {navItems.some((item) => item.id === "dashboard") ? (
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="search"
+                placeholder="Rechercher un patient…"
+                value={patientSearch}
+                onChange={(event) => {
+                  setPatientSearch(event.target.value);
+                  setCurrentView("dashboard");
+                }}
+                className="w-full rounded-lg border border-zinc-200 bg-[#F4F7FB] py-2 pl-9 pr-4 text-sm outline-none transition focus:border-[#1A6FD4]"
+              />
+            </div>
+          ) : (
+            <div />
+          )}
+          <button
+            onClick={() => setCurrentView("profile")}
+            title="Mon profil"
+            className="flex items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-zinc-100"
+          >
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#1A6FD4] text-sm font-semibold text-white">
+              {profile?.photo ? (
+                <img src={photoSrc(profile.photo)} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initialsOf(profile?.displayName || user.name)
+              )}
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-medium">{profile?.displayName || user.name}</p>
+              <p className="text-xs text-zinc-500">{ROLE_LABELS[user.role]}</p>
+            </div>
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto">{renderContent()}</div>
-      </main>
+        <ConnectionBanner onReconnect={reload} />
+        <UpdateBanner />
+        {/* La clé force le rechargement de l'écran courant après une reconnexion. */}
+        <main key={reloadKey} className="flex-1 overflow-y-auto p-6">
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
+}
+
+const ROLE_LABELS: Record<Role, string> = {
+  nurse: "Infirmière",
+  doctor: "Médecin",
+  lab_tech: "Technicien labo",
+  radiologist: "Radiologue",
+  director: "Directeur",
+  tech_admin: "Administrateur technique",
+};
+
+function initialsOf(name: string): string {
+  const parts = name
+    .replace(/^Dr\.?\s+/i, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase() || "?";
 }
 
 export default App;

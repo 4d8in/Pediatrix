@@ -3,6 +3,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import electron from "vite-plugin-electron/simple";
 
+// Electron lancé depuis un processus VS Code hérite de ELECTRON_RUN_AS_NODE=1 et
+// démarre alors comme un simple Node (`protocol`/`app` indéfinis) : on la retire.
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 // Le plugin Electron n'est activé que pour la coquille desktop
 // (`--mode electron` : npm run electron:dev / npm run dist). `npm run dev` reste
 // une UI web pure, utilisée notamment par les tests Playwright.

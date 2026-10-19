@@ -420,6 +420,10 @@ export function recordPmtctTest(patientId: string, input: { milestone: string; r
   return request<{ ok: true }>(`/api/patients/${patientId}/ptme/tests`, { method: "POST", body: JSON.stringify(input) });
 }
 
+export function revokePmtctTest(patientId: string, milestone: string, reason: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/patients/${patientId}/ptme/tests/${milestone}/revoke`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
 export function getPatientBirth(patientId: string): Promise<{ birth: BirthRecord | null }> {
   return request<{ birth: BirthRecord | null }>(`/api/patients/${patientId}/birth`);
 }

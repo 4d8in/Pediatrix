@@ -54,6 +54,7 @@ import { listAdministrationsRoute } from "./modules/hospitalisation/list-adminis
 import { revokeDeathRoute } from "./modules/hospitalisation/revoke-death.route.js";
 import { enrolPmtctRoute } from "./modules/ptme/enrol-pmtct.route.js";
 import { getPmtctRoute } from "./modules/ptme/get-pmtct.route.js";
+import { revokePmtctTestRoute } from "./modules/ptme/revoke-pmtct-test.route.js";
 import { recordPmtctTestRoute } from "./modules/ptme/record-pmtct-test.route.js";
 import { dischargeStayRoute } from "./modules/hospitalisation/discharge-stay.route.js";
 import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-status.route.js";
@@ -238,6 +239,7 @@ await app.register(dischargeStayRoute);
 await app.register(enrolPmtctRoute);
 await app.register(getPmtctRoute);
 await app.register(recordPmtctTestRoute);
+await app.register(revokePmtctTestRoute);
 await app.register(revokeDeathRoute);
 await app.register(recordAdministrationRoute);
 await app.register(listAdministrationsRoute);

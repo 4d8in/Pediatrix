@@ -110,6 +110,7 @@ const dictionary: Record<string, string> = {
   "Contrôle à 9 mois": "Check at 9 months",
   "Sérologie finale à 18 mois": "Final serology at 18 months",
   "PTME": "PMTCT",
+  "Annuler ce résultat": "Cancel this result",
   "Mortalité hospitalière": "In-hospital mortality",
   "Confirmer l'issue « décédé » ? Elle ne pourra plus être modifiée.": "Confirm the \"deceased\" outcome? It cannot be changed afterwards.",
   "Établi le {date}": "Issued on {date}",

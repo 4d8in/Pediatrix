@@ -52,15 +52,22 @@ ALERTS=$(body "$(api GET "$NURSE" "/api/patients/${PATIENT}/birth")" | jq -c '.b
 echo "OK : registre de naissance (alertes $ALERTS)."
 
 # --- PTME (nourrisson exposé au VIH) ---
-[ "$(status "$(api GET "$LAB" "/api/patients/${PATIENT}/ptme")")" = "403" ] || fail "le laboratoire ne devrait pas lire le suivi PTME (403)."
-[ "$(status "$(api POST "$LAB" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "403" ] || fail "le laboratoire ne devrait pas inscrire (403)."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "409" ] || fail "test avant inscription non refusé (409)."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"x"}')")" = "400" ] || fail "inscription invalide non refusée."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "201" ] || fail "inscription PTME refusée."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "409" ] || fail "2e inscription non refusée (409)."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "201" ] || fail "résultat PCR refusé."
-[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"positive"}')")" = "409" ] || fail "résultat en double non refusé (409)."
-PT=$(body "$(api GET "$DOCTOR" "/api/patients/${PATIENT}/ptme")" | jq -r '"\(.ptme.status) \(.ptme.milestones[0].state) \(.ptme.milestones[1].state)"')
+INFANT_BIRTH=$(date -d '48 days ago' +%F)
+INFANT=$(body "$(api POST "$DOCTOR" /api/patients "{\"firstName\":\"Bébé\",\"lastName\":\"Verify-Ptme\",\"birthDate\":\"${INFANT_BIRTH}\",\"gender\":\"male\",\"guardian\":{\"name\":\"Awa Sow\",\"relationship\":\"Mère\",\"phone\":\"+221701112277\"}}")" | jq -r '.id // empty')
+[ -n "$INFANT" ] || fail "création du nourrisson."
+[ "$(status "$(api GET "$LAB" "/api/patients/${INFANT}/ptme")")" = "403" ] || fail "le laboratoire ne devrait pas lire le suivi PTME (403)."
+[ "$(status "$(api POST "$LAB" "/api/patients/${INFANT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "403" ] || fail "le laboratoire ne devrait pas inscrire (403)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "409" ] || fail "test avant inscription non refusé (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme" '{"motherStatus":"x"}')")" = "400" ] || fail "inscription invalide non refusée."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "201" ] || fail "inscription PTME refusée."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "409" ] || fail "2e inscription non refusée (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "201" ] || fail "résultat PCR refusé."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests" '{"milestone":"pcr_6w","result":"positive"}')")" = "409" ] || fail "résultat en double non refusé (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests" '{"milestone":"sero_18m","result":"negative"}')")" = "422" ] || fail "sérologie 18 mois à 48 jours non refusée (422)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests/pcr_6w/revoke" '{"reason":"Erreur de saisie"}')")" = "403" ] || fail "l'infirmière ne devrait pas annuler un résultat (403)."
+[ "$(status "$(api POST "$DOCTOR" "/api/patients/${INFANT}/ptme/tests/pcr_6w/revoke" '{"reason":"Erreur de saisie"}')")" = "200" ] || fail "annulation du résultat refusée."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${INFANT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "201" ] || fail "ressaisie du résultat refusée."
+PT=$(body "$(api GET "$DOCTOR" "/api/patients/${INFANT}/ptme")" | jq -r '"\(.ptme.status) \(.ptme.milestones[0].state) \(.ptme.milestones[1].state)"')
 [ "$PT" = "in_follow_up done upcoming" ] || fail "état PTME inattendu : $PT"
 echo "OK : suivi PTME ($PT)."
 

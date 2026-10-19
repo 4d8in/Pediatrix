@@ -40,10 +40,16 @@ function validate(body: unknown): { input: CreatePrescriptionInput } | { errors:
   if (dosesPerDay !== undefined && (!Number.isInteger(dosesPerDay) || dosesPerDay < 1 || dosesPerDay > 12)) {
     errors.push("Le nombre de prises par jour doit être un entier entre 1 et 12.");
   }
-  const durationDays = b.durationDays === undefined || b.durationDays === null || b.durationDays === "" ? undefined : Number(b.durationDays);
+  const durationDays =
+    b.durationDays === undefined || b.durationDays === null || b.durationDays === ""
+      ? undefined
+      : typeof b.durationDays === "number" || (typeof b.durationDays === "string" && /^\d{1,3}$/.test(b.durationDays))
+        ? Number(b.durationDays)
+        : Number.NaN;
   if (durationDays !== undefined && (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 90)) {
     errors.push("La durée du traitement doit être un entier de jours entre 1 et 90.");
   }
+  if (durationDays !== undefined && dosesPerDay === undefined) errors.push("La durée du traitement s'utilise avec la dose et le nombre de prises par jour.");
   if ((doseMg === undefined) !== (dosesPerDay === undefined)) errors.push("La dose et le nombre de prises par jour vont ensemble.");
 
   if (errors.length > 0) return { errors };

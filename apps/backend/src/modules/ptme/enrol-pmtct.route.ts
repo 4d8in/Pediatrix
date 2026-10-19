@@ -22,7 +22,10 @@ export async function enrolPmtctRoute(app: FastifyInstance) {
         if (isDeceased(patient)) return reply.code(409).send({ error: "Ce patient est enregistré comme décédé." });
         // Suivi réservé au nourrisson : au-delà de 24 mois, le dépistage final est passé.
         const birth = Date.parse(patient.birthDate ?? "");
-        if (!Number.isNaN(birth) && Date.now() - birth > 24 * 30.44 * 86_400_000) {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(patient.birthDate ?? "") || Number.isNaN(birth)) {
+          return reply.code(422).send({ error: "Date de naissance absente ou invalide : l'inscription PTME est impossible." });
+        }
+        if (Date.now() - birth > 731 * 86_400_000) {
           return reply.code(422).send({ error: "Le suivi PTME concerne les enfants de moins de 24 mois." });
         }
         return await withLock(`pmtct:${request.params.id}`, async () => {

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { PMTCT_CATEGORY_SEARCH_TOKEN, validateTest } from "../../lib/pmtct.js";
+import { PMTCT_CATEGORY_SEARCH_TOKEN, milestoneTooEarly, validateTest } from "../../lib/pmtct.js";
+import { isDeceased } from "../../lib/deceased.js";
 import { fetchAll } from "../../lib/fhir-search.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { withLock } from "../../lib/keyed-lock.js";
@@ -18,6 +19,10 @@ export async function recordPmtctTestRoute(app: FastifyInstance) {
       const result = validateTest(request.body);
       if ("errors" in result) return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
       try {
+        const patient = await hapiClient.get<{ birthDate?: string; deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${request.params.id}`);
+        if (isDeceased(patient)) return reply.code(409).send({ error: "Ce patient est enregistré comme décédé." });
+        const early = milestoneTooEarly(patient.birthDate ?? "", result.input.milestone);
+        if (early) return reply.code(422).send({ error: early });
         return await withLock(`pmtct:${request.params.id}`, async () => {
           const observations = await fetchAll<never>(
             `/Observation?patient=${request.params.id}&category=${encodeURIComponent(PMTCT_CATEGORY_SEARCH_TOKEN)}`,

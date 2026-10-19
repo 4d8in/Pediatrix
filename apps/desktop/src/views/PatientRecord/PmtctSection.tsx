@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../lib/auth-context";
-import { ApiError, enrolPmtct, recordPmtctTest } from "../../lib/api";
+import { ApiError, enrolPmtct, recordPmtctTest, revokePmtctTest } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import type { PmtctFollowUp } from "../../lib/types";
 
@@ -102,7 +102,20 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
             <span className={`rounded-full px-2 py-0.5 text-xs ${badge[m.state]}`}>
               {m.result ? (m.result === "positive" ? t("Positif") : t("Négatif")) : t(stateLabel[m.state])}
             </span>
-            {canWrite && !m.result && ptme.status !== "positive" && (
+            {user?.role === "doctor" && m.result && (
+              <button
+                disabled={busy}
+                data-testid={`pmtct-revoke-${m.key}`}
+                onClick={() => {
+                  const reason = window.prompt(t("Motif de la correction (requis)"));
+                  if (reason && reason.trim().length >= 5) void run(() => revokePmtctTest(patientId, m.key, reason.trim()));
+                }}
+                className="text-xs text-zinc-500 underline disabled:opacity-40"
+              >
+                {t("Annuler ce résultat")}
+              </button>
+            )}
+            {canWrite && !m.result && (
               <>
                 <button
                   disabled={busy}

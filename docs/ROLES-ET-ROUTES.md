@@ -3,7 +3,7 @@
 Tableau généré automatiquement depuis le code (`scripts/docs/access-matrix.ts`) : il ne peut pas diverger des contrôles réellement appliqués.
 Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authorize`) ; le masquage des écrans côté interface n'est qu'un confort.
 
-91 routes.
+92 routes.
 
 ## croissance
 
@@ -94,6 +94,7 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | GET | `/api/patients/:id/ptme` | Infirmière, Médecin |
 | POST | `/api/patients/:id/ptme` | Infirmière, Médecin |
 | POST | `/api/patients/:id/ptme/tests` | Infirmière, Médecin |
+| POST | `/api/patients/:id/ptme/tests/:milestone/revoke` | Médecin |
 
 ## radiologie
 

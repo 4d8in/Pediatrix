@@ -19,14 +19,16 @@ export const auditPlugin = fp(async function auditPlugin(app: FastifyInstance) {
     const user = request.user as { sub?: string; name?: string; role?: string } | undefined;
     if (!shouldAudit(request.method, routeUrl, reply.statusCode, Boolean(user?.sub))) return;
 
-    const patientId = patientIdFor(routeUrl, request.params, request.body);
+    // Suivi PTME : le journal garde qui et quand, mais ni le patient ni la nature de l'acte (donnée très sensible).
+    const confidential = routeUrl?.includes("/ptme") ?? false;
+    const patientId = confidential ? undefined : patientIdFor(routeUrl, request.params, request.body);
     void recordAudit(app, {
       action: actionForMethod(request.method),
       outcome: outcomeForStatus(reply.statusCode),
       agent: { id: user?.sub, name: user?.name, role: user?.role },
       ip: request.ip,
       entity: patientId ? `Patient/${patientId}` : undefined,
-      description: `${request.method} ${routeUrl} → ${reply.statusCode}`,
+      description: `${request.method} ${confidential ? "/api/patients/:id/[confidentiel]" : routeUrl} → ${reply.statusCode}`,
     });
   });
 });

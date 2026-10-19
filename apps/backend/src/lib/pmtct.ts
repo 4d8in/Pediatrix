@@ -68,6 +68,17 @@ export function validateTest(body: unknown): { input: { milestone: MilestoneKey;
   return { input: { milestone: b.milestone as MilestoneKey, result: b.result as "negative" | "positive" } };
 }
 
+// Un résultat n'est accepté que dans les 14 jours précédant l'échéance du jalon (ou après) : un test fait
+// bien avant n'est pas le test du calendrier. Renvoie un message d'erreur, ou null si c'est possible.
+export const EARLY_WINDOW_DAYS = 14;
+export function milestoneTooEarly(birthDate: string, milestone: MilestoneKey, now: Date = new Date()): string | null {
+  const birth = Date.parse(birthDate);
+  if (!/^\d{4}-\d{2}-\d{2}/.test(birthDate) || Number.isNaN(birth)) return "Date de naissance absente ou invalide : le calendrier PTME ne peut pas être calculé.";
+  const def = MILESTONES.find((m) => m.key === milestone)!;
+  const earliest = birth + (def.dueDays - EARLY_WINDOW_DAYS) * 86_400_000;
+  return now.getTime() < earliest ? "Ce jalon n'est pas encore échu : le résultat ne peut pas être enregistré avant l'échéance." : null;
+}
+
 export function followUp(birthDate: string, results: TestResult[], now: Date = new Date()): { status: FollowUpStatus; milestones: MilestoneStatus[] } {
   const birth = Date.parse(birthDate);
   const milestones: MilestoneStatus[] = MILESTONES.map((m) => {
@@ -85,9 +96,10 @@ export function followUp(birthDate: string, results: TestResult[], now: Date = n
       result: done?.result ?? null,
     };
   });
+  // Fin de suivi seulement si la sérologie finale est négative ET que le premier dépistage a été fait.
   const status: FollowUpStatus = results.some((r) => r.result === "positive")
     ? "positive"
-    : results.some((r) => r.milestone === "sero_18m" && r.result === "negative")
+    : results.some((r) => r.milestone === "sero_18m" && r.result === "negative") && results.some((r) => r.milestone === "pcr_6w")
       ? "cleared"
       : "in_follow_up";
   return { status, milestones };

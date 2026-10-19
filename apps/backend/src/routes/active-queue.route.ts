@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { fetchAll } from "../lib/fhir-search.js";
 import { startOfTodayIso } from "../lib/arrival.js";
 import { HapiError, hapiClient } from "../lib/hapi-client.js";
 import { type TriageCategory, TRIAGE_SYSTEM, latestTriageByEncounter, triageRank } from "../lib/triage.js";
@@ -129,30 +130,22 @@ export async function activeQueueRoute(app: FastifyInstance) {
     async (_request, reply) => {
       try {
         const since = startOfTodayIso();
-        const noCache = { "Cache-Control": "no-cache" };
-        const [encounterBundle, legacyBundle, triageBundle, vitalsBundle] = await Promise.all([
-          hapiClient.get<FhirBundle>(
-            `/Encounter?class=AMB&date=ge${since}&_include=Encounter:subject&_count=200`,
-            noCache,
-          ),
-          hapiClient.get<FhirBundle>(`/Patient?_lastUpdated=ge${since}&_sort=_lastUpdated&_count=200`, noCache),
-          hapiClient.get<FhirBundle>(
-            `/Observation?code=${encodeURIComponent(`${TRIAGE_SYSTEM}|triage-category`)}&_lastUpdated=ge${since}&_count=200`,
-            noCache,
-          ),
-          hapiClient.get<FhirBundle>(
-            `/Observation?code=${encodeURIComponent(TRIAGE_VITAL_CODES.map((c) => `http://loinc.org|${c}`).join(","))}&_lastUpdated=ge${since}&_count=200`,
-            noCache,
+        // Lectures paginées : un grand service dépasse vite 200 arrivées par jour (sinon des patients disparaîtraient de la file).
+        const [resources, legacy, triage, vitals] = await Promise.all([
+          fetchAll<FhirResource>(`/Encounter?class=AMB&date=ge${since}&_include=Encounter:subject`),
+          fetchAll<FhirResource>(`/Patient?_lastUpdated=ge${since}&_sort=_lastUpdated`),
+          fetchAll<FhirResource>(`/Observation?code=${encodeURIComponent(`${TRIAGE_SYSTEM}|triage-category`)}&_lastUpdated=ge${since}`),
+          fetchAll<FhirResource>(
+            `/Observation?code=${encodeURIComponent(TRIAGE_VITAL_CODES.map((c) => `http://loinc.org|${c}`).join(","))}&_lastUpdated=ge${since}`,
           ),
         ]);
 
-        const resources = (encounterBundle.entry ?? []).map((e) => e.resource);
         const queue = buildQueue(
           resources.filter((r) => r.resourceType === "Encounter"),
           resources.filter((r) => r.resourceType === "Patient"),
-          (legacyBundle.entry ?? []).map((e) => e.resource),
-          (triageBundle.entry ?? []).map((e) => e.resource),
-          (vitalsBundle.entry ?? []).map((e) => e.resource),
+          legacy,
+          triage,
+          vitals,
         );
         return reply.send({ queue });
       } catch (error) {

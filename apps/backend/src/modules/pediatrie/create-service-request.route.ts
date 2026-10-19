@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
+import { findCatalogEntry } from "../../lib/lab-catalog.js";
 import { type FhirServiceRequest, toFhirServiceRequest } from "./service-request.fhir.js";
 import type { CreateServiceRequestInput } from "./service-request.types.js";
 
@@ -18,12 +19,15 @@ function validate(body: unknown): { input: CreateServiceRequestInput } | { error
   const exam = typeof b.exam === "string" ? b.exam.trim() : "";
   const requester = typeof b.requester === "string" ? b.requester.trim() : "";
 
+  const examCode = typeof b.examCode === "string" && b.examCode.trim() ? b.examCode.trim() : undefined;
+
   if (!exam) errors.push("L'examen demandé est requis.");
   if (!requester) errors.push("Le demandeur est requis.");
+  if (examCode && !findCatalogEntry(examCode)) errors.push(`Code d'examen ${examCode} absent du catalogue.`);
 
   if (errors.length > 0) return { errors };
 
-  return { input: { exam, requester } };
+  return { input: { exam, requester, examCode } };
 }
 
 export async function createServiceRequestRoute(app: FastifyInstance) {
@@ -58,7 +62,7 @@ export async function createServiceRequestRoute(app: FastifyInstance) {
       try {
         const created = await hapiClient.post<FhirServiceRequest>(
           "/ServiceRequest",
-          toFhirServiceRequest(patientId, id, result.input),
+          toFhirServiceRequest(patientId, id, result.input, request.user.sub),
         );
         return reply.code(201).send({ serviceRequestId: created.id });
       } catch (error) {

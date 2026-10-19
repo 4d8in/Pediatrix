@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { createArrival } from "../../lib/arrival.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
-import { type FhirPatient, fromFhirPatient, toFhirPatient } from "./patient.fhir.js";
+import { MRN_SYSTEM, type FhirPatient, fromFhirPatient, mrnFromId, toFhirPatient } from "./patient.fhir.js";
 import type { CreatePatientInput, Gender } from "./patient.types.js";
 
 const GENDERS: Gender[] = ["male", "female", "other", "unknown"];
@@ -52,7 +53,7 @@ function validate(body: unknown): { input: CreatePatientInput } | { errors: stri
 }
 
 export async function createPatientRoute(app: FastifyInstance) {
-  app.post("/api/patients", { preHandler: [authenticate, authorize("nurse", "doctor")] }, async (request, reply) => {
+  app.post("/api/patients", { preHandler: [authenticate, authorize("nurse", "doctor", "receptionist")] }, async (request, reply) => {
     const result = validate(request.body);
     if ("errors" in result) {
       return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
@@ -60,7 +61,18 @@ export async function createPatientRoute(app: FastifyInstance) {
 
     try {
       const created = await hapiClient.post<FhirPatient>("/Patient", toFhirPatient(result.input));
-      return reply.code(201).send(fromFhirPatient(created));
+      // Le numéro de dossier dérive de l'id attribué par HAPI : on l'inscrit ensuite
+      // dans la ressource. Si cette mise à jour échoue, le numéro reste calculable.
+      const withMrn: FhirPatient = {
+        ...created,
+        identifier: [{ system: MRN_SYSTEM, value: mrnFromId(created.id ?? "") }],
+      };
+      const stored = await hapiClient.put<FhirPatient>(`/Patient/${created.id}`, withMrn).catch(() => withMrn);
+      // Un patient admis entre dans la file active du jour (sauf checkIn: false).
+      if ((request.body as { checkIn?: unknown } | undefined)?.checkIn !== false) {
+        await createArrival(created.id ?? "").catch((err) => request.log.warn({ err }, "Arrivée non enregistrée."));
+      }
+      return reply.code(201).send(fromFhirPatient(stored));
     } catch (error) {
       if (error instanceof HapiError) {
         return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });

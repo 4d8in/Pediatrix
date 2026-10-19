@@ -21,6 +21,7 @@ export function toFhirMedicationRequest(
   encounterId: string,
   input: CreatePrescriptionInput,
   overrideAllergy: string | undefined,
+  prescriber?: { id: string; name: string },
 ) {
   return {
     resourceType: "MedicationRequest",
@@ -30,6 +31,7 @@ export function toFhirMedicationRequest(
     subject: { reference: `Patient/${patientId}` },
     encounter: { reference: `Encounter/${encounterId}` },
     authoredOn: new Date().toISOString(),
+    requester: prescriber ? { reference: `Practitioner/${prescriber.id}`, display: prescriber.name } : undefined,
     dosageInstruction: [{ text: input.dosage }],
     note: overrideAllergy
       ? [{ text: `Prescription confirmée malgré une allergie connue à "${overrideAllergy}".` }]

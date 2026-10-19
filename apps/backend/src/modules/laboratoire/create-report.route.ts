@@ -7,10 +7,18 @@ import {
   parseReportTransactionResponse,
   toReportTransactionBundle,
 } from "./report.fhir.js";
-import type { CreateReportInput } from "./report.types.js";
+import { findCatalogEntry } from "../../lib/lab-catalog.js";
+import type { CreateReportInput, LabResultInput } from "./report.types.js";
 
 interface TransactionResponseBundle {
   entry?: { response?: { location?: string } }[];
+}
+
+// Champ numérique facultatif : absent -> undefined, saisie invalide -> NaN.
+function optionalNumber(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  const parsed = typeof raw === "number" ? raw : Number(String(raw).replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function validate(body: unknown): { input: CreateReportInput } | { errors: string[] } {
@@ -19,14 +27,36 @@ function validate(body: unknown): { input: CreateReportInput } | { errors: strin
   const rawResults = Array.isArray(b.results) ? b.results : [];
   const conclusion = typeof b.conclusion === "string" ? b.conclusion.trim() : "";
 
-  const results = rawResults
-    .map((raw) => {
-      const r = (raw ?? {}) as Record<string, unknown>;
-      const label = typeof r.label === "string" ? r.label.trim() : "";
-      const value = typeof r.value === "string" ? r.value.trim() : "";
-      return { label, value };
-    })
-    .filter((r) => r.label && r.value);
+  const results: LabResultInput[] = [];
+  for (const raw of rawResults) {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    const value = typeof r.value === "string" ? r.value.trim() : "";
+    // Une ligne vide est ignorée, comme avant.
+    if (!label || !value) continue;
+
+    const code = typeof r.code === "string" && r.code.trim() ? r.code.trim() : undefined;
+    if (code && !findCatalogEntry(code)) {
+      errors.push(`Analyse "${label}" : code ${code} absent du catalogue.`);
+    }
+    const unit = typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : undefined;
+    const referenceLow = optionalNumber(r.referenceLow);
+    const referenceHigh = optionalNumber(r.referenceHigh);
+    if (Number.isNaN(referenceLow) || Number.isNaN(referenceHigh)) {
+      errors.push(`Analyse "${label}" : les bornes de référence doivent être des nombres.`);
+    } else if (referenceLow !== undefined && referenceHigh !== undefined && referenceLow > referenceHigh) {
+      errors.push(`Analyse "${label}" : la borne basse dépasse la borne haute.`);
+    }
+
+    results.push({
+      label,
+      value,
+      code,
+      unit,
+      referenceLow: referenceLow === undefined || Number.isNaN(referenceLow) ? undefined : referenceLow,
+      referenceHigh: referenceHigh === undefined || Number.isNaN(referenceHigh) ? undefined : referenceHigh,
+    });
+  }
 
   if (results.length === 0) {
     errors.push("Au moins un résultat (paramètre + valeur) est requis.");
@@ -54,6 +84,10 @@ export async function createReportRoute(app: FastifyInstance) {
           return reply.code(statusCode).send({ error: message });
         }
         throw error;
+      }
+
+      if (serviceRequest.status === "completed") {
+        return reply.code(409).send({ error: "Cette demande a déjà un rapport." });
       }
 
       const result = validate(request.body);

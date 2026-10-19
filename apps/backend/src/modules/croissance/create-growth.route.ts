@@ -18,6 +18,7 @@ function validate(body: unknown): { input: CreateGrowthInput } | { errors: strin
   const weight = typeof b.weight === "number" ? b.weight : undefined;
   const height = typeof b.height === "number" ? b.height : undefined;
   const headCircumference = typeof b.headCircumference === "number" ? b.headCircumference : undefined;
+  const muac = typeof b.muac === "number" ? b.muac : undefined;
 
   if (!date) {
     errors.push("La date de la mesure est requise.");
@@ -29,19 +30,20 @@ function validate(body: unknown): { input: CreateGrowthInput } | { errors: strin
     [weight, "weight", "Le poids"],
     [height, "height", "La taille"],
     [headCircumference, "headCircumference", "Le périmètre crânien"],
+    [muac, "muac", "Le périmètre brachial"],
   ];
   for (const [value, key, label] of measures) {
     if (value === undefined) continue;
     const rangeError = checkRange(value, PLAUSIBLE_RANGES[key], label);
     if (rangeError) errors.push(rangeError);
   }
-  if (weight === undefined && height === undefined && headCircumference === undefined) {
-    errors.push("Au moins une mesure (poids, taille ou périmètre crânien) est requise.");
+  if (weight === undefined && height === undefined && headCircumference === undefined && muac === undefined) {
+    errors.push("Au moins une mesure (poids, taille, périmètre crânien ou périmètre brachial) est requise.");
   }
 
   if (errors.length > 0) return { errors };
 
-  return { input: { date, weight, height, headCircumference } };
+  return { input: { date, weight, height, headCircumference, muac } };
 }
 
 export async function createGrowthRoute(app: FastifyInstance) {

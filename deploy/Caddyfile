@@ -1,0 +1,14 @@
+# Chiffrement TLS du backend sur le réseau local (profil « tls » de docker-compose.yml).
+# Caddy crée sa propre autorité de certification interne : aucun service cloud n'est
+# contacté. Les postes accèdent au serveur par son NOM (TLS_HOST, ex. pediatrix.lan,
+# à déclarer dans le DNS local ou le fichier hosts) et font confiance au certificat
+# racine, à installer une fois (voir docs/ADMINISTRATION.md, section TLS).
+{
+	local_certs
+	default_sni {$TLS_HOST:pediatrix.lan}
+}
+
+{$TLS_HOST:pediatrix.lan}:3443 {
+	tls internal
+	reverse_proxy backend:3001
+}

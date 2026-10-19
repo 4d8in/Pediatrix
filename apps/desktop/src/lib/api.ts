@@ -28,7 +28,31 @@ import type {
   ImagingReport,
   ImagingRequest,
   Immunization,
+  Appointment,
+  TriageCategory,
+  AuditEntry,
+  AppointmentStatus,
+  BillableEncounter,
+  BillingSummary,
+  Certainty,
+  Diagnosis,
+  Dhis2Mapping,
+  IndicatorRow,
+  DiagnosisCatalogItem,
+  DoctorOption,
+  Facility,
+  FormularyItem,
+  Invoice,
+  PaymentMethod,
+  TariffTable,
   LabRequest,
+  PendingPrescription,
+  Referral,
+  ScheduleItem,
+  Vaccine,
+  ReceiptInput,
+  StockLevel,
+  LabTest,
   Patient,
   PatientRecord,
   Prescription,
@@ -147,6 +171,10 @@ export function createServiceRequest(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getLabCatalog(): Promise<{ tests: LabTest[] }> {
+  return request<{ tests: LabTest[] }>("/api/lab/catalog");
 }
 
 export function listLabRequests(status: "active" | "completed" = "active"): Promise<{ requests: LabRequest[] }> {
@@ -366,4 +394,179 @@ export function getMyProfile(): Promise<UserProfile> {
 
 export function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
   return request<UserProfile>("/api/me/profile", { method: "PUT", body: JSON.stringify(profile) });
+}
+
+export function getFormulary(): Promise<{ items: FormularyItem[] }> {
+  return request<{ items: FormularyItem[] }>("/api/pharmacy/formulary");
+}
+
+export function getStock(): Promise<{ items: StockLevel[] }> {
+  return request<{ items: StockLevel[] }>("/api/pharmacy/stock");
+}
+
+export function receiveStock(input: ReceiptInput): Promise<{ receiptId: string }> {
+  return request<{ receiptId: string }>("/api/pharmacy/stock/receipts", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listPendingPrescriptions(
+  status: "active" | "completed" = "active",
+): Promise<{ prescriptions: PendingPrescription[] }> {
+  return request<{ prescriptions: PendingPrescription[] }>(`/api/pharmacy/prescriptions?status=${status}`);
+}
+
+export function dispensePrescription(
+  prescriptionId: string,
+  input: { itemCode: string; quantity: number },
+): Promise<{ dispenseId: string }> {
+  return request<{ dispenseId: string }>(`/api/pharmacy/prescriptions/${prescriptionId}/dispense`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getTariffs(): Promise<{ tariffs: TariffTable; items: { code: string; name: string; unit: string }[] }> {
+  return request("/api/billing/tariffs");
+}
+
+export function saveTariffs(tariffs: TariffTable): Promise<{ tariffs: TariffTable }> {
+  return request<{ tariffs: TariffTable }>("/api/billing/tariffs", { method: "PUT", body: JSON.stringify(tariffs) });
+}
+
+export function listBillableEncounters(): Promise<{ encounters: BillableEncounter[] }> {
+  return request<{ encounters: BillableEncounter[] }>("/api/billing/encounters");
+}
+
+export function createInvoice(
+  encounterId: string,
+  input: { insurer?: string; coveragePercent?: number },
+): Promise<{ invoice: Invoice }> {
+  return request<{ invoice: Invoice }>(`/api/billing/encounters/${encounterId}/invoice`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listInvoices(): Promise<{ invoices: Invoice[] }> {
+  return request<{ invoices: Invoice[] }>("/api/billing/invoices");
+}
+
+export function addPayment(invoiceId: string, input: { amount: number; method: PaymentMethod }): Promise<{ invoice: Invoice }> {
+  return request<{ invoice: Invoice }>(`/api/billing/invoices/${invoiceId}/payments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getBillingSummary(): Promise<BillingSummary> {
+  return request<BillingSummary>("/api/billing/summary");
+}
+
+export function listDoctors(): Promise<{ doctors: DoctorOption[] }> {
+  return request<{ doctors: DoctorOption[] }>("/api/appointments/doctors");
+}
+
+export function listAppointmentSlots(date: string, practitionerId: string): Promise<{ slots: string[] }> {
+  return request<{ slots: string[] }>(
+    `/api/appointments/slots?date=${encodeURIComponent(date)}&practitionerId=${encodeURIComponent(practitionerId)}`,
+  );
+}
+
+export function listAppointments(date: string, practitionerId?: string): Promise<{ appointments: Appointment[] }> {
+  const doctor = practitionerId ? `&practitionerId=${encodeURIComponent(practitionerId)}` : "";
+  return request<{ appointments: Appointment[] }>(`/api/appointments?date=${encodeURIComponent(date)}${doctor}`);
+}
+
+export function createAppointment(input: {
+  patientId: string;
+  practitionerId: string;
+  start: string;
+  reason: string;
+}): Promise<{ appointment: Appointment }> {
+  return request<{ appointment: Appointment }>("/api/appointments", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<{ appointment: Appointment }> {
+  return request<{ appointment: Appointment }>(`/api/appointments/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function listAudit(patientId?: string): Promise<{ events: AuditEntry[] }> {
+  const filter = patientId ? `&patientId=${encodeURIComponent(patientId)}` : "";
+  return request<{ events: AuditEntry[] }>(`/api/audit?limit=200${filter}`);
+}
+
+export function getDiagnosisCatalog(): Promise<{ diagnoses: DiagnosisCatalogItem[] }> {
+  return request<{ diagnoses: DiagnosisCatalogItem[] }>("/api/diagnoses/catalog");
+}
+
+export function createDiagnosis(
+  encounterId: string,
+  input: { code?: string; text?: string; certainty: Certainty },
+): Promise<{ diagnosisId: string }> {
+  return request<{ diagnosisId: string }>(`/api/encounters/${encounterId}/diagnoses`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientDiagnoses(patientId: string): Promise<{ diagnoses: Diagnosis[] }> {
+  return request<{ diagnoses: Diagnosis[] }>(`/api/patients/${patientId}/diagnoses`);
+}
+
+export function getFacility(): Promise<Facility> {
+  return request<Facility>("/api/facility");
+}
+
+export function getIndicators(period: string): Promise<{ period: string; mappingConfigured: boolean; indicators: IndicatorRow[] }> {
+  return request(`/api/reporting/indicators?period=${encodeURIComponent(period)}`);
+}
+
+export function getDhis2Export(period: string): Promise<{ dataValueSet: unknown; unmapped: string[] }> {
+  return request(`/api/reporting/dhis2?period=${encodeURIComponent(period)}`);
+}
+
+export function getDhis2Mapping(): Promise<{ mapping: Dhis2Mapping | null }> {
+  return request("/api/reporting/dhis2/mapping");
+}
+
+export function saveDhis2Mapping(mapping: Dhis2Mapping): Promise<{ mapping: Dhis2Mapping }> {
+  return request("/api/reporting/dhis2/mapping", { method: "PUT", body: JSON.stringify(mapping) });
+}
+
+export function getVaccineCatalog(): Promise<{ vaccines: Vaccine[] }> {
+  return request<{ vaccines: Vaccine[] }>("/api/vaccines/catalog");
+}
+
+export function getVaccinationSchedule(patientId: string): Promise<{ schedule: ScheduleItem[] }> {
+  return request<{ schedule: ScheduleItem[] }>(`/api/patients/${patientId}/vaccination-schedule`);
+}
+
+export function checkInPatient(patientId: string): Promise<{ encounterId: string }> {
+  return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival`, { method: "POST", body: "{}" });
+}
+
+export function setTriage(patientId: string, category: TriageCategory, note?: string): Promise<{ encounterId: string }> {
+  return request<{ encounterId: string }>(`/api/patients/${patientId}/triage`, {
+    method: "POST",
+    body: JSON.stringify({ category, note }),
+  });
+}
+
+export function createReferral(
+  encounterId: string,
+  input: { destination: string; reason: string; summary?: string; urgent: boolean },
+): Promise<{ referralId: string }> {
+  return request<{ referralId: string }>(`/api/encounters/${encounterId}/referral`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientReferrals(patientId: string): Promise<{ referrals: Referral[] }> {
+  return request<{ referrals: Referral[] }>(`/api/patients/${patientId}/referrals`);
 }

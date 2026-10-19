@@ -1,4 +1,13 @@
-export type Role = "nurse" | "doctor" | "lab_tech" | "radiologist" | "director" | "tech_admin";
+export type Role =
+  | "nurse"
+  | "doctor"
+  | "lab_tech"
+  | "radiologist"
+  | "pharmacist"
+  | "cashier"
+  | "receptionist"
+  | "director"
+  | "tech_admin";
 
 export interface User {
   id: string;
@@ -16,6 +25,8 @@ export interface Guardian {
 
 export interface Patient {
   id: string;
+  // Numéro de dossier (ex. PX-001401), à donner à l'accueil et aux services.
+  mrn: string;
   firstName: string;
   lastName: string;
   birthDate: string;
@@ -61,6 +72,16 @@ export interface CreateEncounterInput {
 export interface CreateServiceRequestInput {
   exam: string;
   requester: string;
+  // Code LOINC de l'examen quand il vient du catalogue du laboratoire.
+  examCode?: string;
+}
+
+// Entrée du catalogue d'examens (GET /api/lab/catalog). Un panel (ex. NFS) liste ses analyses.
+export interface LabTest {
+  code: string;
+  display: string;
+  unit?: string;
+  panel?: string[];
 }
 
 export interface LabRequest {
@@ -68,6 +89,7 @@ export interface LabRequest {
   patientId: string;
   patientName: string;
   exam: string | null;
+  examCode: string | null;
   requester: string | null;
   authoredOn: string | null;
 }
@@ -75,6 +97,20 @@ export interface LabRequest {
 export interface LabResultInput {
   label: string;
   value: string;
+  // Renseignés pour une analyse du catalogue ; bornes saisies en texte (champ du formulaire).
+  code?: string;
+  unit?: string;
+  referenceLow?: string;
+  referenceHigh?: string;
+}
+
+export type ResultFlag = "H" | "L" | "N";
+
+export interface ReportResult {
+  label: string;
+  value: string;
+  flag?: ResultFlag;
+  reference?: string;
 }
 
 export interface CreateReportInput {
@@ -87,7 +123,7 @@ export interface Report {
   date: string | null;
   exam: string | null;
   conclusion: string | null;
-  results: { label: string; value: string }[];
+  results: ReportResult[];
 }
 
 export interface CreateImagingRequestInput {
@@ -119,6 +155,7 @@ export interface ImagingReport {
 
 export interface CreateImmunizationInput {
   vaccine: string;
+  vaccineCode?: string;
   date: string;
   doseNumber?: number;
   notes?: string;
@@ -137,6 +174,7 @@ export interface CreateGrowthInput {
   weight?: number;
   height?: number;
   headCircumference?: number;
+  muac?: number;
 }
 
 export interface GrowthMeasurement {
@@ -144,6 +182,8 @@ export interface GrowthMeasurement {
   weight?: number;
   height?: number;
   headCircumference?: number;
+  muac?: number;
+  muacStatus?: "severe" | "moderate" | "normal";
 }
 
 export interface CreateAllergyInput {
@@ -213,7 +253,7 @@ export interface Stats {
   tauxHospitalisation: UnavailableIndicator | AvailableIndicator;
   dureeMoyenneSejour: UnavailableIndicator | AvailableIndicator;
   litsOccupes: UnavailableIndicator | AvailableIndicator;
-  chargeParPraticien: UnavailableIndicator;
+  chargeParPraticien: UnavailableIndicator | (AvailableIndicator & { parPraticien: { nom: string; consultations: number }[] });
 }
 
 export interface DashboardCounters {
@@ -238,8 +278,12 @@ export interface DashboardOverview {
   sexes: { feminin: number; masculin: number; autre: number };
 }
 
+export type TriageCategory = "emergency" | "priority" | "non_urgent";
+
 export interface QueueEntry {
   patientId: string;
+  encounterId: string | null;
+  triage: TriageCategory | null;
   name: string;
   birthDate: string | null;
   gender: Gender;
@@ -307,4 +351,176 @@ export interface UserProfile {
   phone: string | null;
   email: string | null;
   photo: { contentType: string; data: string } | null;
+}
+
+export interface FormularyItem {
+  code: string;
+  name: string;
+  form: string;
+  unit: string;
+  reorderLevel: number;
+}
+
+export interface StockLevel extends FormularyItem {
+  quantity: number;
+  low: boolean;
+}
+
+export interface PendingPrescription {
+  id: string;
+  patientId: string;
+  patientName: string;
+  medication: string | null;
+  dosage: string | null;
+  authoredOn: string | null;
+}
+
+export interface ReceiptInput {
+  itemCode: string;
+  quantity: number;
+  lot?: string;
+  expiry?: string;
+}
+
+export interface TariffTable {
+  currency: string;
+  consultation: number;
+  labDefault: number;
+  labByCode: Record<string, number>;
+  imagingDefault: number;
+  drugs: Record<string, number>;
+  customized: boolean;
+}
+
+export interface BillableEncounter {
+  encounterId: string;
+  patientId: string;
+  patientName: string;
+  reason: string | null;
+  date: string | null;
+}
+
+export type PaymentMethod = "cash" | "mobile_money" | "card";
+
+export interface Invoice {
+  id: string;
+  encounterId: string | null;
+  patientId: string;
+  patientName: string;
+  date: string | null;
+  status: "issued" | "balanced";
+  currency: string;
+  total: number;
+  insurer: string | null;
+  coveragePercent: number;
+  insurerShare: number;
+  patientShare: number;
+  paid: number;
+  balance: number;
+  lines: { description: string; amount: number }[];
+  payments: { amount: number; method: string; date: string | null }[];
+}
+
+export interface BillingSummary {
+  currency: string;
+  invoices: number;
+  collectedToday: number;
+  outstanding: number;
+  insurerReceivable: number;
+}
+
+export type AppointmentStatus = "booked" | "arrived" | "fulfilled" | "cancelled" | "noshow";
+
+export interface Appointment {
+  id: string;
+  status: AppointmentStatus;
+  start: string;
+  end: string | null;
+  reason: string | null;
+  patientId: string;
+  patientName: string;
+  practitionerId: string;
+  practitionerName: string;
+}
+
+export interface DoctorOption {
+  practitionerId: string;
+  name: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  recorded: string | null;
+  action: string;
+  success: boolean;
+  who: string;
+  role: string | null;
+  ip: string | null;
+  patientId: string | null;
+  description: string;
+  login: boolean;
+}
+
+export type Certainty = "confirmed" | "provisional";
+
+export interface DiagnosisCatalogItem {
+  code: string;
+  display: string;
+}
+
+export interface Diagnosis {
+  id: string;
+  code: string | null;
+  text: string;
+  certainty: Certainty;
+  encounterId: string | null;
+  date: string | null;
+  recorder: string | null;
+}
+
+export interface Facility {
+  name: string;
+  address: string;
+  phone: string;
+}
+
+export interface IndicatorRow {
+  id: string;
+  label: string;
+  value: number;
+  mapped: boolean;
+}
+
+export interface Dhis2Mapping {
+  orgUnit: string;
+  dataSet?: string;
+  dataElements: Record<string, string>;
+}
+
+export interface Vaccine {
+  code: string;
+  name: string;
+}
+
+export type ScheduleStatus = "done" | "overdue" | "due" | "upcoming";
+
+export interface ScheduleItem {
+  vaccine: string;
+  name: string;
+  dose: number;
+  label: string;
+  dueDate: string;
+  status: ScheduleStatus;
+  doneDate: string | null;
+}
+
+export interface Referral {
+  id: string;
+  encounterId: string | null;
+  date: string | null;
+  destination: string;
+  reason: string;
+  summary: string | null;
+  urgent: boolean;
+  sender: string | null;
 }

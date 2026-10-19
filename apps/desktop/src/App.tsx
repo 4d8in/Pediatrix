@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BedDouble,
+  CalendarDays,
+  Banknote,
   CircleUserRound,
   FileText,
   FlaskConical,
@@ -8,13 +10,16 @@ import {
   ListOrdered,
   LogOut,
   MonitorCheck,
+  ShieldCheck,
   Settings as SettingsIcon,
   Search,
   ScanLine,
+  Pill,
   Stethoscope,
   Syringe,
   Terminal,
   BarChart3,
+  FileSpreadsheet,
   UserPlus,
   UsersRound,
 } from "lucide-react";
@@ -24,6 +29,11 @@ import Consultations from "./views/Consultations";
 import PatientRecord from "./views/PatientRecord/PatientRecord";
 import Laboratory from "./views/Laboratory";
 import Radiology from "./views/Radiology";
+import Pharmacy from "./views/Pharmacy";
+import Billing from "./views/Billing";
+import Appointments from "./views/Appointments";
+import AuditLog from "./views/AuditLog";
+import Reporting from "./views/Reporting";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -41,6 +51,7 @@ import ConnectionBanner from "./components/ConnectionBanner";
 import { LogoBadge } from "./components/Logo";
 import { useAuth } from "./lib/auth-context";
 import type { Role, UserProfile } from "./lib/types";
+import { ROLE_LABELS } from "./lib/roles";
 import "./App.css";
 
 type ViewType =
@@ -50,6 +61,11 @@ type ViewType =
   | "record"
   | "laboratory"
   | "radiology"
+  | "pharmacy"
+  | "billing"
+  | "appointments"
+  | "audit"
+  | "reporting"
   | "fhirLog"
   | "vaccinations"
   | "stats"
@@ -60,15 +76,30 @@ type ViewType =
   | "accounts"
   | "profile";
 
+const ALL_ROLES: Role[] = [
+  "nurse",
+  "doctor",
+  "lab_tech",
+  "radiologist",
+  "pharmacist",
+  "cashier",
+  "receptionist",
+  "director",
+  "tech_admin",
+];
+
 // Masquage ergonomique uniquement : la barrière réelle est côté backend
 // (preHandler authenticate/authorize sur chaque route, voir apps/backend).
 const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Role[] }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, roles: ["nurse", "doctor", "director"] },
-  { id: "queue", label: "File active", icon: ListOrdered, roles: ["nurse", "doctor", "director"] },
-  { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor"] },
+  { id: "queue", label: "File active", icon: ListOrdered, roles: ["nurse", "doctor", "receptionist", "director"] },
+  { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor", "receptionist"] },
+  { id: "appointments", label: "Rendez-vous", icon: CalendarDays, roles: ["receptionist", "nurse", "doctor"] },
   { id: "consultations", label: "Consultations", icon: Stethoscope, roles: ["doctor"] },
   { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
   { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
+  { id: "pharmacy", label: "Pharmacie", icon: Pill, roles: ["pharmacist"] },
+  { id: "billing", label: "Facturation", icon: Banknote, roles: ["cashier", "director"] },
   {
     id: "record",
     label: "Dossier patient",
@@ -77,21 +108,23 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   },
   { id: "supervision", label: "Supervision", icon: MonitorCheck, roles: ["tech_admin"] },
   { id: "accounts", label: "Comptes", icon: UsersRound, roles: ["tech_admin"] },
+  { id: "audit", label: "Journal d'audit", icon: ShieldCheck, roles: ["tech_admin", "director"] },
   { id: "fhirLog", label: "Flux FHIR", icon: Terminal, roles: ["tech_admin"] },
   { id: "beds", label: "Gestion des lits", icon: BedDouble, roles: ["nurse", "doctor", "director", "tech_admin"] },
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
   { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
+  { id: "reporting", label: "Rapports", icon: FileSpreadsheet, roles: ["director", "tech_admin"] },
   {
     id: "profile",
     label: "Mon profil",
     icon: CircleUserRound,
-    roles: ["nurse", "doctor", "lab_tech", "radiologist", "director", "tech_admin"],
+    roles: ALL_ROLES,
   },
   {
     id: "settings",
     label: "Paramètres",
     icon: SettingsIcon,
-    roles: ["nurse", "doctor", "lab_tech", "radiologist", "director", "tech_admin"],
+    roles: ALL_ROLES,
   },
 ];
 
@@ -158,6 +191,16 @@ function App() {
         return <Laboratory />;
       case "radiology":
         return <Radiology />;
+      case "pharmacy":
+        return <Pharmacy />;
+      case "billing":
+        return <Billing />;
+      case "appointments":
+        return <Appointments />;
+      case "audit":
+        return <AuditLog />;
+      case "reporting":
+        return <Reporting />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":
@@ -281,15 +324,6 @@ function App() {
     </div>
   );
 }
-
-const ROLE_LABELS: Record<Role, string> = {
-  nurse: "Infirmière",
-  doctor: "Médecin",
-  lab_tech: "Technicien labo",
-  radiologist: "Radiologue",
-  director: "Directeur",
-  tech_admin: "Administrateur technique",
-};
 
 function initialsOf(name: string): string {
   const parts = name

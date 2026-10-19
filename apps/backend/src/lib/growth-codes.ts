@@ -6,6 +6,15 @@ export const HEAD_CIRCUMFERENCE_LOINC = {
   unit: "cm",
 } as const;
 
+// Périmètre brachial (PB / MUAC) en millimètres : code LOCAL (pas de code LOINC
+// vérifié), unité UCUM « mm ».
+export const MUAC_CODE = {
+  system: "http://pediatrix.local/fhir/measure",
+  code: "muac",
+  display: "Périmètre brachial (PB)",
+  unit: "mm",
+} as const;
+
 // Discrimine les Observation du module Croissance de celles créées par la
 // Pédiatrie (Consultations) : le poids et la taille utilisent les mêmes codes
 // LOINC dans les deux cas (voir lib/vitals-codes.ts), donc une simple

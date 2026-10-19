@@ -3,16 +3,8 @@ import type { FormEvent } from "react";
 import { KeyRound, UserPlus } from "lucide-react";
 import { ApiError, createUserAccount, listUserAccounts, resetUserPassword, setUserActive } from "../lib/api";
 import type { Role, UserAccount } from "../lib/types";
+import { ROLE_LABELS } from "../lib/roles";
 import { cn } from "../lib/utils";
-
-const ROLE_LABELS: Record<Role, string> = {
-  nurse: "Infirmière",
-  doctor: "Médecin",
-  lab_tech: "Technicien labo",
-  radiologist: "Radiologue",
-  director: "Directeur",
-  tech_admin: "Administrateur technique",
-};
 
 const inputClass = "w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#1A6FD4]";
 

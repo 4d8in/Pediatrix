@@ -1,6 +1,9 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { facilityRoute } from "./routes/facility.route.js";
+import { reportingIndicatorsRoute } from "./routes/reporting-indicators.route.js";
+import { dhis2ExportRoute } from "./routes/dhis2-export.route.js";
 import { healthRoute } from "./routes/health.js";
 import { fhirLogRoute } from "./routes/fhir-log.route.js";
 import { statsRoute } from "./routes/stats.route.js";
@@ -10,6 +13,9 @@ import { activeQueueRoute } from "./routes/active-queue.route.js";
 import { recentResultsRoute } from "./routes/recent-results.route.js";
 import { markResultReadRoute } from "./routes/mark-result-read.route.js";
 import { updatesRoute } from "./routes/updates.route.js";
+import { findUnsafeParam } from "./lib/safe-id.js";
+import { auditPlugin } from "./socle/audit/audit.plugin.js";
+import { listAuditRoute } from "./socle/audit/list-audit.route.js";
 import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
 import { loginRoute } from "./socle/auth/login.route.js";
 import { changePasswordRoute } from "./socle/auth/change-password.route.js";
@@ -26,6 +32,13 @@ import { getPatientRoute } from "./socle/patients/get-patient.route.js";
 import { getPatientReportsRoute } from "./socle/patients/get-patient-reports.route.js";
 import { createEncounterRoute } from "./modules/pediatrie/create-encounter.route.js";
 import { createServiceRequestRoute } from "./modules/pediatrie/create-service-request.route.js";
+import { checkInRoute } from "./modules/pediatrie/check-in.route.js";
+import { triageRoute } from "./modules/pediatrie/triage.route.js";
+import { listDiagnosisCatalogRoute } from "./modules/pediatrie/list-diagnosis-catalog.route.js";
+import { createDiagnosisRoute } from "./modules/pediatrie/create-diagnosis.route.js";
+import { listPatientDiagnosesRoute } from "./modules/pediatrie/list-patient-diagnoses.route.js";
+import { createReferralRoute } from "./modules/reference/create-referral.route.js";
+import { listPatientReferralsRoute } from "./modules/reference/list-patient-referrals.route.js";
 import { listLabRequestsRoute } from "./modules/laboratoire/list-lab-requests.route.js";
 import { createReportRoute } from "./modules/laboratoire/create-report.route.js";
 import { listBedsRoute } from "./modules/hospitalisation/list-beds.route.js";
@@ -35,6 +48,24 @@ import { dischargeStayRoute } from "./modules/hospitalisation/discharge-stay.rou
 import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-status.route.js";
 import { listPatientStaysRoute } from "./modules/hospitalisation/list-patient-stays.route.js";
 import { labSummaryRoute } from "./modules/laboratoire/lab-summary.route.js";
+import { labCatalogRoute } from "./modules/laboratoire/lab-catalog.route.js";
+import { listFormularyRoute } from "./modules/pharmacie/list-formulary.route.js";
+import { stockLevelsRoute } from "./modules/pharmacie/stock-levels.route.js";
+import { receiveStockRoute } from "./modules/pharmacie/receive-stock.route.js";
+import { listPendingPrescriptionsRoute } from "./modules/pharmacie/list-pending-prescriptions.route.js";
+import { dispensePrescriptionRoute } from "./modules/pharmacie/dispense-prescription.route.js";
+import { getTariffsRoute } from "./modules/facturation/get-tariffs.route.js";
+import { putTariffsRoute } from "./modules/facturation/put-tariffs.route.js";
+import { listPendingEncountersRoute } from "./modules/facturation/list-pending-encounters.route.js";
+import { createInvoiceRoute } from "./modules/facturation/create-invoice.route.js";
+import { listInvoicesRoute } from "./modules/facturation/list-invoices.route.js";
+import { addPaymentRoute } from "./modules/facturation/add-payment.route.js";
+import { billingSummaryRoute } from "./modules/facturation/billing-summary.route.js";
+import { listDoctorsRoute } from "./modules/rendez-vous/list-doctors.route.js";
+import { listSlotsRoute } from "./modules/rendez-vous/list-slots.route.js";
+import { listAppointmentsRoute } from "./modules/rendez-vous/list-appointments.route.js";
+import { createAppointmentRoute } from "./modules/rendez-vous/create-appointment.route.js";
+import { updateAppointmentStatusRoute } from "./modules/rendez-vous/update-appointment-status.route.js";
 import { imagingSummaryRoute } from "./modules/radiologie/imaging-summary.route.js";
 import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-request.route.js";
 import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
@@ -42,6 +73,8 @@ import { createImagingReportRoute } from "./modules/radiologie/create-imaging-re
 import { getPatientImagingReportsRoute } from "./modules/radiologie/get-patient-imaging-reports.route.js";
 import { createImmunizationRoute } from "./modules/vaccination/create-immunization.route.js";
 import { listImmunizationsRoute } from "./modules/vaccination/list-immunizations.route.js";
+import { listVaccineCatalogRoute } from "./modules/vaccination/list-vaccine-catalog.route.js";
+import { vaccinationScheduleRoute } from "./modules/vaccination/vaccination-schedule.route.js";
 import { createGrowthRoute } from "./modules/croissance/create-growth.route.js";
 import { listGrowthRoute } from "./modules/croissance/list-growth.route.js";
 import { createAllergyRoute } from "./modules/prescription/create-allergy.route.js";
@@ -61,6 +94,22 @@ await app.register(cors, {
   origin: ["http://localhost:1420", "app://pediatrix"],
 });
 
+// En-têtes de sécurité sur toutes les réponses ; les réponses de l'API (données de
+// santé) ne doivent jamais être mises en cache par un navigateur ou un proxy.
+app.addHook("onSend", async (request, reply) => {
+  reply.header("X-Content-Type-Options", "nosniff");
+  reply.header("X-Frame-Options", "DENY");
+  reply.header("Referrer-Policy", "no-referrer");
+  if (request.url.startsWith("/api/")) reply.header("Cache-Control", "no-store");
+});
+
+// Refuse tout paramètre d'URL qui ne ressemble pas à un identifiant simple : ces valeurs
+// finissent dans des adresses envoyées à HAPI (voir lib/safe-id.ts).
+app.addHook("onRequest", async (request, reply) => {
+  const unsafe = findUnsafeParam(request.params);
+  if (unsafe) return reply.code(400).send({ error: `Paramètre « ${unsafe} » invalide.` });
+});
+
 await app.register(healthRoute);
 
 // Mises à jour des postes desktop (electron-updater) servies sur le LAN.
@@ -68,6 +117,11 @@ await app.register(updatesRoute);
 
 // Socle : authentification JWT.
 await app.register(jwtPlugin);
+await app.register(auditPlugin);
+await app.register(listAuditRoute);
+await app.register(facilityRoute);
+await app.register(reportingIndicatorsRoute);
+await app.register(dhis2ExportRoute);
 await app.register(loginRoute);
 await app.register(meRoute);
 await app.register(changePasswordRoute);
@@ -87,6 +141,13 @@ await app.register(getPatientReportsRoute);
 // Module Pédiatrie : consultation (Encounter + Observations) et demande d'examen.
 await app.register(createEncounterRoute);
 await app.register(createServiceRequestRoute);
+await app.register(checkInRoute);
+await app.register(triageRoute);
+await app.register(listDiagnosisCatalogRoute);
+await app.register(createDiagnosisRoute);
+await app.register(listPatientDiagnosesRoute);
+await app.register(createReferralRoute);
+await app.register(listPatientReferralsRoute);
 
 // Module Laboratoire : file d'attente et rapport (DiagnosticReport + Observations).
 await app.register(listLabRequestsRoute);
@@ -102,6 +163,8 @@ await app.register(getPatientImagingReportsRoute);
 // Module Vaccination : carnet vaccinal (Immunization), intégré au dossier patient.
 await app.register(createImmunizationRoute);
 await app.register(listImmunizationsRoute);
+await app.register(listVaccineCatalogRoute);
+await app.register(vaccinationScheduleRoute);
 
 // Module Croissance : mesures (Observation poids/taille/périmètre crânien),
 // intégré au dossier patient.
@@ -129,6 +192,24 @@ await app.register(dashboardOverviewRoute);
 await app.register(activeQueueRoute);
 await app.register(recentResultsRoute);
 await app.register(labSummaryRoute);
+await app.register(labCatalogRoute);
+await app.register(listFormularyRoute);
+await app.register(stockLevelsRoute);
+await app.register(receiveStockRoute);
+await app.register(listPendingPrescriptionsRoute);
+await app.register(dispensePrescriptionRoute);
+await app.register(getTariffsRoute);
+await app.register(putTariffsRoute);
+await app.register(listPendingEncountersRoute);
+await app.register(createInvoiceRoute);
+await app.register(listInvoicesRoute);
+await app.register(addPaymentRoute);
+await app.register(billingSummaryRoute);
+await app.register(listDoctorsRoute);
+await app.register(listSlotsRoute);
+await app.register(listAppointmentsRoute);
+await app.register(createAppointmentRoute);
+await app.register(updateAppointmentStatusRoute);
 await app.register(imagingSummaryRoute);
 await app.register(markResultReadRoute);
 

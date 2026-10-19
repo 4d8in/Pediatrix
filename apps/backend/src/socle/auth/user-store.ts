@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Role } from "./roles.js";
@@ -31,14 +31,18 @@ async function readStore(): Promise<UserStore> {
 
 export async function findUser(username: string): Promise<StoredUser | undefined> {
   const store = await readStore();
-  return store[username];
+  return Object.hasOwn(store, username) ? store[username] : undefined;
 }
 
 export async function upsertUser(username: string, user: StoredUser): Promise<void> {
   const store = await readStore();
   store[username] = user;
   await mkdir(dirname(USERS_FILE), { recursive: true });
-  await writeFile(USERS_FILE, JSON.stringify(store, null, 2));
+  // Écriture atomique (fichier temporaire puis rename) et privée : une lecture
+  // concurrente ne voit jamais un fichier tronqué, les hash ne sont pas lisibles par tous.
+  const tmp = `${USERS_FILE}.${process.pid}.tmp`;
+  await writeFile(tmp, JSON.stringify(store, null, 2), { mode: 0o600 });
+  await rename(tmp, USERS_FILE);
 }
 
 // Retrouve un compte à partir de l'id Practitioner porté par le JWT (`sub`).

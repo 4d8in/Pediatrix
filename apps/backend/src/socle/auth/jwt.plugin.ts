@@ -23,5 +23,9 @@ export const jwtPlugin = fp(async function jwtPlugin(app: FastifyInstance) {
   if (!secret) {
     throw new Error("JWT_SECRET est requis (voir .env.example).");
   }
+  // Une valeur d'exemple publique permettrait de forger des jetons : on refuse de démarrer.
+  if (secret.length < 32 || secret.startsWith("change_me")) {
+    throw new Error("JWT_SECRET trop faible : 32 caractères aléatoires minimum, hors valeur d'exemple.");
+  }
   await app.register(fastifyJwt, { secret, sign: { expiresIn: JWT_EXPIRES_IN } });
 });

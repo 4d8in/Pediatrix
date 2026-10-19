@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { findVaccine } from "../../lib/vaccines.js";
 import { checkPastDate } from "../../lib/validation.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -11,6 +12,7 @@ function validate(body: unknown): { input: CreateImmunizationInput } | { errors:
   const b = (body ?? {}) as Record<string, unknown>;
 
   const vaccine = typeof b.vaccine === "string" ? b.vaccine.trim() : "";
+  const vaccineCode = typeof b.vaccineCode === "string" && b.vaccineCode.trim() ? b.vaccineCode.trim() : undefined;
   const date = typeof b.date === "string" ? b.date.trim() : "";
   const notes = typeof b.notes === "string" ? b.notes.trim() : "";
   const doseNumber =
@@ -19,6 +21,7 @@ function validate(body: unknown): { input: CreateImmunizationInput } | { errors:
       : undefined;
 
   if (!vaccine) errors.push("Le nom du vaccin est requis.");
+  if (vaccineCode && !findVaccine(vaccineCode)) errors.push(`Vaccin ${vaccineCode} absent du catalogue.`);
   if (!date) {
     errors.push("La date d'administration est requise.");
   } else {
@@ -28,7 +31,7 @@ function validate(body: unknown): { input: CreateImmunizationInput } | { errors:
 
   if (errors.length > 0) return { errors };
 
-  return { input: { vaccine, date, doseNumber, notes: notes || undefined } };
+  return { input: { vaccine, vaccineCode, date, doseNumber, notes: notes || undefined } };
 }
 
 export async function createImmunizationRoute(app: FastifyInstance) {

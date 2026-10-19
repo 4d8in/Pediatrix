@@ -62,6 +62,8 @@ import type {
   User,
 } from "./types";
 
+import { type OutboxItem, enqueue } from "./outbox";
+
 // Résolu au build (variable Vite) : permet de recompiler l'app pour un poste
 // dont le backend tourne sur une autre machine du LAN, sans toucher au code.
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:3001";
@@ -102,6 +104,64 @@ let onUnauthorized: (() => void) | null = null;
 
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
+}
+
+// Écriture différable : si le serveur est injoignable, la saisie est gardée sur le poste (voir
+// outbox.ts) et renvoyée au retour du réseau ; l'appelant reçoit alors `queuedResult` et l'écran
+// affiche le bandeau « en attente d'envoi ». Tout autre échec (refus du serveur) est remonté tel quel.
+async function postOrQueue<T>(
+  path: string,
+  payload: Record<string, unknown>,
+  label: string,
+  queuedResult: T,
+  options: { stampTime?: boolean } = {},
+): Promise<T> {
+  const key = crypto.randomUUID();
+  const typedAt = new Date().toISOString();
+  // Délai maximal : un serveur qui ne répond plus est traité comme injoignable (mise en file).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Idempotency-Key": key },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === undefined) {
+      // L'heure de saisie réelle n'est jointe que si l'envoi est différé (pas d'écart d'horloge en ligne).
+      const body = options.stampTime ? { ...payload, occurredAt: typedAt } : payload;
+      await enqueue({ id: key, path, body, label });
+      return queuedResult;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const REQUEST_TIMEOUT_MS = 15_000;
+const QUEUEABLE_PATH = /^\/api\/patients\/[A-Za-z0-9._-]{1,64}\/(arrival|triage|growth|immunizations|allergies)$/;
+
+// Renvoi d'un élément de la file (même clé d'idempotence que l'envoi d'origine). Seuls les chemins
+// prévus pour le différé sont acceptés : le contenu relu du disque n'est jamais exécuté tel quel.
+export async function sendQueued(item: OutboxItem): Promise<void> {
+  if (!QUEUEABLE_PATH.test(item.path)) throw new ApiError("Élément de file d'attente invalide.", 400);
+  await request(item.path, { method: "POST", body: JSON.stringify(item.body), headers: { "Idempotency-Key": item.id } });
+}
+
+export function classifyReplayError(error: unknown): "network" | "unauthorized" | "duplicate" | "rejected" | "retry" {
+  if (!(error instanceof ApiError)) return "retry";
+  if (error.status === undefined) return "network";
+  if (error.status === 401) return "unauthorized";
+  const code = (error.body as { code?: string } | undefined)?.code;
+  // Le premier envoi est encore en cours côté serveur : on réessaiera, ce n'est pas un doublon.
+  if (error.status === 409 && code === "in_progress") return "retry";
+  // Déjà fait entre-temps (ex. patient déjà dans la file du jour) : rien à renvoyer.
+  if (error.status === 409) return "duplicate";
+  if (error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500) return "retry";
+  return "rejected";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -251,10 +311,7 @@ export function createImmunization(
   patientId: string,
   input: CreateImmunizationInput,
 ): Promise<{ immunizationId: string }> {
-  return request<{ immunizationId: string }>(`/api/patients/${patientId}/immunizations`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/immunizations`, { ...input }, "Vaccination", { immunizationId: "" });
 }
 
 export function getPatientImmunizations(patientId: string): Promise<{ immunizations: Immunization[] }> {
@@ -265,10 +322,7 @@ export function createGrowthMeasurement(
   patientId: string,
   input: CreateGrowthInput,
 ): Promise<{ observationIds: string[] }> {
-  return request<{ observationIds: string[] }>(`/api/patients/${patientId}/growth`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/growth`, { ...input }, "Mesure de croissance", { observationIds: [] });
 }
 
 export function getPatientGrowth(patientId: string): Promise<{ measurements: GrowthMeasurement[] }> {
@@ -276,10 +330,7 @@ export function getPatientGrowth(patientId: string): Promise<{ measurements: Gro
 }
 
 export function createAllergy(patientId: string, input: CreateAllergyInput): Promise<{ allergyId: string }> {
-  return request<{ allergyId: string }>(`/api/patients/${patientId}/allergies`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/allergies`, { ...input }, "Allergie", { allergyId: "" });
 }
 
 export function getPatientAllergies(patientId: string): Promise<{ allergies: Allergy[] }> {
@@ -553,7 +604,7 @@ export function getVaccinationSchedule(patientId: string): Promise<{ schedule: S
 }
 
 export function checkInPatient(patientId: string): Promise<{ encounterId: string }> {
-  return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival`, { method: "POST", body: "{}" });
+  return postOrQueue(`/api/patients/${patientId}/arrival`, {}, "Arrivée à l'accueil", { encounterId: "" }, { stampTime: true });
 }
 
 export function markLeftWithoutConsultation(patientId: string): Promise<{ encounterId: string }> {
@@ -561,10 +612,7 @@ export function markLeftWithoutConsultation(patientId: string): Promise<{ encoun
 }
 
 export function setTriage(patientId: string, category: TriageCategory, note?: string, vitals?: TriageVitals): Promise<{ encounterId: string }> {
-  return request<{ encounterId: string }>(`/api/patients/${patientId}/triage`, {
-    method: "POST",
-    body: JSON.stringify({ category, note, vitals }),
-  });
+  return postOrQueue(`/api/patients/${patientId}/triage`, { category, note, vitals }, "Tri et constantes", { encounterId: "" }, { stampTime: true });
 }
 
 export function createReferral(

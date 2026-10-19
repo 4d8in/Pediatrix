@@ -16,6 +16,7 @@ import { updatesRoute } from "./routes/updates.route.js";
 import { findUnsafeParam } from "./lib/safe-id.js";
 import { auditPlugin } from "./socle/audit/audit.plugin.js";
 import { listAuditRoute } from "./socle/audit/list-audit.route.js";
+import { idempotencyPlugin } from "./socle/idempotency.plugin.js";
 import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
 import { loginRoute } from "./socle/auth/login.route.js";
 import { changePasswordRoute } from "./socle/auth/change-password.route.js";
@@ -119,6 +120,7 @@ await app.register(updatesRoute);
 
 // Socle : authentification JWT.
 await app.register(jwtPlugin);
+await app.register(idempotencyPlugin);
 await app.register(auditPlugin);
 await app.register(listAuditRoute);
 await app.register(facilityRoute);

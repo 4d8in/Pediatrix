@@ -4,6 +4,7 @@
 import path from "node:path";
 import { app, BrowserWindow, Menu, net, protocol, shell } from "electron";
 import { pathToFileURL } from "node:url";
+import { initOutboxStore } from "./outbox-store";
 import { initUpdater } from "./updater";
 
 // En dev, vite-plugin-electron fournit l'URL du serveur Vite.
@@ -84,6 +85,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    initOutboxStore();
     serveRenderer();
     const win = createWindow();
     initUpdater(win);

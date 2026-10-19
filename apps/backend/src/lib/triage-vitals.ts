@@ -42,8 +42,8 @@ export function parseTriageVitals(raw: unknown): { vitals: TriageVitals } | { er
   return errors.length > 0 ? { errors } : { vitals };
 }
 
-export function toTriageVitalObservations(patientId: string, encounterId: string, vitals: TriageVitals, performer: { id: string; name: string }) {
-  const now = new Date().toISOString();
+export function toTriageVitalObservations(patientId: string, encounterId: string, vitals: TriageVitals, performer: { id: string; name: string }, at?: string) {
+  const now = at ?? new Date().toISOString();
   return TRIAGE_VITAL_KEYS.filter((key) => vitals[key] !== undefined).map((key) => ({
     resourceType: "Observation",
     status: "final",

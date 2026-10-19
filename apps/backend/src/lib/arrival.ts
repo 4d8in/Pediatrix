@@ -8,13 +8,18 @@ export function startOfTodayIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
 }
 
-export function toArrivedEncounter(patientId: string) {
+// Heure de saisie déclarée par un poste qui était hors ligne (voir lib/occurred-at.ts). La file du
+// jour repose sur l'heure de réception du serveur (`period.start`) ; l'heure déclarée est gardée à part.
+export const DECLARED_TIME_EXTENSION_URL = "http://pediatrix.local/fhir/declared-time";
+
+export function toArrivedEncounter(patientId: string, declaredIso?: string) {
   return {
     resourceType: "Encounter",
     status: "arrived",
     class: { code: "AMB", display: "ambulatory" },
     subject: { reference: `Patient/${patientId}` },
     period: { start: new Date().toISOString() },
+    extension: declaredIso ? [{ url: DECLARED_TIME_EXTENSION_URL, valueDateTime: declaredIso }] : undefined,
   };
 }
 
@@ -27,7 +32,7 @@ export async function findTodayArrival(patientId: string): Promise<EncounterReso
   return bundle.entry?.[0]?.resource;
 }
 
-export async function createArrival(patientId: string): Promise<string> {
-  const created = await hapiClient.post<{ id: string }>("/Encounter", toArrivedEncounter(patientId));
+export async function createArrival(patientId: string, declaredIso?: string): Promise<string> {
+  const created = await hapiClient.post<{ id: string }>("/Encounter", toArrivedEncounter(patientId, declaredIso));
   return created.id;
 }

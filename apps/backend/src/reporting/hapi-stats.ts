@@ -1,4 +1,4 @@
-import { hapiClient } from "../lib/hapi-client.js";
+import { hapiClient, assertHapiOrigin } from "../lib/hapi-client.js";
 
 interface CountBundle {
   total?: number;
@@ -73,7 +73,7 @@ export async function countExamensParType(): Promise<Record<string, number>> {
     const nextUrl = bundle.link?.find((link) => link.relation === "next")?.url;
     if (!nextUrl) break;
 
-    const response = await fetch(nextUrl, { headers: { Accept: "application/fhir+json" } });
+    const response = await fetch(assertHapiOrigin(nextUrl), { headers: { Accept: "application/fhir+json" } });
     if (!response.ok) {
       throw new Error(`HAPI a répondu ${response.status} lors de la pagination des ServiceRequest.`);
     }

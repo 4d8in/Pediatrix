@@ -21,7 +21,11 @@ export async function resetUserPasswordRoute(app: FastifyInstance) {
       const user = await findUser(request.params.username);
       if (!user) return reply.code(404).send({ error: "Compte introuvable." });
 
-      await upsertUser(request.params.username, { ...user, passwordHash: await bcrypt.hash(password, 10) });
+      await upsertUser(request.params.username, {
+        ...user,
+        passwordHash: await bcrypt.hash(password, 10),
+        tokensValidFrom: new Date().toISOString(),
+      });
       return reply.send({ ok: true });
     },
   );

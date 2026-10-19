@@ -105,6 +105,18 @@ STATE=$(body "$(api GET "$NURSE" "/api/hospitalisations/${STAY}/administrations"
 [ "$STATE" = "awaiting_pharmacy" ] || fail "avant délivrance, état attendu awaiting_pharmacy : ${STATE:-absent}."
 echo "OK : échéancier des doses."
 
+# --- Course : deux hospitalisations simultanées dans le même lit ---
+P2=$(body "$(api POST "$DOCTOR" /api/patients '{"firstName":"Course","lastName":"Verify-Lit-A","birthDate":"2022-01-01","gender":"male","guardian":{"name":"T A","relationship":"Mère","phone":"+221701110001"}}')" | jq -r '.id // empty')
+P3=$(body "$(api POST "$DOCTOR" /api/patients '{"firstName":"Course","lastName":"Verify-Lit-B","birthDate":"2022-01-02","gender":"female","guardian":{"name":"T B","relationship":"Mère","phone":"+221701110002"}}')" | jq -r '.id // empty')
+BED2=$(body "$(api GET "$NURSE" /api/beds)" | jq -r '[.wards[].beds[] | select(.status=="U")][0].id // empty')
+[ -n "$P2" ] && [ -n "$P3" ] && [ -n "$BED2" ] || fail "préparation de la course."
+( api POST "$NURSE" /api/hospitalisations "{\"patientId\":\"${P2}\",\"bedId\":\"${BED2}\"}" | tail -n1 > /tmp/race-a.$$ ) &
+( api POST "$NURSE" /api/hospitalisations "{\"patientId\":\"${P3}\",\"bedId\":\"${BED2}\"}" | tail -n1 > /tmp/race-b.$$ ) &
+wait
+RACE=$(for f in /tmp/race-a.$$ /tmp/race-b.$$; do tr -d '\n' < "$f"; echo; done | sort | tr '\n' ' '); rm -f /tmp/race-a.$$ /tmp/race-b.$$
+[ "$RACE" = "201 409 " ] || fail "deux hospitalisations simultanées dans le même lit : résultat inattendu « $RACE » (attendu : 201 et 409)."
+echo "OK : un seul patient obtient le lit en cas de course."
+
 # --- Décès à la sortie ---
 [ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased"}')")" = "403" ] || fail "l'infirmière ne devrait pas enregistrer un décès (403)."
 [ "$(status "$(api POST "$DOCTOR" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased","deceasedAt":"2999-01-01T00:00:00Z"}')")" = "400" ] || fail "date de décès future non refusée."

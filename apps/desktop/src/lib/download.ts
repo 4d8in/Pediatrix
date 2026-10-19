@@ -1,7 +1,9 @@
 // Export de fichiers côté poste : CSV pour Excel/LibreOffice (séparateur « ; » et BOM UTF-8,
 // attendus par les tableurs en français) et JSON pour DHIS2.
 function escapeCell(value: string | number): string {
-  const text = String(value);
+  let text = String(value);
+  // Neutralise l'injection de formule dans Excel/LibreOffice (cellule commençant par = + - @).
+  if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return /[;"\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 

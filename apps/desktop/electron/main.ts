@@ -2,7 +2,7 @@
 // Toute la logique métier reste dans le backend Node.js (apps/backend) :
 // ce fichier se contente d'ouvrir la fenêtre et de brancher les mises à jour.
 import path from "node:path";
-import { app, BrowserWindow, Menu, net, protocol, shell } from "electron";
+import { app, BrowserWindow, Menu, net, protocol, shell, session } from "electron";
 import { pathToFileURL } from "node:url";
 import { initOutboxStore } from "./outbox-store";
 import { initUpdater } from "./updater";
@@ -26,11 +26,19 @@ function serveRenderer(): void {
     const { pathname } = new URL(request.url);
     const filePath = path.normalize(path.join(RENDERER_DIST, decodeURIComponent(pathname)));
     // Refuse toute sortie du dossier dist (ex. "../../").
-    if (!filePath.startsWith(RENDERER_DIST)) {
+    if (filePath !== RENDERER_DIST && !filePath.startsWith(RENDERER_DIST + path.sep)) {
       return new Response("Interdit", { status: 403 });
     }
     const target = pathname === "/" ? path.join(RENDERER_DIST, "index.html") : filePath;
-    return net.fetch(pathToFileURL(target).toString());
+    return net.fetch(pathToFileURL(target).toString()).then((response) => {
+      // CSP stricte : pas de script ni de ressource hors de l'application ; l'API est contactée en HTTP(S).
+      const headers = new Headers(response.headers);
+      headers.set(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      );
+      return new Response(response.body, { status: response.status, headers });
+    });
   });
 }
 
@@ -56,7 +64,8 @@ function createWindow(): BrowserWindow {
   // Pas de navigation vers l'extérieur : les liens externes s'ouvrent dans le
   // navigateur du système, jamais dans la fenêtre de l'application.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    // Seuls les liens https s'ouvrent dans le navigateur du système (jamais file:, smb:, etc.).
+    if (/^https:\/\//i.test(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
   win.webContents.on("will-navigate", (event, url) => {
@@ -85,6 +94,8 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    // Aucune permission web (caméra, micro, géolocalisation, notifications…) n'est accordée.
+    session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     initOutboxStore();
     serveRenderer();
     const win = createWindow();

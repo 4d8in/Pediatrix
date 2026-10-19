@@ -2,6 +2,8 @@ import { DECEASED_MESSAGE, isDeceased } from "../../lib/deceased.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { isSafeId } from "../../lib/safe-id.js";
+import { withLock } from "../../lib/keyed-lock.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { INPATIENT_CLASS, bedStatusOf } from "./beds.fhir.js";
@@ -19,8 +21,10 @@ export async function createStayRoute(app: FastifyInstance) {
     if (!patientId || !bedId) {
       return reply.code(400).send({ error: "Le patient et le lit sont requis." });
     }
+    if (!isSafeId(patientId) || !isSafeId(bedId)) return reply.code(400).send({ error: "Identifiant invalide." });
 
     try {
+      return await withLock(`bed:${bedId}`, () => withLock(`stay-patient:${patientId}`, async () => {
       try {
         const patient = await hapiClient.get<{ deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${encodeURIComponent(patientId)}`);
         if (isDeceased(patient)) return reply.code(409).send({ error: DECEASED_MESSAGE });
@@ -62,6 +66,7 @@ export async function createStayRoute(app: FastifyInstance) {
         putBedEntry(bed, "O"),
       ]);
       return reply.code(201).send({ ok: true });
+      }));
     } catch (error) {
       const failure = hapiErrorReply(error);
       if (failure) return reply.code(failure.code).send({ error: failure.error });

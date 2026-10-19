@@ -108,3 +108,17 @@ test("findUnsafeParam repère le paramètre fautif et laisse passer le nom de fi
   assert.equal(findUnsafeParam({ file: "Pediatrix Setup 1.0.0.exe" }), undefined); // contrôlé par sa propre liste blanche
   assert.equal(findUnsafeParam(undefined), undefined);
 });
+
+import { assertHapiOrigin } from "../src/lib/hapi-client.js";
+
+test("plafond par adresse : verrouille après le nombre d'échecs configuré", () => {
+  const throttle = new LoginThrottle(3);
+  for (let i = 0; i < 3; i += 1) throttle.recordFailure("10.0.0.1", 1_000);
+  assert.ok(throttle.retryAfterSeconds("10.0.0.1", 2_000) > 0);
+  assert.equal(throttle.retryAfterSeconds("10.0.0.2", 2_000), 0);
+});
+
+test("pagination HAPI : un lien vers un autre serveur est refusé", () => {
+  assert.throws(() => assertHapiOrigin("http://evil.example/fhir?_getpages=1"));
+  assert.equal(assertHapiOrigin("http://localhost:8080/fhir?_getpages=1"), "http://localhost:8080/fhir?_getpages=1");
+});

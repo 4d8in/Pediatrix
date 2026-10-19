@@ -1,4 +1,6 @@
 import type { FastifyInstance } from "fastify";
+import { isSafeId } from "../../lib/safe-id.js";
+import { withLock } from "../../lib/keyed-lock.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { bedStatusOf, currentBedId } from "./beds.fhir.js";
@@ -14,8 +16,10 @@ export async function transferStayRoute(app: FastifyInstance) {
       const body = (request.body ?? {}) as Record<string, unknown>;
       const bedId = typeof body.bedId === "string" ? body.bedId.trim() : "";
       if (!bedId) return reply.code(400).send({ error: "Le nouveau lit est requis." });
+      if (!isSafeId(bedId)) return reply.code(400).send({ error: "Identifiant de lit invalide." });
 
       try {
+        return await withLock(`bed:${bedId}`, () => withLock(`discharge:${request.params.id}`, async () => {
         const stay = await getStay(request.params.id);
         if (!stay) return reply.code(404).send({ error: "Séjour en cours introuvable." });
 
@@ -45,6 +49,7 @@ export async function transferStayRoute(app: FastifyInstance) {
           ...(oldBed ? [putBedEntry(oldBed, "H")] : []),
         ]);
         return reply.send({ ok: true });
+        }));
       } catch (error) {
         const failure = hapiErrorReply(error);
         if (failure) return reply.code(failure.code).send({ error: failure.error });

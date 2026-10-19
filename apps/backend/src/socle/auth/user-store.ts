@@ -16,6 +16,8 @@ export interface StoredUser {
   displayName: string;
   // Compte désactivé par l'administrateur technique : la connexion est refusée.
   disabled?: boolean;
+  // Date de la dernière réinitialisation du mot de passe par un administrateur : les jetons émis avant sont refusés.
+  tokensValidFrom?: string;
 }
 
 type UserStore = Record<string, StoredUser>;

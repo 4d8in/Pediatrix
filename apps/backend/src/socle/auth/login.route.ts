@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import type { FastifyInstance } from "fastify";
-import { loginThrottle } from "../../lib/login-throttle.js";
+import { ipThrottle, loginThrottle } from "../../lib/login-throttle.js";
 import { recordAudit } from "../audit/audit.plugin.js";
 import { findUser } from "./user-store.js";
 
@@ -33,7 +33,7 @@ export async function loginRoute(app: FastifyInstance) {
 
     // Limitation des essais : par adresse et identifiant, pour freiner la devinette.
     const throttleKey = `${request.ip}|${result.username.toLowerCase()}`;
-    const retryAfter = loginThrottle.retryAfterSeconds(throttleKey);
+    const retryAfter = Math.max(loginThrottle.retryAfterSeconds(throttleKey), ipThrottle.retryAfterSeconds(request.ip));
     if (retryAfter > 0) {
       reply.header("Retry-After", String(retryAfter));
       return reply.code(429).send({
@@ -46,6 +46,7 @@ export async function loginRoute(app: FastifyInstance) {
 
     if (!user || !passwordOk) {
       loginThrottle.recordFailure(throttleKey);
+      ipThrottle.recordFailure(request.ip);
       void recordAudit(app, {
         action: "E",
         outcome: "4",

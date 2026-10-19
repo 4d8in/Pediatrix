@@ -70,7 +70,8 @@ COUNT=$(body "$(api GET "$DOCTOR" "/api/hospitalisations/${STAY}/administrations
 echo "OK : administration des médicaments."
 
 # --- Décès à la sortie ---
-[ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased","summary":"Test de vérification"}')")" = "200" ] || fail "sortie refusée."
+[ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased"}')")" = "403" ] || fail "l'infirmière ne devrait pas enregistrer un décès (403)."
+[ "$(status "$(api POST "$DOCTOR" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased","summary":"Test de vérification"}')")" = "200" ] || fail "sortie refusée."
 [ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/arrival")")" = "409" ] || fail "arrivée d'un patient décédé non refusée (409)."
 DECEASED=$(body "$(api GET "$DOCTOR" "/api/patients/${PATIENT}")" | jq -r '.patient.deceased // .deceased // empty')
 echo "OK : décès enregistré (champ deceased : ${DECEASED:-non exposé})."

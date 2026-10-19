@@ -71,6 +71,7 @@ const dictionary: Record<string, string> = {
   "Apgar 5 min": "Apgar 5 min",
   "Accouchement": "Delivery",
   "Décédé": "Deceased",
+  "Historique indisponible : rechargez avant de donner un médicament.": "History unavailable: reload before giving a medication.",
   "Mortalité hospitalière": "In-hospital mortality",
   "Confirmer l'issue « décédé » ? Elle ne pourra plus être modifiée.": "Confirm the \"deceased\" outcome? It cannot be changed afterwards.",
   "Établi le {date}": "Issued on {date}",

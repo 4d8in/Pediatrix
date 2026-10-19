@@ -15,7 +15,7 @@ export async function listAdministrationsRoute(app: FastifyInstance) {
       if (!isSafeId(request.params.id)) return reply.code(404).send({ error: "Séjour introuvable." });
       try {
         const bundle = await hapiClient.get<{ entry?: { resource: never }[] }>(
-          `/MedicationAdministration?context=Encounter/${request.params.id}&_count=200`,
+          `/MedicationAdministration?context=Encounter/${request.params.id}&_sort=-effective-time&_count=200`,
           { "Cache-Control": "no-cache" },
         );
         return reply.send({ administrations: fromFhirAdministrations(bundle) });

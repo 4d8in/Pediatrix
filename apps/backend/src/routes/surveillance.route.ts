@@ -23,7 +23,9 @@ interface Condition {
 // (les cas à déclaration immédiate donnent âge et sexe, pas de nom).
 function facilityOffsetMinutes(): number {
   const value = Number(process.env.FACILITY_UTC_OFFSET_MINUTES ?? 0);
-  return Number.isInteger(value) && Math.abs(value) <= 14 * 60 ? value : 0;
+  if (Number.isInteger(value) && Math.abs(value) <= 14 * 60) return value;
+  console.warn("FACILITY_UTC_OFFSET_MINUTES invalide (entier de minutes attendu) : UTC utilisé.");
+  return 0;
 }
 
 export async function surveillanceRoute(app: FastifyInstance) {
@@ -72,6 +74,8 @@ export async function surveillanceRoute(app: FastifyInstance) {
         // Diagnostics de la semaine sans code CIM-10 : invisibles pour la surveillance, signalés à l'écran.
         const uncoded = (resources as Condition[]).filter((r) => {
           if (r.resourceType !== "Condition" || !r.recordedDate) return false;
+          const status = r.verificationStatus?.coding?.[0]?.code;
+          if (status === "refuted" || status === "entered-in-error") return false;
           const at = Date.parse(r.recordedDate);
           const hasIcd = r.code?.coding?.some((coding) => coding.system?.includes("icd-10") && coding.code);
           return !hasIcd && at >= week.start.getTime() && at < week.end.getTime();

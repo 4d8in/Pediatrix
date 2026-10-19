@@ -19,8 +19,8 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
   const load = useCallback(() => {
     getStayAdministrations(stayId)
       .then((r) => setItems(r.administrations))
-      .catch(() => setItems([]));
-  }, [stayId]);
+      .catch(() => setError(t("Historique indisponible : rechargez avant de donner un médicament.")));
+  }, [stayId, t]);
   useEffect(load, [load]);
 
   async function record(prescriptionId: string, given: boolean) {
@@ -87,7 +87,7 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
           ))}
         </ul>
       )}
-      {items.length === 0 ? (
+      {items.length === 0 && !error ? (
         <p className="text-xs text-zinc-400">{t("Aucune administration enregistrée.")}</p>
       ) : (
         <ul className="space-y-0.5 text-xs text-zinc-600">

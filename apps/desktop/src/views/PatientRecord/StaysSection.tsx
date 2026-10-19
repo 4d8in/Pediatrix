@@ -53,7 +53,10 @@ export default function StaysSection({
                 </p>
               )}
               {stay.summary && <p className="whitespace-pre-wrap text-zinc-600">{stay.summary}</p>}
-              {stay.inProgress && <AdministrationPanel stayId={stay.id} prescriptions={prescriptions} />}
+              {stay.inProgress && <AdministrationPanel
+                  stayId={stay.id}
+                  prescriptions={prescriptions.filter((rx) => stay.start && rx.date && Date.parse(rx.date) >= Date.parse(stay.start) - 86_400_000)}
+                />}
               {!stay.inProgress && onPrintSummary && (
                 <button
                   onClick={() => onPrintSummary(stay)}

@@ -52,7 +52,7 @@ export async function recordAdministrationRoute(app: FastifyInstance) {
 
         return await withLock(`administration:${prescriptionId}`, async () => {
           const recent = await hapiClient.get<{ entry?: { resource: never }[] }>(
-            `/MedicationAdministration?context=Encounter/${request.params.id}&request=MedicationRequest/${prescriptionId}&_count=50`,
+            `/MedicationAdministration?context=Encounter/${request.params.id}&request=MedicationRequest/${prescriptionId}&_sort=-effective-time&_count=1`,
             { "Cache-Control": "no-cache" },
           );
           const last = fromFhirAdministrations(recent)[0];

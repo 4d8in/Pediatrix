@@ -18,8 +18,9 @@ export async function createBirthRoute(app: FastifyInstance) {
       const result = validateBirth(request.body);
       if ("errors" in result) return reply.code(400).send({ error: "Requête invalide.", details: result.errors });
 
+      let patientBirthDate: string | undefined;
       try {
-        await hapiClient.get(`/Patient/${id}`);
+        patientBirthDate = (await hapiClient.get<{ birthDate?: string }>(`/Patient/${id}`)).birthDate;
       } catch (error) {
         if (error instanceof HapiError) {
           const status = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;
@@ -37,7 +38,7 @@ export async function createBirthRoute(app: FastifyInstance) {
           if ((existing.entry ?? []).length > 0) {
             return reply.code(409).send({ error: "Les données de naissance de cet enfant sont déjà enregistrées." });
           }
-          await hapiClient.post("", toBirthBundle(id, result.input, new Date().toISOString()));
+          await hapiClient.post("", toBirthBundle(id, result.input, patientBirthDate ?? new Date().toISOString()));
           return reply.code(201).send({ ok: true });
         });
       } catch (error) {

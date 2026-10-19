@@ -285,7 +285,7 @@ export default function Beds() {
                           className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#1A6FD4]"
                         >
                           <option value="">{t("Issue du séjour…")}</option>
-                          {DISCHARGE_OUTCOMES.map((item) => (
+                          {DISCHARGE_OUTCOMES.filter((item) => item.value !== "deceased" || user?.role === "doctor").map((item) => (
                             <option key={item.value} value={item.value}>
                               {t(item.label)}
                             </option>

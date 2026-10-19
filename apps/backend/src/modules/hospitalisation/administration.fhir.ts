@@ -7,7 +7,7 @@ export interface FhirAdministration {
   medicationCodeableConcept?: { text?: string };
   effectiveDateTime?: string;
   request?: { reference?: string };
-  performer?: { actor?: { display?: string } }[];
+  performer?: { actor?: { reference?: string; display?: string } }[];
   note?: { text?: string }[];
 }
 
@@ -39,7 +39,7 @@ export function toFhirAdministration(args: {
     context: { reference: `Encounter/${args.stayId}` },
     request: { reference: `MedicationRequest/${args.prescriptionId}` },
     effectiveDateTime: args.at,
-    performer: [{ actor: { display: args.performer.name } }],
+    performer: [{ actor: { reference: `Practitioner/${args.performer.id}`, display: args.performer.name } }],
     note: args.note ? [{ text: args.note }] : undefined,
   };
 }

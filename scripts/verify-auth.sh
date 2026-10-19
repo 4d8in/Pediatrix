@@ -171,6 +171,10 @@ for who in LAB DIRECTOR; do
   check "GET /api/patients/:id/stays ($who, interdit)" "403" "$REQ_CODE"
 done
 req GET "/api/patients/${PATIENT_ID}" "$TOKEN_LAB"
+req POST "/api/patients/${PATIENT_ID}/arrival/left" "$TOKEN_LAB" '{}'
+check "POST /api/patients/:id/arrival/left (technicien labo, interdit)" "403" "$REQ_CODE"
+req POST "/api/patients/${PATIENT_ID}/arrival/left" "$TOKEN_DIRECTOR" '{}'
+check "POST /api/patients/:id/arrival/left (directeur, interdit)" "403" "$REQ_CODE"
 LAB_CONSULTATIONS=$(echo "$REQ_BODY" | jq -r '.consultations | length')
 check "GET /api/patients/:id (labo) : aucune consultation renvoyée" "0" "$LAB_CONSULTATIONS"
 

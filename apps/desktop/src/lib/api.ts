@@ -13,6 +13,7 @@ import type {
   DashboardCounters,
   DashboardOverview,
   QueueEntry,
+  TriageVitals,
   HealthStatus,
   BedStatus,
   Ward,
@@ -550,10 +551,14 @@ export function checkInPatient(patientId: string): Promise<{ encounterId: string
   return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival`, { method: "POST", body: "{}" });
 }
 
-export function setTriage(patientId: string, category: TriageCategory, note?: string): Promise<{ encounterId: string }> {
+export function markLeftWithoutConsultation(patientId: string): Promise<{ encounterId: string }> {
+  return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival/left`, { method: "POST", body: "{}" });
+}
+
+export function setTriage(patientId: string, category: TriageCategory, note?: string, vitals?: TriageVitals): Promise<{ encounterId: string }> {
   return request<{ encounterId: string }>(`/api/patients/${patientId}/triage`, {
     method: "POST",
-    body: JSON.stringify({ category, note }),
+    body: JSON.stringify({ category, note, vitals }),
   });
 }
 

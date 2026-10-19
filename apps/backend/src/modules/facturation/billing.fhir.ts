@@ -22,6 +22,8 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 export interface InvoiceLine {
   // Ressource facturée par cette ligne (voir INVOICE_SOURCE_SYSTEM).
   source?: string;
+  // Aucun tarif connu pour cet élément : à régler avant de facturer (sinon il partirait à 0).
+  missingPrice?: boolean;
   kind: "consultation" | "lab" | "imaging" | "drug";
   description: string;
   quantity: number;
@@ -31,6 +33,7 @@ export interface InvoiceLine {
 
 interface ServiceRequestLike {
   id?: string;
+  status?: string;
   authoredOn?: string;
   code?: { text?: string; coding?: { code?: string }[] };
   category?: { coding?: { code?: string }[] }[];
@@ -78,9 +81,11 @@ export function buildInvoiceLines(
   for (const dispense of dispenses) {
     const code = dispense.medicationCodeableConcept?.coding?.[0]?.code;
     const quantity = dispense.quantity?.value ?? 1;
-    const unitPrice = (code && tariffs.drugs[code]) || 0;
+    const known = code !== undefined && tariffs.drugs[code] !== undefined;
+    const unitPrice = known ? tariffs.drugs[code as string] : 0;
     lines.push({
       source: dispense.id ? `MedicationDispense/${dispense.id}` : undefined,
+      missingPrice: !known,
       kind: "drug",
       description: dispense.medicationCodeableConcept?.text ?? "Médicament",
       quantity,
@@ -252,10 +257,18 @@ export function billedState(invoices: InvoiceIdentifiers[]): BilledState {
   return { consultationBilled: invoices.length > 0, sources, legacyCutoff };
 }
 
+// Une ancienne facture couvre ce qui existait à sa date. Comparaison sur des instants (pas sur
+// des chaînes : fuseaux et formats varient). Sans date, on suppose l'élément déjà couvert :
+// mieux vaut un oubli visible qu'une double facturation au patient.
 export function isBilled(state: BilledState, source: string, itemDate?: string): boolean {
   if (state.sources.has(source)) return true;
-  return Boolean(state.legacyCutoff && itemDate && itemDate <= state.legacyCutoff);
+  if (!state.legacyCutoff) return false;
+  const cutoff = Date.parse(state.legacyCutoff);
+  const item = itemDate ? Date.parse(itemDate) : Number.NaN;
+  return Number.isNaN(item) || (!Number.isNaN(cutoff) && item <= cutoff);
 }
+
+const NOT_BILLABLE_STATUSES = ["revoked", "entered-in-error", "draft"];
 
 // Éléments pas encore facturés d'une consultation : examens demandés et médicaments délivrés.
 export function unbilledItems<S extends ServiceRequestLike, D extends DispenseLike>(
@@ -264,7 +277,7 @@ export function unbilledItems<S extends ServiceRequestLike, D extends DispenseLi
   dispenses: D[],
 ): { serviceRequests: S[]; dispenses: D[] } {
   return {
-    serviceRequests: serviceRequests.filter((sr) => !sr.id || !isBilled(state, `ServiceRequest/${sr.id}`, sr.authoredOn)),
+    serviceRequests: serviceRequests.filter((sr) => !NOT_BILLABLE_STATUSES.includes(sr.status ?? "") && (!sr.id || !isBilled(state, `ServiceRequest/${sr.id}`, sr.authoredOn))),
     dispenses: dispenses.filter((d) => !d.id || !isBilled(state, `MedicationDispense/${d.id}`, d.whenHandedOver)),
   };
 }

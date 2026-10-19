@@ -109,3 +109,28 @@ test("une facture prise en charge à 100 % est soldée d'emblée", () => {
   assert.equal(invoice.status, "balanced");
   assert.equal(summarizeInvoice(invoice as never, []).status, "balanced");
 });
+
+test("un médicament sans tarif est signalé, pas facturé à 0 en silence", () => {
+  const lines = buildInvoiceLines([], [{ id: "9", medicationCodeableConcept: { text: "Inconnu", coding: [{ code: "XXX" }] }, quantity: { value: 1 } }], tariffs);
+  assert.equal(lines.find((l) => l.kind === "drug")?.missingPrice, true);
+  const free = buildInvoiceLines([], [{ id: "8", medicationCodeableConcept: { text: "Gratuit", coding: [{ code: "FREE" }] } }], { ...tariffs, drugs: { FREE: 0 } });
+  assert.equal(free.find((l) => l.kind === "drug")?.missingPrice, false); // 0 voulu dans la grille
+});
+
+test("anciennes factures : comparaison de dates par instant, élément sans date réputé couvert", () => {
+  const legacy = { date: "2026-10-10T10:00:00.000Z", identifier: [{ system: "http://pediatrix.local/fhir/invoice-encounter", value: "e1" }] };
+  const state = billedState([legacy]);
+  // 09:00 à +01:00 = 08:00Z : avant la facture ; 12:00+01:00 = 11:00Z : après.
+  const pending = unbilledItems(
+    state,
+    [{ id: "1", authoredOn: "2026-10-10T09:00:00+01:00" }, { id: "2", authoredOn: "2026-10-10T12:00:00+01:00" }, { id: "3" }],
+    [],
+  );
+  assert.deepEqual(pending.serviceRequests.map((s) => s.id), ["2"]);
+});
+
+test("les demandes annulées ou saisies par erreur ne sont jamais facturées", () => {
+  const state = billedState([]);
+  const pending = unbilledItems(state, [{ id: "1", status: "revoked" }, { id: "2", status: "entered-in-error" }, { id: "3", status: "active" }], []);
+  assert.deepEqual(pending.serviceRequests.map((s) => s.id), ["3"]);
+});

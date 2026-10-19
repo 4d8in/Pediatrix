@@ -23,6 +23,7 @@ interface FhirInvoice {
 }
 interface FhirOrder {
   id?: string;
+  status?: string;
   authoredOn?: string;
   whenHandedOver?: string;
   encounter?: { reference?: string };
@@ -41,7 +42,7 @@ export async function listPendingEncountersRoute(app: FastifyInstance) {
         fetchAll<FhirEncounter | FhirPatient>(
           `/Encounter?class=AMB&status=finished&date=ge${since}&_include=Encounter:subject&_sort=-date`,
         ),
-        fetchAll<FhirInvoice>("/Invoice"),
+        fetchAll<FhirInvoice>(`/Invoice?date=ge${since}`),
         fetchAll<FhirOrder>(`/ServiceRequest?authored=ge${since}`),
         fetchAll<FhirOrder>(`/MedicationDispense?status=completed&whenhandedover=ge${since}`),
       ]);

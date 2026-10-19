@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { startOfTodayIso } from "../lib/arrival.js";
 import { HapiError, hapiClient } from "../lib/hapi-client.js";
 import { type TriageCategory, TRIAGE_SYSTEM, latestTriageByEncounter, triageRank } from "../lib/triage.js";
+import { type TriageVitals, TRIAGE_VITAL_CODES, criticalVitals, latestVitalsByEncounter } from "../lib/triage-vitals.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
 
@@ -42,6 +43,8 @@ export interface QueueEntry {
   status: "en_attente" | "consulte";
   reason: string | null;
   triage: TriageCategory | null;
+  vitals: TriageVitals;
+  criticalVitals: string[];
 }
 
 export function buildQueue(
@@ -49,9 +52,11 @@ export function buildQueue(
   patients: FhirResource[],
   legacyPatients: FhirResource[],
   triageObservations: FhirResource[],
+  vitalObservations: FhirResource[] = [],
 ): QueueEntry[] {
   const patientById = new Map(patients.concat(legacyPatients).map((p) => [p.id, p]));
   const triage = latestTriageByEncounter(triageObservations);
+  const vitalsByEncounter = latestVitalsByEncounter(vitalObservations as never);
 
   const describe = (patientId: string) => {
     const patient = patientById.get(patientId);
@@ -90,6 +95,8 @@ export function buildQueue(
     status: encounter.status === "arrived" ? "en_attente" : "consulte",
     reason: encounter.reasonCode?.[0]?.text ?? null,
     triage: triage.get(encounter.id) ?? null,
+    vitals: vitalsByEncounter.get(encounter.id) ?? {},
+    criticalVitals: criticalVitals(vitalsByEncounter.get(encounter.id) ?? {}),
   }));
 
   for (const patient of legacyPatients) {
@@ -102,6 +109,8 @@ export function buildQueue(
       status: "en_attente",
       reason: null,
       triage: null,
+      vitals: {},
+      criticalVitals: [],
     });
   }
 
@@ -121,7 +130,7 @@ export async function activeQueueRoute(app: FastifyInstance) {
       try {
         const since = startOfTodayIso();
         const noCache = { "Cache-Control": "no-cache" };
-        const [encounterBundle, legacyBundle, triageBundle] = await Promise.all([
+        const [encounterBundle, legacyBundle, triageBundle, vitalsBundle] = await Promise.all([
           hapiClient.get<FhirBundle>(
             `/Encounter?class=AMB&date=ge${since}&_include=Encounter:subject&_count=200`,
             noCache,
@@ -129,6 +138,10 @@ export async function activeQueueRoute(app: FastifyInstance) {
           hapiClient.get<FhirBundle>(`/Patient?_lastUpdated=ge${since}&_sort=_lastUpdated&_count=200`, noCache),
           hapiClient.get<FhirBundle>(
             `/Observation?code=${encodeURIComponent(`${TRIAGE_SYSTEM}|triage-category`)}&date=ge${since}&_count=200`,
+            noCache,
+          ),
+          hapiClient.get<FhirBundle>(
+            `/Observation?code=${encodeURIComponent(TRIAGE_VITAL_CODES.map((c) => `http://loinc.org|${c}`).join(","))}&date=ge${since}&_count=200`,
             noCache,
           ),
         ]);
@@ -139,6 +152,7 @@ export async function activeQueueRoute(app: FastifyInstance) {
           resources.filter((r) => r.resourceType === "Patient"),
           (legacyBundle.entry ?? []).map((e) => e.resource),
           (triageBundle.entry ?? []).map((e) => e.resource),
+          (vitalsBundle.entry ?? []).map((e) => e.resource),
         );
         return reply.send({ queue });
       } catch (error) {

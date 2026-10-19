@@ -280,10 +280,19 @@ export interface DashboardOverview {
 
 export type TriageCategory = "emergency" | "priority" | "non_urgent";
 
+export interface TriageVitals {
+  temperature?: number;
+  heartRate?: number;
+  respiratoryRate?: number;
+  spo2?: number;
+}
+
 export interface QueueEntry {
   patientId: string;
   encounterId: string | null;
   triage: TriageCategory | null;
+  vitals: TriageVitals;
+  criticalVitals: (keyof TriageVitals)[];
   name: string;
   birthDate: string | null;
   gender: Gender;

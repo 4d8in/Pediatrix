@@ -5,7 +5,7 @@ import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { REFERRAL_SEARCH_TOKEN, summarizeReferral } from "./referral.fhir.js";
 
-const READ_ROLES = ["nurse", "doctor", "director"] as const;
+const READ_ROLES = ["nurse", "doctor"] as const;
 
 export async function listPatientReferralsRoute(app: FastifyInstance) {
   app.get(

@@ -86,15 +86,15 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
     setError(null);
     Promise.all([
       getPatient(patientId),
-      getPatientReports(patientId),
-      getPatientImagingReports(patientId),
-      getPatientImmunizations(patientId),
-      getPatientGrowth(patientId),
-      getPatientAllergies(patientId),
-      getPatientPrescriptions(patientId),
-      getPatientStays(patientId),
-      // Les infirmières, médecins et la direction lisent les diagnostics ; les autres rôles
-      // n'y ont pas droit (403) : le dossier se charge quand même.
+      // Chaque rôle ne lit que sa part du dossier : un refus (403) donne une section vide,
+      // le dossier se charge quand même (seule l'identité est indispensable).
+      getPatientReports(patientId).catch(() => ({ reports: [] as Report[] })),
+      getPatientImagingReports(patientId).catch(() => ({ reports: [] as ImagingReport[] })),
+      getPatientImmunizations(patientId).catch(() => ({ immunizations: [] as Immunization[] })),
+      getPatientGrowth(patientId).catch(() => ({ measurements: [] as GrowthMeasurement[] })),
+      getPatientAllergies(patientId).catch(() => ({ allergies: [] as Allergy[] })),
+      getPatientPrescriptions(patientId).catch(() => ({ prescriptions: [] as Prescription[] })),
+      getPatientStays(patientId).catch(() => ({ stays: [] as PatientStay[] })),
       getPatientDiagnoses(patientId).catch(() => ({ diagnoses: [] as Diagnosis[] })),
       getPatientReferrals(patientId).catch(() => ({ referrals: [] as Referral[] })),
     ])

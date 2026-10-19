@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { canReadGuardian } from "../../lib/clinical-access.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient, idFromMrn } from "./patient.fhir.js";
@@ -23,7 +24,11 @@ export async function listPatientsRoute(app: FastifyInstance) {
 
     try {
       const bundle = await hapiClient.get<FhirBundle>(`/Patient${query}`);
-      const patients = (bundle.entry ?? []).map((entry) => fromFhirPatient(entry.resource));
+      const withGuardian = canReadGuardian(request.user.role);
+      const patients = (bundle.entry ?? []).map((entry) => {
+        const summary = fromFhirPatient(entry.resource);
+        return withGuardian ? summary : { ...summary, guardian: null };
+      });
       return reply.send({ patients });
     } catch (error) {
       if (error instanceof HapiError) {

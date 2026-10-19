@@ -13,7 +13,7 @@ interface FhirBundle {
 export async function listPatientStaysRoute(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(
     "/api/patients/:id/stays",
-    { preHandler: [authenticate, authorize("nurse", "doctor", "lab_tech", "radiologist", "director")] },
+    { preHandler: [authenticate, authorize("nurse", "doctor")] },
     async (request, reply) => {
       try {
         const bundle = await hapiClient.get<FhirBundle>(

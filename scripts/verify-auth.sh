@@ -160,6 +160,20 @@ check "POST /api/lab/requests/:id/report (technicien labo, autorisé)" "201" "$R
 req GET "/api/patients/${PATIENT_ID}" "$TOKEN_DIRECTOR"
 check "GET /api/patients/:id (directeur, autorisé)" "200" "$REQ_CODE"
 
+# Besoin d'en connaître : labo, radiologie et direction n'ont que l'identité.
+for who in LAB DIRECTOR; do
+  tok="TOKEN_$who"
+  req GET "/api/patients/${PATIENT_ID}/prescriptions" "${!tok}"
+  check "GET /api/patients/:id/prescriptions ($who, interdit)" "403" "$REQ_CODE"
+  req GET "/api/patients/${PATIENT_ID}/allergies" "${!tok}"
+  check "GET /api/patients/:id/allergies ($who, interdit)" "403" "$REQ_CODE"
+  req GET "/api/patients/${PATIENT_ID}/stays" "${!tok}"
+  check "GET /api/patients/:id/stays ($who, interdit)" "403" "$REQ_CODE"
+done
+req GET "/api/patients/${PATIENT_ID}" "$TOKEN_LAB"
+LAB_CONSULTATIONS=$(echo "$REQ_BODY" | jq -r '.consultations | length')
+check "GET /api/patients/:id (labo) : aucune consultation renvoyée" "0" "$LAB_CONSULTATIONS"
+
 req GET "/api/fhir-log" "$TOKEN_ADMIN"
 check "GET /api/fhir-log (admin technique, autorisé)" "200" "$REQ_CODE"
 echo ""

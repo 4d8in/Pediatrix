@@ -4,7 +4,7 @@ import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../../lib/service-category.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 
-const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+const READ_ROLES = ["nurse", "doctor", "lab_tech"] as const;
 
 interface FhirDiagnosticReport {
   resourceType: "DiagnosticReport";

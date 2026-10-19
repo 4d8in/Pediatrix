@@ -4,7 +4,7 @@ import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { type FhirMedicationRequest, fromFhirPrescriptionBundle } from "./prescription.fhir.js";
 
-const READ_ROLES = ["nurse", "doctor", "lab_tech", "director"] as const;
+const READ_ROLES = ["nurse", "doctor"] as const;
 
 interface FhirBundle {
   entry?: { resource: FhirMedicationRequest }[];

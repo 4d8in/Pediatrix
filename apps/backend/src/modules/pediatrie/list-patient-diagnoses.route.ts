@@ -5,7 +5,7 @@ import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { summarizeCondition } from "./diagnosis.fhir.js";
 
-const READ_ROLES = ["nurse", "doctor", "director"] as const;
+const READ_ROLES = ["nurse", "doctor"] as const;
 
 export async function listPatientDiagnosesRoute(app: FastifyInstance) {
   app.get(

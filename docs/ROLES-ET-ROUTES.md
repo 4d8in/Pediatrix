@@ -33,7 +33,7 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | POST | `/api/hospitalisations` | Infirmière, Médecin |
 | POST | `/api/hospitalisations/:id/discharge` | Infirmière, Médecin |
 | POST | `/api/hospitalisations/:id/transfer` | Infirmière, Médecin |
-| GET | `/api/patients/:id/stays` | Infirmière, Médecin, Technicien labo, Radiologue, Directeur |
+| GET | `/api/patients/:id/stays` | Infirmière, Médecin |
 
 ## laboratoire
 
@@ -52,7 +52,7 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | POST | `/api/encounters/:id/diagnoses` | Médecin |
 | POST | `/api/encounters/:id/service-requests` | Médecin |
 | POST | `/api/patients/:id/arrival` | Infirmière, Médecin, Réceptionniste |
-| GET | `/api/patients/:id/diagnoses` | Infirmière, Médecin, Directeur |
+| GET | `/api/patients/:id/diagnoses` | Infirmière, Médecin |
 | POST | `/api/patients/:id/encounters` | Médecin |
 | POST | `/api/patients/:id/triage` | Infirmière, Médecin |
 
@@ -71,9 +71,9 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | Méthode | Route | Rôles autorisés |
 | --- | --- | --- |
 | POST | `/api/encounters/:id/prescriptions` | Médecin |
-| GET | `/api/patients/:id/allergies` | Infirmière, Médecin, Technicien labo, Directeur |
+| GET | `/api/patients/:id/allergies` | Infirmière, Médecin |
 | POST | `/api/patients/:id/allergies` | Médecin, Infirmière |
-| GET | `/api/patients/:id/prescriptions` | Infirmière, Médecin, Technicien labo, Directeur |
+| GET | `/api/patients/:id/prescriptions` | Infirmière, Médecin |
 
 ## radiologie
 
@@ -83,14 +83,14 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | GET | `/api/imaging/requests` | Radiologue |
 | POST | `/api/imaging/requests/:id/report` | Radiologue |
 | GET | `/api/imaging/summary` | Radiologue |
-| GET | `/api/patients/:id/imaging-reports` | Infirmière, Médecin, Radiologue, Directeur |
+| GET | `/api/patients/:id/imaging-reports` | Infirmière, Médecin, Radiologue |
 
 ## reference
 
 | Méthode | Route | Rôles autorisés |
 | --- | --- | --- |
 | POST | `/api/encounters/:id/referral` | Médecin |
-| GET | `/api/patients/:id/referrals` | Infirmière, Médecin, Directeur |
+| GET | `/api/patients/:id/referrals` | Infirmière, Médecin |
 
 ## rendez-vous
 
@@ -149,7 +149,7 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | GET | `/api/patients` | Infirmière, Médecin, Technicien labo, Radiologue, Réceptionniste, Directeur |
 | POST | `/api/patients` | Infirmière, Médecin, Réceptionniste |
 | GET | `/api/patients/:id` | Infirmière, Médecin, Technicien labo, Radiologue, Directeur |
-| GET | `/api/patients/:id/reports` | Infirmière, Médecin, Technicien labo, Directeur |
+| GET | `/api/patients/:id/reports` | Infirmière, Médecin, Technicien labo |
 
 ## vaccination
 

@@ -429,6 +429,9 @@ export interface BillableEncounter {
   patientName: string;
   reason: string | null;
   date: string | null;
+  // Facture complémentaire : examens ou médicaments ajoutés après une première facture.
+  supplementary?: boolean;
+  unbilledCount?: number;
 }
 
 export type PaymentMethod = "cash" | "mobile_money" | "card";

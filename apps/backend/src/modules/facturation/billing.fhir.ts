@@ -6,6 +6,9 @@ import type { TariffTable } from "../../lib/tariffs.js";
 export const INVOICE_ENCOUNTER_SYSTEM = "http://pediatrix.local/fhir/invoice-encounter";
 export const INSURER_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-insurer";
 export const COVERAGE_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-coverage-percent";
+// Éléments déjà facturés (« ServiceRequest/12 », « MedicationDispense/7 », « Encounter/3 » pour la
+// consultation) : permet une facture complémentaire pour ce qui est demandé ou délivré après coup.
+export const INVOICE_SOURCE_SYSTEM = "http://pediatrix.local/fhir/invoice-source";
 export const PATIENT_SHARE_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-patient-share";
 
 export const PAYMENT_METHODS = ["cash", "mobile_money", "card"] as const;
@@ -17,6 +20,8 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 };
 
 export interface InvoiceLine {
+  // Ressource facturée par cette ligne (voir INVOICE_SOURCE_SYSTEM).
+  source?: string;
   kind: "consultation" | "lab" | "imaging" | "drug";
   description: string;
   quantity: number;
@@ -25,11 +30,15 @@ export interface InvoiceLine {
 }
 
 interface ServiceRequestLike {
+  id?: string;
+  authoredOn?: string;
   code?: { text?: string; coding?: { code?: string }[] };
   category?: { coding?: { code?: string }[] }[];
 }
 
 interface DispenseLike {
+  id?: string;
+  whenHandedOver?: string;
   medicationCodeableConcept?: { text?: string; coding?: { code?: string }[] };
   quantity?: { value?: number };
 }
@@ -38,16 +47,26 @@ export function buildInvoiceLines(
   serviceRequests: ServiceRequestLike[],
   dispenses: DispenseLike[],
   tariffs: TariffTable,
+  options: { encounterId?: string; includeConsultation?: boolean } = {},
 ): InvoiceLine[] {
-  const lines: InvoiceLine[] = [
-    { kind: "consultation", description: "Consultation pédiatrique", quantity: 1, unitPrice: tariffs.consultation, amount: tariffs.consultation },
-  ];
+  const lines: InvoiceLine[] = [];
+  if (options.includeConsultation ?? true) {
+    lines.push({
+      source: options.encounterId ? `Encounter/${options.encounterId}` : undefined,
+      kind: "consultation",
+      description: "Consultation pédiatrique",
+      quantity: 1,
+      unitPrice: tariffs.consultation,
+      amount: tariffs.consultation,
+    });
+  }
 
   for (const sr of serviceRequests) {
     const isImaging = sr.category?.some((c) => c.coding?.some((coding) => coding.code === "imaging"));
     const code = sr.code?.coding?.[0]?.code;
     const unitPrice = isImaging ? tariffs.imagingDefault : (code && tariffs.labByCode[code]) || tariffs.labDefault;
     lines.push({
+      source: sr.id ? `ServiceRequest/${sr.id}` : undefined,
       kind: isImaging ? "imaging" : "lab",
       description: sr.code?.text ?? (isImaging ? "Examen d'imagerie" : "Examen de laboratoire"),
       quantity: 1,
@@ -61,6 +80,7 @@ export function buildInvoiceLines(
     const quantity = dispense.quantity?.value ?? 1;
     const unitPrice = (code && tariffs.drugs[code]) || 0;
     lines.push({
+      source: dispense.id ? `MedicationDispense/${dispense.id}` : undefined,
       kind: "drug",
       description: dispense.medicationCodeableConcept?.text ?? "Médicament",
       quantity,
@@ -98,8 +118,12 @@ export function toFhirInvoice(
   const money = (value: number) => ({ value, currency });
   return {
     resourceType: "Invoice",
-    status: "issued",
-    identifier: [{ system: INVOICE_ENCOUNTER_SYSTEM, value: encounterId }],
+    // Part patient nulle (prise en charge à 100 %) : rien à encaisser, la facture est soldée d'emblée.
+    status: totals.patientShare === 0 ? "balanced" : "issued",
+    identifier: [
+      { system: INVOICE_ENCOUNTER_SYSTEM, value: encounterId },
+      ...lines.filter((line) => line.source).map((line) => ({ system: INVOICE_SOURCE_SYSTEM, value: line.source })),
+    ],
     subject: { reference: `Patient/${patientId}`, display: patientName },
     date: new Date().toISOString(),
     participant: [{ actor: { display: issuedBy } }],
@@ -184,7 +208,7 @@ export function summarizeInvoice(invoice: FhirInvoice, notices: FhirPaymentNotic
     patientId: invoice.subject?.reference?.split("/")[1] ?? "",
     patientName: invoice.subject?.display ?? "",
     date: invoice.date ?? null,
-    status: invoice.status === "balanced" ? "balanced" : "issued",
+    status: invoice.status === "balanced" || Math.max(patientShare - paid, 0) === 0 ? "balanced" : "issued",
     currency: invoice.totalNet?.currency ?? "XOF",
     total,
     insurer: ext(INSURER_EXTENSION_URL)?.valueString ?? null,
@@ -200,5 +224,47 @@ export function summarizeInvoice(invoice: FhirInvoice, notices: FhirPaymentNotic
     payments: mine
       .map((n) => ({ amount: n.amount?.value ?? 0, method: n.paymentStatus?.coding?.[0]?.code ?? "", date: n.created ?? null }))
       .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),
+  };
+}
+
+interface InvoiceIdentifiers {
+  date?: string;
+  identifier?: { system?: string; value?: string }[];
+}
+
+export interface BilledState {
+  consultationBilled: boolean;
+  sources: Set<string>;
+  // Date de la dernière facture « ancienne » (sans suivi des éléments) : tout ce qui existait
+  // à cette date est réputé facturé, pour ne pas facturer deux fois après une mise à jour.
+  legacyCutoff?: string;
+}
+
+// État de facturation d'une consultation, d'après ses factures existantes.
+export function billedState(invoices: InvoiceIdentifiers[]): BilledState {
+  const sources = new Set<string>();
+  let legacyCutoff: string | undefined;
+  for (const invoice of invoices) {
+    const own = (invoice.identifier ?? []).filter((i) => i.system === INVOICE_SOURCE_SYSTEM).map((i) => i.value ?? "");
+    own.forEach((value) => sources.add(value));
+    if (own.length === 0 && invoice.date && (!legacyCutoff || invoice.date > legacyCutoff)) legacyCutoff = invoice.date;
+  }
+  return { consultationBilled: invoices.length > 0, sources, legacyCutoff };
+}
+
+export function isBilled(state: BilledState, source: string, itemDate?: string): boolean {
+  if (state.sources.has(source)) return true;
+  return Boolean(state.legacyCutoff && itemDate && itemDate <= state.legacyCutoff);
+}
+
+// Éléments pas encore facturés d'une consultation : examens demandés et médicaments délivrés.
+export function unbilledItems<S extends ServiceRequestLike, D extends DispenseLike>(
+  state: BilledState,
+  serviceRequests: S[],
+  dispenses: D[],
+): { serviceRequests: S[]; dispenses: D[] } {
+  return {
+    serviceRequests: serviceRequests.filter((sr) => !sr.id || !isBilled(state, `ServiceRequest/${sr.id}`, sr.authoredOn)),
+    dispenses: dispenses.filter((d) => !d.id || !isBilled(state, `MedicationDispense/${d.id}`, d.whenHandedOver)),
   };
 }

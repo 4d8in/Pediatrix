@@ -5,7 +5,7 @@ import { hapiClient } from "../../lib/hapi-client.js";
 import { loadTariffs } from "../../lib/tariffs.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
-import { INVOICE_ENCOUNTER_SYSTEM, buildInvoiceLines, computeTotals, toFhirInvoice } from "./billing.fhir.js";
+import { INVOICE_ENCOUNTER_SYSTEM, billedState, buildInvoiceLines, computeTotals, toFhirInvoice, unbilledItems } from "./billing.fhir.js";
 import { replyHapiError } from "./billing-errors.js";
 import { readInvoice } from "./invoice-reader.js";
 
@@ -41,15 +41,8 @@ export async function createInvoiceRoute(app: FastifyInstance) {
       const patientId = encounter.subject?.reference?.split("/")[1];
       if (!patientId) return reply.code(502).send({ error: "Consultation sans patient associé." });
 
-      const existing = await hapiClient.get<{ total?: number }>(
-        `/Invoice?identifier=${encodeURIComponent(`${INVOICE_ENCOUNTER_SYSTEM}|${id}`)}&_summary=count`,
-        { "Cache-Control": "no-cache" },
-      );
-      if ((existing.total ?? 0) > 0) {
-        return reply.code(409).send({ error: "Cette consultation est déjà facturée." });
-      }
-
-      const [patient, serviceRequests, dispenses, tariffs] = await Promise.all([
+      const [existing, patient, serviceRequests, dispenses, tariffs] = await Promise.all([
+        fetchAll<Json>(`/Invoice?identifier=${encodeURIComponent(`${INVOICE_ENCOUNTER_SYSTEM}|${id}`)}`),
         hapiClient.get<{ name?: { family?: string; given?: string[] }[] }>(`/Patient/${patientId}`),
         fetchAll<Json>(`/ServiceRequest?encounter=Encounter/${id}`),
         fetchAll<Json>(`/MedicationDispense?context=Encounter/${id}&status=completed`),
@@ -58,7 +51,16 @@ export async function createInvoiceRoute(app: FastifyInstance) {
       const name = patient.name?.[0];
       const patientName = name ? `${name.given?.[0] ?? ""} ${name.family ?? ""}`.trim() : "";
 
-      const lines = buildInvoiceLines(serviceRequests as never, dispenses as never, tariffs);
+      // Facture complémentaire : seuls les examens et médicaments pas encore facturés.
+      const state = billedState(existing as never);
+      const pending = unbilledItems(state, serviceRequests as never[], dispenses as never[]);
+      if (state.consultationBilled && pending.serviceRequests.length === 0 && pending.dispenses.length === 0) {
+        return reply.code(409).send({ error: "Rien de nouveau à facturer pour cette consultation." });
+      }
+      const lines = buildInvoiceLines(pending.serviceRequests, pending.dispenses, tariffs, {
+        encounterId: id,
+        includeConsultation: !state.consultationBilled,
+      });
       const totals = computeTotals(lines, insurance.coveragePercent);
       const created = await hapiClient.post<{ id: string }>(
         "/Invoice",

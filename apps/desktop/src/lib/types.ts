@@ -437,3 +437,16 @@ export interface DoctorOption {
   practitionerId: string;
   name: string;
 }
+
+export interface AuditEntry {
+  id: string;
+  recorded: string | null;
+  action: string;
+  success: boolean;
+  who: string;
+  role: string | null;
+  ip: string | null;
+  patientId: string | null;
+  description: string;
+  login: boolean;
+}

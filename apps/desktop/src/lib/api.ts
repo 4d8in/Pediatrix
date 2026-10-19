@@ -29,6 +29,7 @@ import type {
   ImagingRequest,
   Immunization,
   Appointment,
+  AuditEntry,
   AppointmentStatus,
   BillableEncounter,
   BillingSummary,
@@ -482,4 +483,9 @@ export function updateAppointmentStatus(id: string, status: AppointmentStatus): 
     method: "POST",
     body: JSON.stringify({ status }),
   });
+}
+
+export function listAudit(patientId?: string): Promise<{ events: AuditEntry[] }> {
+  const filter = patientId ? `&patientId=${encodeURIComponent(patientId)}` : "";
+  return request<{ events: AuditEntry[] }>(`/api/audit?limit=200${filter}`);
 }

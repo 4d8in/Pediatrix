@@ -10,6 +10,7 @@ import {
   ListOrdered,
   LogOut,
   MonitorCheck,
+  ShieldCheck,
   Settings as SettingsIcon,
   Search,
   ScanLine,
@@ -30,6 +31,7 @@ import Radiology from "./views/Radiology";
 import Pharmacy from "./views/Pharmacy";
 import Billing from "./views/Billing";
 import Appointments from "./views/Appointments";
+import AuditLog from "./views/AuditLog";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -60,6 +62,7 @@ type ViewType =
   | "pharmacy"
   | "billing"
   | "appointments"
+  | "audit"
   | "fhirLog"
   | "vaccinations"
   | "stats"
@@ -102,6 +105,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   },
   { id: "supervision", label: "Supervision", icon: MonitorCheck, roles: ["tech_admin"] },
   { id: "accounts", label: "Comptes", icon: UsersRound, roles: ["tech_admin"] },
+  { id: "audit", label: "Journal d'audit", icon: ShieldCheck, roles: ["tech_admin", "director"] },
   { id: "fhirLog", label: "Flux FHIR", icon: Terminal, roles: ["tech_admin"] },
   { id: "beds", label: "Gestion des lits", icon: BedDouble, roles: ["nurse", "doctor", "director", "tech_admin"] },
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
@@ -189,6 +193,8 @@ function App() {
         return <Billing />;
       case "appointments":
         return <Appointments />;
+      case "audit":
+        return <AuditLog />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":

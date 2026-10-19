@@ -16,6 +16,10 @@ export const DOSE_RULES: DoseRule[] = [
   { formularyCode: "GENTA-80", maxDailyMgPerKg: 7.5 },
 ];
 
+export function hasDoseRule(formularyCode: string): boolean {
+  return DOSE_RULES.some((r) => r.formularyCode === formularyCode);
+}
+
 export interface DoseCheck {
   message: string;
 }

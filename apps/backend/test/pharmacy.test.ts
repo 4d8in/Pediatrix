@@ -52,18 +52,33 @@ test("les ordonnances à délivrer sont triées de la plus ancienne à la plus r
   assert.equal(list[0].patientName, "Moussa Diallo");
 });
 
-test("un lot périmé n'est plus utilisable et la délivrance consomme d'abord le lot qui périme le plus tôt", () => {
-  const now = new Date("2026-10-19T08:00:00Z");
-  const old = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 20, lot: "A", expiry: "2026-10-01" }, "P");
-  const soon = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 30, lot: "B", expiry: "2026-12-15" }, "P");
-  const later = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 40, lot: "C", expiry: "2028-01-01" }, "P");
-  const dispense = toMedicationDispense(paracetamol, 10, "mr1", "Patient/p1", undefined, "P");
+function receiptAt(at: string, quantity: number, expiry: string) {
+  return { ...toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity, expiry }, "P"), occurrenceDateTime: at };
+}
+function dispenseAt(at: string, quantity: number) {
+  return { ...toMedicationDispense(paracetamol, quantity, "mr", "Patient/p1", undefined, "P"), whenHandedOver: at };
+}
 
-  const level = computeStock([old, soon, later], [dispense], now).find((l) => l.code === "PARA-SIR")!;
-  // FEFO : les 10 délivrés sortent du lot A (périmé, 20 -> 10 restant, non utilisable).
-  assert.equal(level.expiredQuantity, 10);
+test("un lot périmé n'est plus utilisable et la délivrance prélève dans le lot valide qui périme le plus tôt", () => {
+  const now = new Date("2026-10-19T08:00:00Z");
+  const lotA = receiptAt("2026-01-10T08:00:00Z", 20, "2026-10-01"); // périme avant now
+  const lotB = receiptAt("2026-01-10T08:00:00Z", 30, "2026-12-15");
+  const lotC = receiptAt("2026-01-10T08:00:00Z", 40, "2028-01-01");
+  // Délivrance en mars : A est encore valide, il part en premier (FEFO).
+  const level = computeStock([lotA, lotB, lotC], [dispenseAt("2026-03-01T08:00:00Z", 10)], now).find((l) => l.code === "PARA-SIR")!;
+  assert.equal(level.expiredQuantity, 10); // reste de A, périmé
   assert.equal(level.quantity, 70);
   assert.equal(level.expiringSoonQuantity, 30);
+});
+
+test("un lot reçu après une délivrance ne peut pas l'avoir fournie", () => {
+  const now = new Date("2026-10-19T08:00:00Z");
+  const lotB = receiptAt("2026-01-10T08:00:00Z", 100, "2027-12-31");
+  const dispense = dispenseAt("2026-02-10T08:00:00Z", 100); // vide le lot B
+  const lotA = receiptAt("2026-03-10T08:00:00Z", 100, "2026-10-01"); // reçu après, périmé à now
+  const level = computeStock([lotB, lotA], [dispense], now).find((l) => l.code === "PARA-SIR")!;
+  assert.equal(level.quantity, 0); // et non 100
+  assert.equal(level.expiredQuantity, 100);
 });
 
 test("sans péremption renseignée, le lot n'expire pas", () => {

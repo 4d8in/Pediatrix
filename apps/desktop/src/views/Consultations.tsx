@@ -88,6 +88,8 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setDosage("");
     setDoseMg("");
     setDosesPerDay("");
+    setConfirmedAllergy(false);
+    setConfirmedDose(false);
     setPrescriptionErrors([]);
     setAllergyConflict(null);
     setPrescriptionCreated(false);
@@ -221,7 +223,10 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     }
   }
 
-  async function submitPrescription(confirmed: boolean) {
+  const [confirmedAllergy, setConfirmedAllergy] = useState(false);
+  const [confirmedDose, setConfirmedDose] = useState(false);
+
+  async function submitPrescription(accept?: "allergy" | "dose") {
     if (!encounterId) return;
 
     setPrescriptionErrors([]);
@@ -233,7 +238,11 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         doseMg.trim() && dosesPerDay.trim()
           ? { formularyCode, doseMg: Number(doseMg.replace(",", ".")), dosesPerDay: Number(dosesPerDay) }
           : {};
-      await createPrescription(encounterId, { medication, dosage, confirmed, ...structured });
+      const allergyOk = confirmedAllergy || accept === "allergy";
+      const doseOk = confirmedDose || accept === "dose";
+      if (accept === "allergy") setConfirmedAllergy(true);
+      if (accept === "dose") setConfirmedDose(true);
+      await createPrescription(encounterId, { medication, dosage, confirmed: allergyOk, doseConfirmed: doseOk, ...structured });
       setAllergyConflict(null);
       setPrescriptionCreated(true);
     } catch (error) {
@@ -242,6 +251,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         if (body?.requiresConfirmation) {
           setAllergyConflict({
             requiresConfirmation: true,
+            kind: body.kind,
             allergy: body.allergy ?? "",
             message: body.message ?? error.message,
           });
@@ -260,11 +270,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
   async function handleSubmitPrescription(event: FormEvent) {
     event.preventDefault();
-    await submitPrescription(false);
+    setConfirmedAllergy(false);
+    setConfirmedDose(false);
+    await submitPrescription();
   }
 
   async function handleConfirmDespiteAllergy() {
-    await submitPrescription(true);
+    await submitPrescription(allergyConflict?.kind === "dose" ? "dose" : "allergy");
   }
 
   if (encounterId) {

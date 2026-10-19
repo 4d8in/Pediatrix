@@ -214,6 +214,7 @@ export interface CreatePrescriptionInput {
   medication: string;
   dosage: string;
   confirmed?: boolean;
+  doseConfirmed?: boolean;
   formularyCode?: string;
   doseMg?: number;
   dosesPerDay?: number;
@@ -229,6 +230,8 @@ export interface Prescription {
 
 export interface AllergyConflict {
   requiresConfirmation: true;
+  // « allergy » ou « dose » : chaque alerte demande son propre accord.
+  kind?: "allergy" | "dose";
   allergy: string;
   message: string;
 }

@@ -29,6 +29,8 @@ const RULES: RangeRule[] = [
   { code: "718-7", minMonths: M(6), maxMonths: M(12), low: 11.5, high: 15.5, criticalLow: 7 },
   { code: "718-7", minMonths: M(12), maxMonths: M(19), sex: "female", low: 12, high: 16, criticalLow: 7 },
   { code: "718-7", minMonths: M(12), maxMonths: M(19), sex: "male", low: 13, high: 16, criticalLow: 7 },
+  // Sexe non renseigné : plage la plus large, seuil critique inchangé.
+  { code: "718-7", minMonths: M(12), maxMonths: M(19), low: 12, high: 16, criticalLow: 7 },
   // Leucocytes (10*3/uL)
   { code: "6690-2", minMonths: 0, maxMonths: M(1), low: 6, high: 17.5, criticalLow: 2, criticalHigh: 50 },
   { code: "6690-2", minMonths: M(1), maxMonths: M(5), low: 5.5, high: 15.5, criticalLow: 2, criticalHigh: 50 },
@@ -42,8 +44,11 @@ const RULES: RangeRule[] = [
   { code: "4544-3", minMonths: M(6), maxMonths: M(12), low: 35, high: 45 },
   { code: "4544-3", minMonths: M(12), maxMonths: M(19), sex: "female", low: 36, high: 46 },
   { code: "4544-3", minMonths: M(12), maxMonths: M(19), sex: "male", low: 37, high: 49 },
+  { code: "4544-3", minMonths: M(12), maxMonths: M(19), low: 36, high: 49 },
   // Glycémie à jeun (mg/dL)
-  { code: "2345-7", minMonths: 0, maxMonths: M(19), low: 70, high: 110, criticalLow: 40, criticalHigh: 400 },
+  // Nouveau-né : glycémie physiologiquement plus basse.
+  { code: "2345-7", minMonths: 0, maxMonths: 1, low: 45, high: 110, criticalLow: 40, criticalHigh: 400 },
+  { code: "2345-7", minMonths: 1, maxMonths: M(19), low: 70, high: 110, criticalLow: 40, criticalHigh: 400 },
   // CRP (mg/L)
   { code: "1988-5", minMonths: 0, maxMonths: M(19), high: 5 },
   // Créatinine (mg/dL)

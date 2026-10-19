@@ -375,6 +375,20 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return { ok: true };
 }
 
+export interface AuditChainReport {
+  verified: number;
+  legacy: number;
+  ok: boolean;
+  brokenAtSeq: number | null;
+  reason: string | null;
+  lastSeq: number;
+  lastHash: string;
+}
+
+export function verifyAuditChain(): Promise<AuditChainReport> {
+  return request<AuditChainReport>("/api/audit/verify");
+}
+
 export const BACKEND_BASE_URL = BACKEND_URL;
 
 export function getHealth(): Promise<HealthStatus> {

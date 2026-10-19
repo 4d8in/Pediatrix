@@ -100,3 +100,10 @@ test("surveillance : le directeur voit le tableau hebdomadaire, la pharmacie n'y
   await login(page, "pharmacien1", e2ePassword());
   await expect(page.getByTestId("nav-surveillance")).toHaveCount(0);
 });
+
+test("journal d'audit : l'administrateur technique vérifie l'intégrité de la chaîne", async ({ page }) => {
+  await login(page, "admin1", e2ePassword());
+  await page.getByTestId("nav-audit").click();
+  await page.getByTestId("audit-verify").click();
+  await expect(page.getByTestId("audit-verify-result")).toContainText("Journal intact", { timeout: 20_000 });
+});

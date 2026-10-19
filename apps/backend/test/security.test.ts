@@ -129,3 +129,31 @@ import { accountsWithSeedPassword } from "../src/lib/seed-accounts-check.js";
 test("comptes de démonstration : sans SEED_USER_PASSWORD, rien à signaler", async () => {
   assert.deepEqual(await accountsWithSeedPassword(undefined), []);
 });
+
+import { GENESIS_HASH, verifyChain, withChain } from "../src/lib/audit-chain.js";
+
+test("journal d'audit chaîné : intact, modifié, supprimé", () => {
+  const make = (n: number, previous: { seq: number; hash: string }) =>
+    withChain({ resourceType: "AuditEvent", action: "R", recorded: `2026-10-19T08:0${n}:00Z`, outcome: "0", outcomeDesc: `événement ${n}` }, previous);
+  const e1 = make(1, { seq: 0, hash: GENESIS_HASH });
+  const e2 = make(2, e1);
+  const e3 = make(3, e2);
+  const ok = verifyChain([e3.event, e1.event, e2.event]);
+  assert.equal(ok.ok, true);
+  assert.equal(ok.verified, 3);
+  assert.equal(ok.lastSeq, 3);
+
+  const tampered = { ...e2.event, outcomeDesc: "falsifié" };
+  const broken = verifyChain([e1.event, tampered, e3.event]);
+  assert.equal(broken.ok, false);
+  assert.equal(broken.brokenAtSeq, 2);
+
+  const missing = verifyChain([e1.event, e3.event]);
+  assert.equal(missing.ok, false);
+  assert.equal(missing.brokenAtSeq, 3);
+
+  // Événements antérieurs au chaînage : comptés comme « legacy », sans casser la chaîne.
+  const withLegacy = verifyChain([{ resourceType: "AuditEvent", action: "R" }, e1.event]);
+  assert.equal(withLegacy.ok, true);
+  assert.equal(withLegacy.legacy, 1);
+});

@@ -51,6 +51,14 @@ ALERTS=$(body "$(api GET "$NURSE" "/api/patients/${PATIENT}/birth")" | jq -c '.b
 [ "$ALERTS" = '["low_birth_weight","preterm"]' ] || fail "alertes inattendues : $ALERTS"
 echo "OK : registre de naissance (alertes $ALERTS)."
 
+# --- Listes non tronquées (HAPI renvoie 20 résultats par page par défaut) ---
+for i in $(seq 1 25); do
+  [ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/growth" "{\"date\":\"$(date -d "2026-09-01 +${i} days" +%F)\",\"weight\":$(( 3 + i % 3 )).$(( i % 10 ))}")")" = "201" ] || fail "mesure de croissance ${i} refusée."
+done
+GROWTH=$(body "$(api GET "$NURSE" "/api/patients/${PATIENT}/growth")" | jq '.measurements | length')
+[ "$GROWTH" -ge 25 ] || fail "liste de croissance tronquée : ${GROWTH} < 25."
+echo "OK : liste de 25 mesures complète (${GROWTH})."
+
 # --- PTME (nourrisson exposé au VIH) ---
 INFANT_BIRTH=$(date -d '48 days ago' +%F)
 INFANT=$(body "$(api POST "$DOCTOR" /api/patients "{\"firstName\":\"Bébé\",\"lastName\":\"Verify-Ptme\",\"birthDate\":\"${INFANT_BIRTH}\",\"gender\":\"male\",\"guardian\":{\"name\":\"Awa Sow\",\"relationship\":\"Mère\",\"phone\":\"+221701112277\"}}")" | jq -r '.id // empty')

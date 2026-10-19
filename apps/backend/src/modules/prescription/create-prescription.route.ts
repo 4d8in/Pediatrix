@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { type FhirAllergyIntolerance, findMatchingAllergy } from "./allergy.fhir.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
@@ -88,10 +89,7 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
 
       let matchedAllergy: FhirAllergyIntolerance | undefined;
       try {
-        const allergyBundle = await hapiClient.get<FhirAllergyBundle>(
-          `/AllergyIntolerance?patient=${patientId}&clinical-status=active`,
-          { "Cache-Control": "no-cache" },
-        );
+        const allergyBundle = await fetchBundle<FhirAllergyBundle>(`/AllergyIntolerance?patient=${patientId}&clinical-status=active`);
         const allergies = (allergyBundle.entry ?? []).map((entry) => entry.resource);
         matchedAllergy = findMatchingAllergy(allergies, result.input.medication);
       } catch (error) {

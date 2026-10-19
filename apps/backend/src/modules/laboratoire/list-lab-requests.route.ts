@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../../lib/service-category.js";
@@ -80,10 +81,7 @@ export async function listLabRequestsRoute(app: FastifyInstance) {
       // partage le même serveur HAPI et le même type de ressource (ServiceRequest).
       // Les demandes labo existantes n'ont pas de `category` : le modificateur
       // `:not` les inclut quand même (absence de valeur = "not equal" satisfait).
-      const bundle = await hapiClient.get<FhirBundle>(
-        `/ServiceRequest?status=${requestStatus}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
-        { "Cache-Control": "no-cache" },
-      );
+      const bundle = await fetchBundle<FhirBundle>(`/ServiceRequest?status=${requestStatus}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`);
       return reply.send({ requests: parseLabRequests(bundle) });
     } catch (error) {
       if (error instanceof HapiError) {

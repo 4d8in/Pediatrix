@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -29,10 +30,7 @@ export async function listAllergiesRoute(app: FastifyInstance) {
       }
 
       try {
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/AllergyIntolerance?patient=${id}&clinical-status=active`,
-          { "Cache-Control": "no-cache" },
-        );
+        const bundle = await fetchBundle<FhirBundle>(`/AllergyIntolerance?patient=${id}&clinical-status=active`);
         return reply.send({ allergies: fromFhirAllergyBundle(bundle) });
       } catch (error) {
         if (error instanceof HapiError) {

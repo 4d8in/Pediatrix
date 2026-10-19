@@ -23,3 +23,10 @@ export async function fetchAll<T>(path: string): Promise<T[]> {
   }
   return all;
 }
+
+// Comme fetchAll, mais renvoie un Bundle déjà assemblé : les analyseurs de listes existants (qui lisent
+// `bundle.entry`) fonctionnent sans changement, et la liste n'est plus tronquée à la taille de page de HAPI.
+export async function fetchBundle<B extends { entry?: { resource: unknown }[] }>(path: string): Promise<B> {
+  const resources = await fetchAll<unknown>(path);
+  return { resourceType: "Bundle", type: "searchset", entry: resources.map((resource) => ({ resource })) } as unknown as B;
+}

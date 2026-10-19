@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../../lib/service-category.js";
@@ -121,9 +122,7 @@ export async function getPatientReportsRoute(app: FastifyInstance) {
       try {
         // category:not=imagerie exclut les comptes-rendus du module Radiologie
         // (voir le même filtre dans laboratoire/list-lab-requests.route.ts).
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/DiagnosticReport?patient=${id}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_sort=-issued&_include=DiagnosticReport:result`,
-        );
+        const bundle = await fetchBundle<FhirBundle>(`/DiagnosticReport?patient=${id}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}&_sort=-issued&_include=DiagnosticReport:result`);
         return reply.send({ reports: parseReports(bundle) });
       } catch (error) {
         if (error instanceof HapiError) {

@@ -19,6 +19,7 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
   const [prophylaxis, setProphylaxis] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sampleDate, setSampleDate] = useState("");
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -93,6 +94,17 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
         {ptme.enrolment.infantProphylaxis ? t("prophylaxie ARV du nourrisson donnée") : t("prophylaxie ARV du nourrisson non notée")}
       </p>
       {error && <p className="text-xs font-medium text-red-700">{error}</p>}
+      {canWrite && (
+        <label className="block text-xs text-zinc-500">
+          {t("Date du prélèvement (facultative, AAAA-MM-JJ)")}
+          <input
+            value={sampleDate}
+            onChange={(event) => setSampleDate(event.target.value)}
+            placeholder={t("AAAA-MM-JJ")}
+            className="ml-2 w-32 rounded border border-zinc-200 px-2 py-1"
+          />
+        </label>
+      )}
       <ul className="space-y-2">
         {ptme.milestones.map((m) => (
           <li key={m.key} className="flex flex-wrap items-center gap-2">
@@ -100,7 +112,7 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
               {t(m.label)} · {m.dueDate ? formatDate(m.dueDate) : "—"}
             </span>
             <span className={`rounded-full px-2 py-0.5 text-xs ${badge[m.state]}`}>
-              {m.result ? (m.result === "positive" ? t("Positif") : t("Négatif")) : t(stateLabel[m.state])}
+              {m.result ? `${m.result === "positive" ? t("Positif") : t("Négatif")}${m.resultDate ? ` · ${formatDate(m.resultDate)}` : ""}` : t(stateLabel[m.state])}
             </span>
             {user?.role === "doctor" && m.result && (
               <button
@@ -120,7 +132,7 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
                 <button
                   disabled={busy}
                   data-testid={`pmtct-negative-${m.key}`}
-                  onClick={() => void run(() => recordPmtctTest(patientId, { milestone: m.key, result: "negative" }))}
+                  onClick={() => void run(() => recordPmtctTest(patientId, { milestone: m.key, result: "negative", sampleDate: sampleDate || undefined }))}
                   className="rounded border border-green-300 px-2 py-1 text-xs text-green-700 disabled:opacity-40"
                 >
                   {t("Négatif")}
@@ -129,7 +141,7 @@ export default function PmtctSection({ patientId, ptme, onChanged }: { patientId
                   disabled={busy}
                   onClick={() =>
                     window.confirm(t("Enregistrer un résultat POSITIF ? Il ne pourra plus être modifié.")) &&
-                    void run(() => recordPmtctTest(patientId, { milestone: m.key, result: "positive" }))
+                    void run(() => recordPmtctTest(patientId, { milestone: m.key, result: "positive", sampleDate: sampleDate || undefined }))
                   }
                   className="rounded border border-red-300 px-2 py-1 text-xs text-red-700 disabled:opacity-40"
                 >

@@ -21,6 +21,9 @@ export async function recordPmtctTestRoute(app: FastifyInstance) {
       try {
         const patient = await hapiClient.get<{ birthDate?: string; deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${request.params.id}`);
         if (isDeceased(patient)) return reply.code(409).send({ error: "Ce patient est enregistré comme décédé." });
+        if (result.input.sampleDate && patient.birthDate && result.input.sampleDate < patient.birthDate.slice(0, 10)) {
+          return reply.code(400).send({ error: "La date du prélèvement précède la naissance." });
+        }
         const early = milestoneTooEarly(patient.birthDate ?? "", result.input.milestone);
         if (early) return reply.code(422).send({ error: early });
         return await withLock(`pmtct:${request.params.id}`, async () => {
@@ -34,7 +37,7 @@ export async function recordPmtctTestRoute(app: FastifyInstance) {
           }
           await hapiClient.post(
             "/Observation",
-            toTestObservation(request.params.id, result.input.milestone, result.input.result, new Date().toISOString(), request.user.name),
+            toTestObservation(request.params.id, result.input.milestone, result.input.result, result.input.sampleDate ?? new Date().toISOString(), request.user.name),
           );
           return reply.code(201).send({ ok: true });
         });

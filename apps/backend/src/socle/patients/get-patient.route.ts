@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
@@ -85,9 +86,7 @@ export async function getPatientRoute(app: FastifyInstance) {
         return reply.send({ patient, consultations: [] });
       }
 
-      const bundle = await hapiClient.get<FhirBundle>(
-        `/Encounter?patient=${id}&class=AMB&status=finished&_revinclude=Observation:encounter&_sort=-date`,
-      );
+      const bundle = await fetchBundle<FhirBundle>(`/Encounter?patient=${id}&class=AMB&status=finished&_revinclude=Observation:encounter&_sort=-date`);
       const consultations = parseConsultations(bundle);
 
       return reply.send({ patient, consultations });

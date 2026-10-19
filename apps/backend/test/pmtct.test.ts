@@ -51,3 +51,9 @@ test("PTME : résultat trop tôt ou naissance invalide refusés", () => {
   assert.ok(milestoneTooEarly("", "pcr_6w", now));
   assert.ok(milestoneTooEarly("2026", "pcr_6w", now));
 });
+
+test("PTME : date de prélèvement facultative, jamais future", () => {
+  assert.ok("input" in validateTest({ milestone: "pcr_6w", result: "negative", sampleDate: "2026-10-01" }));
+  assert.ok("errors" in validateTest({ milestone: "pcr_6w", result: "negative", sampleDate: "2999-01-01" }));
+  assert.ok("errors" in validateTest({ milestone: "pcr_6w", result: "negative", sampleDate: "hier" }));
+});

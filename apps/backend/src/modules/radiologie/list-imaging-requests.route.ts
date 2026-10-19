@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../../lib/service-category.js";
@@ -67,10 +68,7 @@ export async function listImagingRequestsRoute(app: FastifyInstance) {
       try {
         // Cf. list-lab-requests.route.ts : même besoin de cohérence immédiate
         // juste après la création d'une demande côté Pédiatrie.
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/ServiceRequest?status=${requestStatus}&category=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`,
-          { "Cache-Control": "no-cache" },
-        );
+        const bundle = await fetchBundle<FhirBundle>(`/ServiceRequest?status=${requestStatus}&category=${IMAGING_CATEGORY_SEARCH_TOKEN}&_include=ServiceRequest:subject&_sort=-authored`);
         return reply.send({ requests: parseImagingRequests(bundle) });
       } catch (error) {
         if (error instanceof HapiError) {

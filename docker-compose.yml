@@ -55,7 +55,73 @@ services:
       postgres:
         condition: service_healthy
 
+  # Backend Pédiatrix (API, authentification, règles métier). Il est le seul à parler
+  # à HAPI ; les postes ne contactent que lui. Construction : docker compose build backend.
+  # Réglages dans apps/backend/.env ; l'adresse de HAPI est imposée ci-dessous.
+  backend:
+    build: ./apps/backend
+    image: pediatrix-backend:local
+    container_name: pediatrix-backend
+    restart: always
+    env_file: ./apps/backend/.env
+    environment:
+      HAPI_FHIR_URL: "http://hapi-fhir:8080/fhir"
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - backend_data:/app/data
+    depends_on:
+      hapi-fhir:
+        condition: service_healthy
+    profiles: ["full"]
+
+  # Sauvegarde automatique quotidienne (base clinique + données du backend) vers ./backups,
+  # chiffrée si BACKUP_PASSPHRASE est défini dans le .env racine.
+  backup:
+    build: ./deploy/backup
+    image: pediatrix-backup:local
+    container_name: pediatrix-backup
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+    volumes:
+      - ./backups:/backups
+      - backend_data:/backend-data:ro
+      - ./scripts/docker/backup-loop.sh:/backup-loop.sh:ro
+    entrypoint: ["/bin/sh", "/backup-loop.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["full"]
+
+  # Chiffrement TLS du backend sur le LAN (https://<serveur>:3443), certificat d'une
+  # autorité interne. Profil optionnel : docker compose --profile full --profile tls up -d
+  tls:
+    image: docker.io/library/caddy:2-alpine
+    container_name: pediatrix-tls
+    restart: always
+    environment:
+      TLS_HOST: ${TLS_HOST:-pediatrix.lan}
+    ports:
+      - "3443:3443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - backend
+    profiles: ["tls"]
+
 volumes:
   postgres_data:
     name: pediatrix_postgres_data
+  backend_data:
+    name: pediatrix_backend_data
+  caddy_data:
+    name: pediatrix_caddy_data
     

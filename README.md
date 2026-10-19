@@ -1,18 +1,29 @@
 # Pédiatrix
 
-Plateforme de gestion hospitalière modulaire et extensible — prototype de mémoire de
-licence (hôpital de district, cas d'étude Sénégal). Ce README couvre le déploiement
-complet du prototype : infrastructure, backend, client desktop, packaging et preuve
-offline-first. Voir [CLAUDE.md](CLAUDE.md) pour le contexte du projet et les choix
-d'architecture.
+Logiciel de gestion hospitalière **modulaire** pour les hôpitaux de district et centres de santé d'Afrique, centré sur la pédiatrie. Il fonctionne sur le réseau local, sans Internet, et échange ses données sous forme de ressources **HL7 FHIR** (serveur HAPI).
+
+Modules : admission et file d'attente avec tri, consultation et diagnostics (CIM-10), laboratoire, radiologie, vaccination (calendrier), croissance, prescription et allergies, pharmacie et stock, facturation et encaissements, rendez-vous, hospitalisation et lits, rapports (CSV, DHIS2), journal d'audit.
+
+## Documentation
+
+| Pour… | Lire |
+| --- | --- |
+| Installer le serveur et les postes, sauvegarder, chiffrer le réseau | [docs/INSTALLATION.md](docs/INSTALLATION.md) |
+| Administrer : comptes, tarifs, listes de référence, DHIS2, dépannage | [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md) |
+| Utiliser le logiciel, métier par métier | [docs/GUIDE-UTILISATEUR.md](docs/GUIDE-UTILISATEUR.md) |
+| Comprendre l'architecture, ajouter un module, lancer les tests | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Savoir qui peut appeler quelle route | [docs/ROLES-ET-ROUTES.md](docs/ROLES-ET-ROUTES.md) |
+
+Installation rapide du serveur complet : `docker compose --profile full up -d --build` (détails dans le guide d'installation). Le reste de ce README décrit le mode développement.
 
 ## Architecture en bref
 
 ```
-Postes Electron (Accueil · Pédiatrie · Laboratoire)
+Postes Electron (Accueil · Consultation · Laboratoire · Pharmacie · Caisse…)
         ↓ LAN (REST/FHIR)
 Backend Node.js  ── SOCLE : identité patient · auth & rôles
-                 └─ MODULES : Pédiatrie · Laboratoire · Radiologie (module-souche)
+                 └─ MODULES : Pédiatrie · Laboratoire · Radiologie · Vaccination · Croissance
+                              Prescription · Pharmacie · Facturation · Rendez-vous · Hospitalisation
         ↓ produisent du FHIR
 Serveur HAPI FHIR (Docker)
         ↓

@@ -46,6 +46,8 @@ import type {
   TariffTable,
   LabRequest,
   PendingPrescription,
+  ScheduleItem,
+  Vaccine,
   ReceiptInput,
   StockLevel,
   LabTest,
@@ -532,4 +534,12 @@ export function getDhis2Mapping(): Promise<{ mapping: Dhis2Mapping | null }> {
 
 export function saveDhis2Mapping(mapping: Dhis2Mapping): Promise<{ mapping: Dhis2Mapping }> {
   return request("/api/reporting/dhis2/mapping", { method: "PUT", body: JSON.stringify(mapping) });
+}
+
+export function getVaccineCatalog(): Promise<{ vaccines: Vaccine[] }> {
+  return request<{ vaccines: Vaccine[] }>("/api/vaccines/catalog");
+}
+
+export function getVaccinationSchedule(patientId: string): Promise<{ schedule: ScheduleItem[] }> {
+  return request<{ schedule: ScheduleItem[] }>(`/api/patients/${patientId}/vaccination-schedule`);
 }

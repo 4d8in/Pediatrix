@@ -155,6 +155,7 @@ export interface ImagingReport {
 
 export interface CreateImmunizationInput {
   vaccine: string;
+  vaccineCode?: string;
   date: string;
   doseNumber?: number;
   notes?: string;
@@ -487,4 +488,21 @@ export interface Dhis2Mapping {
   orgUnit: string;
   dataSet?: string;
   dataElements: Record<string, string>;
+}
+
+export interface Vaccine {
+  code: string;
+  name: string;
+}
+
+export type ScheduleStatus = "done" | "overdue" | "due" | "upcoming";
+
+export interface ScheduleItem {
+  vaccine: string;
+  name: string;
+  dose: number;
+  label: string;
+  dueDate: string;
+  status: ScheduleStatus;
+  doneDate: string | null;
 }

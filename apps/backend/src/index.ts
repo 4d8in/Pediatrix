@@ -68,6 +68,8 @@ import { createImagingReportRoute } from "./modules/radiologie/create-imaging-re
 import { getPatientImagingReportsRoute } from "./modules/radiologie/get-patient-imaging-reports.route.js";
 import { createImmunizationRoute } from "./modules/vaccination/create-immunization.route.js";
 import { listImmunizationsRoute } from "./modules/vaccination/list-immunizations.route.js";
+import { listVaccineCatalogRoute } from "./modules/vaccination/list-vaccine-catalog.route.js";
+import { vaccinationScheduleRoute } from "./modules/vaccination/vaccination-schedule.route.js";
 import { createGrowthRoute } from "./modules/croissance/create-growth.route.js";
 import { listGrowthRoute } from "./modules/croissance/list-growth.route.js";
 import { createAllergyRoute } from "./modules/prescription/create-allergy.route.js";
@@ -145,6 +147,8 @@ await app.register(getPatientImagingReportsRoute);
 // Module Vaccination : carnet vaccinal (Immunization), intégré au dossier patient.
 await app.register(createImmunizationRoute);
 await app.register(listImmunizationsRoute);
+await app.register(listVaccineCatalogRoute);
+await app.register(vaccinationScheduleRoute);
 
 // Module Croissance : mesures (Observation poids/taille/périmètre crânien),
 // intégré au dossier patient.

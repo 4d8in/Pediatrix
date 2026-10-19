@@ -226,7 +226,14 @@ export default function Billing() {
             {encounters.map((encounter) => (
               <div key={encounter.encounterId} className="flex items-center justify-between border-b border-zinc-50 p-5">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{encounter.patientName || "Patient inconnu"}</p>
+                  <p className="text-sm font-medium text-zinc-900">
+                    {encounter.patientName || "Patient inconnu"}
+                    {encounter.supplementary && (
+                      <span data-testid="supplementary-badge" className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        Complément : {encounter.unbilledCount} élément(s) non facturé(s)
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-zinc-500">
                     {encounter.reason ?? "Consultation"} ·{" "}
                     {encounter.date ? new Date(encounter.date).toLocaleString("fr-FR") : "date inconnue"}
@@ -237,7 +244,7 @@ export default function Billing() {
                   data-testid="bill-encounter"
                   className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-5 py-2 text-xs font-medium text-white hover:bg-[#155bb0]"
                 >
-                  <Receipt className="h-4 w-4" /> Facturer
+                  <Receipt className="h-4 w-4" /> {encounter.supplementary ? "Facturer le complément" : "Facturer"}
                 </button>
               </div>
             ))}

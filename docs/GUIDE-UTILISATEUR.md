@@ -64,7 +64,7 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 
 ## Caisse
 
-- **À facturer** : consultations récentes pas encore facturées. Indiquer au besoin l'assureur et le taux de prise en charge, puis *Facturer* : la facture reprend la consultation, les examens et les médicaments délivrés.
+- **À facturer** : consultations récentes pas encore facturées. Indiquer au besoin l'assureur et le taux de prise en charge, puis *Facturer* : la facture reprend la consultation, les examens et les médicaments délivrés. Si des examens ou des médicaments s'ajoutent *après* la facture, la consultation revient dans la liste avec la mention *Complément* : *Facturer le complément* crée une seconde facture avec les seuls éléments non facturés. Une facture entièrement prise en charge par l'assureur (100 %) est soldée d'emblée.
 - **Factures** : choisir une facture, saisir le montant et le mode de paiement (espèces, mobile money, carte), *Encaisser*. Un paiement partiel est possible ; la facture est *soldée* quand tout est payé. *Imprimer la facture* ou *le reçu*.
 
 ## Direction

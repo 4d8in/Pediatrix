@@ -56,7 +56,7 @@ test("parcours clinique complet : admission → consultation → labo → dossie
   await page.getByTestId("lab-result-value-input").first().fill(resultValue);
   await page.getByRole("button", { name: "Valider et envoyer" }).click();
 
-  await expect(page.getByText("Résultats envoyés")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Résultats envoyés" })).toBeVisible();
 
   // 7. Déconnexion, login médecin
   await logout(page);

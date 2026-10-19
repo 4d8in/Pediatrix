@@ -16,6 +16,11 @@ function validate(body: unknown): { username: string; password: string } | { err
   if (!username || !password) {
     return { errors: ["L'identifiant et le mot de passe sont requis."] };
   }
+  // Borne la taille : évite de journaliser un mot de passe saisi dans le champ
+  // identifiant et de remplir l'audit ou la mémoire avec des noms géants.
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(username) || password.length > 256) {
+    return { errors: ["Identifiant ou mot de passe incorrect."] };
+  }
   return { username, password };
 }
 

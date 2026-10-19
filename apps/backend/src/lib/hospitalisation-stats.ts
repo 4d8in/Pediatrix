@@ -108,7 +108,7 @@ export async function computeMonthlyActivity(imagingCategoryCode: string): Promi
   };
 
   const [consultations, requests, stays] = (await Promise.all([
-    fetchAll(`/Encounter?class=AMB&date=ge${year}-01-01&_elements=period&_count=200`),
+    fetchAll(`/Encounter?class=AMB&status=finished&date=ge${year}-01-01&_elements=period&_count=200`),
     fetchAll(`/ServiceRequest?authored=ge${year}-01-01&_elements=authoredOn,category&_count=200`),
     fetchAll(`/Encounter?class=IMP&date=ge${year}-01-01&_elements=period&_count=200`),
   ])) as DatedResource[][];

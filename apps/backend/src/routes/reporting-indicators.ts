@@ -18,7 +18,7 @@ export async function computeMonthlyIndicators(period: string): Promise<Record<s
 
   const [encounterResources, hospitalisations, labRequests, labReports, imagingReports, immunizations, conditions] =
     await Promise.all([
-      fetchAll<Json>(`/Encounter?class=AMB&${between("date")}&_include=Encounter:subject`),
+      fetchAll<Json>(`/Encounter?class=AMB&status=finished&${between("date")}&_include=Encounter:subject`),
       countOf(`/Encounter?class=IMP&${between("date")}`),
       countOf(`/ServiceRequest?${between("authored")}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}`),
       countOf(`/DiagnosticReport?${between("issued")}&category:not=${IMAGING_CATEGORY_SEARCH_TOKEN}`),

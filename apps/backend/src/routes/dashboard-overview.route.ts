@@ -105,7 +105,7 @@ export async function dashboardOverviewRoute(app: FastifyInstance) {
 
         const [patients, encounters, labRequests, labReports, immunizations, hospitalisation] = await Promise.all([
           fetchAll("/Patient?_elements=gender,birthDate&_count=200"),
-          fetchAll("/Encounter?class=AMB&_elements=period&_count=200"),
+          fetchAll("/Encounter?class=AMB&status=finished&_elements=period&_count=200"),
           fetchAll(`/ServiceRequest?${labFilter}&_elements=status,authoredOn,code,subject&_count=200`),
           fetchAll(`/DiagnosticReport?${labFilter}&_elements=status&_count=200`),
           fetchAll("/Immunization?_elements=occurrenceDateTime&_count=200"),

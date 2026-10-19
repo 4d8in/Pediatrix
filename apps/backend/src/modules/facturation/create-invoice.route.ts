@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { fetchAll } from "../../lib/fhir-search.js";
+import { withLock } from "../../lib/keyed-lock.js";
 import { hapiClient } from "../../lib/hapi-client.js";
 import { loadTariffs } from "../../lib/tariffs.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -35,6 +36,7 @@ export async function createInvoiceRoute(app: FastifyInstance) {
     }
 
     try {
+      return await withLock(`encounter-invoice:${id}`, async () => {
       const encounter = await hapiClient.get<{ subject?: { reference?: string } }>(`/Encounter/${id}`);
       const patientId = encounter.subject?.reference?.split("/")[1];
       if (!patientId) return reply.code(502).send({ error: "Consultation sans patient associé." });
@@ -63,6 +65,7 @@ export async function createInvoiceRoute(app: FastifyInstance) {
         toFhirInvoice(patientId, patientName, id, lines, totals, tariffs.currency, insurance, request.user.name),
       );
       return reply.code(201).send({ invoice: await readInvoice(created.id) });
+      });
     } catch (error) {
       return replyHapiError(reply, error, "Consultation introuvable.");
     }

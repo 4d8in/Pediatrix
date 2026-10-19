@@ -86,6 +86,10 @@ export async function createReportRoute(app: FastifyInstance) {
         throw error;
       }
 
+      if (serviceRequest.status === "completed") {
+        return reply.code(409).send({ error: "Cette demande a déjà un rapport." });
+      }
+
       const result = validate(request.body);
       if ("errors" in result) {
         return reply.code(400).send({ error: "Requête invalide.", details: result.errors });

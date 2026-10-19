@@ -1,3 +1,4 @@
+import { withLock } from "../../lib/keyed-lock.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { findFormularyItem } from "../../lib/formulary.js";
@@ -37,6 +38,7 @@ export async function dispensePrescriptionRoute(app: FastifyInstance) {
       }
 
       try {
+        return await withLock(`dispense:${item.code}`, async () => {
         const prescription = await hapiClient.get<FhirMedicationRequest>(`/MedicationRequest/${id}`);
         if (prescription.status !== "active") {
           return reply.code(409).send({ error: "Cette ordonnance a déjà été délivrée ou clôturée." });
@@ -78,6 +80,7 @@ export async function dispensePrescriptionRoute(app: FastifyInstance) {
         const response = await hapiClient.post<{ entry?: { response?: { location?: string } }[] }>("", bundle);
         const location = response.entry?.map((e) => e.response?.location).find((l) => l?.startsWith("MedicationDispense/"));
         return reply.code(201).send({ dispenseId: location?.split("/")[1] });
+        });
       } catch (error) {
         if (error instanceof HapiError) {
           const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;

@@ -11,7 +11,7 @@ const FLAG_DISPLAY: Record<ResultFlag, string> = { H: "Élevé", L: "Bas", N: "N
 // collée ("8.2 g/dL") ou un résultat qualitatif ("Positif") n'est pas numérique.
 export function parseNumericValue(raw: string): number | undefined {
   const text = raw.trim().replace(",", ".");
-  return /^-?\d+(\.\d+)?$/.test(text) ? Number(text) : undefined;
+  return /^-?(\d+\.?\d*|\.\d+)$/.test(text) ? Number(text) : undefined;
 }
 
 // Sans borne de référence, on ne juge pas : pas de drapeau plutôt qu'un faux "normal".

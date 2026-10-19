@@ -21,6 +21,10 @@ export class LoginThrottle {
   }
 
   recordFailure(key: string, now: number = Date.now()): void {
+    // Purge des verrous expirés pour que la table ne grossisse pas indéfiniment.
+    if (this.entries.size > 10_000) {
+      for (const [k, e] of this.entries) if (e.lockedUntil <= now) this.entries.delete(k);
+    }
     const previous = this.entries.get(key);
     // Un verrou expiré repart de zéro.
     const failures = previous && previous.lockedUntil > 0 && previous.lockedUntil <= now ? 1 : (previous?.failures ?? 0) + 1;

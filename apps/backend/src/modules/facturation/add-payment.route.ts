@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { withLock } from "../../lib/keyed-lock.js";
 import { hapiClient } from "../../lib/hapi-client.js";
 import { loadTariffs } from "../../lib/tariffs.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -21,6 +22,7 @@ export async function addPaymentRoute(app: FastifyInstance) {
     if (errors.length > 0) return reply.code(400).send({ error: "Requête invalide.", details: errors });
 
     try {
+      return await withLock(`invoice:${id}`, async () => {
       const invoice = await readInvoice(id);
       if (invoice.status === "balanced") return reply.code(409).send({ error: "Cette facture est déjà soldée." });
       if (amount > invoice.balance) {
@@ -35,6 +37,7 @@ export async function addPaymentRoute(app: FastifyInstance) {
         await hapiClient.put(`/Invoice/${id}`, { ...resource, status: "balanced" });
       }
       return reply.code(201).send({ invoice: await readInvoice(id) });
+      });
     } catch (error) {
       return replyHapiError(reply, error, "Facture introuvable.");
     }

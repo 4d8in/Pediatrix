@@ -125,8 +125,8 @@ export async function statsRoute(app: FastifyInstance) {
           examensParType,
         ] = await Promise.all([
           countResource("Patient"),
-          countResource("Encounter", "&class=AMB"),
-          countResource("Encounter", `&class=AMB&date=ge${start}&date=lt${end}`),
+          countResource("Encounter", "&class=AMB&status=finished"),
+          countResource("Encounter", `&class=AMB&status=finished&date=ge${start}&date=lt${end}`),
           countResource("ServiceRequest"),
           countResource("DiagnosticReport"),
           countResource("Immunization"),
@@ -137,7 +137,7 @@ export async function statsRoute(app: FastifyInstance) {
           computeHospitalisationStats(),
           computeMonthlyActivity(IMAGING_CATEGORY_CODE),
           fetchAll<{ participant?: { individual?: { display?: string } }[] }>(
-            `/Encounter?class=AMB&date=ge${start}&date=lt${end}`,
+            `/Encounter?class=AMB&status=finished&date=ge${start}&date=lt${end}`,
           ),
         ]);
         const charge = countByPractitioner(consultationsDuMois);

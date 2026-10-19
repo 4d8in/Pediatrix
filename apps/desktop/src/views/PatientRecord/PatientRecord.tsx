@@ -9,10 +9,12 @@ import GrowthSection from "./GrowthSection";
 import AllergiesSection from "./AllergiesSection";
 import PrescriptionsHistory from "./PrescriptionsHistory";
 import StaysSection from "./StaysSection";
+import DiagnosesSection from "./DiagnosesSection";
 import {
   ApiError,
   getPatient,
   getPatientAllergies,
+  getPatientDiagnoses,
   getPatientGrowth,
   getPatientImagingReports,
   getPatientImmunizations,
@@ -21,6 +23,7 @@ import {
   getPatientReports,
 } from "../../lib/api";
 import type {
+  Diagnosis,
   PatientStay,
   Allergy,
   GrowthMeasurement,
@@ -46,6 +49,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   const [allergies, setAllergies] = useState<Allergy[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [stays, setStays] = useState<PatientStay[]>([]);
+  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [activeTab, setActiveTab] = useState<RecordTab>("info");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +89,9 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
       getPatientAllergies(patientId),
       getPatientPrescriptions(patientId),
       getPatientStays(patientId),
+      // Les infirmières, médecins et la direction lisent les diagnostics ; les autres rôles
+      // n'y ont pas droit (403) : le dossier se charge quand même.
+      getPatientDiagnoses(patientId).catch(() => ({ diagnoses: [] as Diagnosis[] })),
     ])
       .then(
         ([
@@ -96,6 +103,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           allergiesData,
           prescriptionsData,
           staysData,
+          diagnosesData,
         ]) => {
           setRecord(recordData);
           setPatient(recordData.patient);
@@ -106,6 +114,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           setAllergies(allergiesData.allergies);
           setPrescriptions(prescriptionsData.prescriptions);
           setStays(staysData.stays);
+          setDiagnoses(diagnosesData.diagnoses);
         },
       )
       .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du dossier."))
@@ -141,7 +150,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 {record.patient.firstName} {record.patient.lastName}
               </p>
               <p className="text-sm text-zinc-500">
-                {ageLabel(record.patient.birthDate)} • {SEX_LABELS[record.patient.gender]} • N° patient : {record.patient.id}
+                {ageLabel(record.patient.birthDate)} • {SEX_LABELS[record.patient.gender]} • N° de dossier : {record.patient.mrn}
               </p>
             </div>
           </div>
@@ -166,6 +175,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
             {activeTab === "info" && <PatientIdentity patient={record.patient} />}
             {activeTab === "consultations" && (
               <>
+                <DiagnosesSection diagnoses={diagnoses} />
                 <ConsultationHistory consultations={record.consultations} />
                 <PrescriptionsHistory prescriptions={prescriptions} />
               </>

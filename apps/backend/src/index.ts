@@ -28,6 +28,9 @@ import { getPatientRoute } from "./socle/patients/get-patient.route.js";
 import { getPatientReportsRoute } from "./socle/patients/get-patient-reports.route.js";
 import { createEncounterRoute } from "./modules/pediatrie/create-encounter.route.js";
 import { createServiceRequestRoute } from "./modules/pediatrie/create-service-request.route.js";
+import { listDiagnosisCatalogRoute } from "./modules/pediatrie/list-diagnosis-catalog.route.js";
+import { createDiagnosisRoute } from "./modules/pediatrie/create-diagnosis.route.js";
+import { listPatientDiagnosesRoute } from "./modules/pediatrie/list-patient-diagnoses.route.js";
 import { listLabRequestsRoute } from "./modules/laboratoire/list-lab-requests.route.js";
 import { createReportRoute } from "./modules/laboratoire/create-report.route.js";
 import { listBedsRoute } from "./modules/hospitalisation/list-beds.route.js";
@@ -118,6 +121,9 @@ await app.register(getPatientReportsRoute);
 // Module Pédiatrie : consultation (Encounter + Observations) et demande d'examen.
 await app.register(createEncounterRoute);
 await app.register(createServiceRequestRoute);
+await app.register(listDiagnosisCatalogRoute);
+await app.register(createDiagnosisRoute);
+await app.register(listPatientDiagnosesRoute);
 
 // Module Laboratoire : file d'attente et rapport (DiagnosticReport + Observations).
 await app.register(listLabRequestsRoute);

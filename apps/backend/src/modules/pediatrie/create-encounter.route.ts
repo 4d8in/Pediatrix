@@ -68,7 +68,7 @@ export async function createEncounterRoute(app: FastifyInstance) {
       try {
         const responseBundle = await hapiClient.post<TransactionResponseBundle>(
           "",
-          toEncounterTransactionBundle(id, result.input),
+          toEncounterTransactionBundle(id, result.input, { id: request.user.sub, name: request.user.name }),
         );
         const { encounterId } = parseEncounterTransactionResponse(responseBundle);
         return reply.code(201).send({ encounterId });

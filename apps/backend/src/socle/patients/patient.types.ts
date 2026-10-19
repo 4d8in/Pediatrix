@@ -16,6 +16,8 @@ export interface CreatePatientInput {
 
 export interface PatientSummary {
   id: string;
+  // Numéro de dossier (identifiant médical de l'établissement), ex. PX-001401.
+  mrn: string;
   firstName: string;
   lastName: string;
   birthDate: string;

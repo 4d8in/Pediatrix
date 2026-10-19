@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
-import { type FhirPatient, fromFhirPatient, toFhirPatient } from "./patient.fhir.js";
+import { MRN_SYSTEM, type FhirPatient, fromFhirPatient, mrnFromId, toFhirPatient } from "./patient.fhir.js";
 import type { CreatePatientInput, Gender } from "./patient.types.js";
 
 const GENDERS: Gender[] = ["male", "female", "other", "unknown"];
@@ -60,7 +60,14 @@ export async function createPatientRoute(app: FastifyInstance) {
 
     try {
       const created = await hapiClient.post<FhirPatient>("/Patient", toFhirPatient(result.input));
-      return reply.code(201).send(fromFhirPatient(created));
+      // Le numéro de dossier dérive de l'id attribué par HAPI : on l'inscrit ensuite
+      // dans la ressource. Si cette mise à jour échoue, le numéro reste calculable.
+      const withMrn: FhirPatient = {
+        ...created,
+        identifier: [{ system: MRN_SYSTEM, value: mrnFromId(created.id ?? "") }],
+      };
+      const stored = await hapiClient.put<FhirPatient>(`/Patient/${created.id}`, withMrn).catch(() => withMrn);
+      return reply.code(201).send(fromFhirPatient(stored));
     } catch (error) {
       if (error instanceof HapiError) {
         return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });

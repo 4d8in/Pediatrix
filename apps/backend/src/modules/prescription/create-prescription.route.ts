@@ -87,7 +87,10 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
       try {
         const created = await hapiClient.post<FhirMedicationRequest>(
           "/MedicationRequest",
-          toFhirMedicationRequest(patientId, id, result.input, matchedAllergy?.code?.text),
+          toFhirMedicationRequest(patientId, id, result.input, matchedAllergy?.code?.text, {
+            id: request.user.sub,
+            name: request.user.name,
+          }),
         );
         return reply.code(201).send({ prescriptionId: created.id });
       } catch (error) {

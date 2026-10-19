@@ -5,7 +5,12 @@ import type { CreateEncounterInput } from "./encounter.types.js";
 // Encounter + Observations sont envoyés en un seul Bundle FHIR "transaction" :
 // soit toutes les ressources sont créées, soit aucune (atomicité gérée par HAPI,
 // pas de rollback applicatif à écrire côté backend).
-export function toEncounterTransactionBundle(patientId: string, input: CreateEncounterInput) {
+export interface PractitionerRef {
+  id: string;
+  name: string;
+}
+
+export function toEncounterTransactionBundle(patientId: string, input: CreateEncounterInput, practitioner?: PractitionerRef) {
   const patientRef = `Patient/${patientId}`;
   const encounterFullUrl = `urn:uuid:${randomUUID()}`;
   const now = new Date().toISOString();
@@ -18,6 +23,10 @@ export function toEncounterTransactionBundle(patientId: string, input: CreateEnc
         status: "finished",
         class: { code: "AMB", display: "ambulatory" },
         subject: { reference: patientRef },
+        // Praticien responsable : permet la charge par médecin et la traçabilité.
+        participant: practitioner
+          ? [{ individual: { reference: `Practitioner/${practitioner.id}`, display: practitioner.name } }]
+          : undefined,
         reasonCode: [{ text: input.reason }],
         period: { start: now, end: now },
       },

@@ -20,7 +20,7 @@ test("toFhirPatient produit une ressource Patient FHIR conforme", () => {
 
 test("fromFhirPatient relit ce que toFhirPatient a écrit (aller-retour)", () => {
   const summary = fromFhirPatient({ ...toFhirPatient(input), id: "42" });
-  assert.deepEqual(summary, { id: "42", ...input });
+  assert.deepEqual(summary, { id: "42", mrn: "PX-000042", ...input });
 });
 
 test("fromFhirPatient tolère une ressource incomplète", () => {

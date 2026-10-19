@@ -16,6 +16,7 @@ export function toFhirServiceRequest(
   patientId: string,
   encounterId: string,
   input: CreateServiceRequestInput,
+  practitionerId?: string,
 ) {
   return {
     resourceType: "ServiceRequest",
@@ -27,7 +28,9 @@ export function toFhirServiceRequest(
     },
     subject: { reference: `Patient/${patientId}` },
     encounter: { reference: `Encounter/${encounterId}` },
-    requester: { display: input.requester },
+    requester: practitionerId
+      ? { reference: `Practitioner/${practitionerId}`, display: input.requester }
+      : { display: input.requester },
     authoredOn: new Date().toISOString(),
   };
 }

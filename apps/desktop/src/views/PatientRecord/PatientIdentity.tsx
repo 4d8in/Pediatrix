@@ -29,8 +29,8 @@ export default function PatientIdentity({ patient }: { patient: Patient }) {
           <p className="text-sm font-medium text-zinc-900 mt-1">{GENDER_LABELS[patient.gender]}</p>
         </div>
         <div>
-          <p className="text-sm font-medium text-zinc-400">Référence</p>
-          <p className="text-sm font-medium text-zinc-900 mt-1">{patient.id}</p>
+          <p className="text-sm font-medium text-zinc-400">N° de dossier</p>
+          <p className="text-sm font-medium text-zinc-900 mt-1">{patient.mrn}</p>
         </div>
 
         {patient.guardian && (

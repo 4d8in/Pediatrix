@@ -5,15 +5,17 @@ import PatientPicker from "../components/PatientPicker";
 import VitalsFields from "./VitalsFields";
 import {
   ApiError,
+  createDiagnosis,
   createEncounter,
   createImagingRequest,
   createPrescription,
   createServiceRequest,
+  getDiagnosisCatalog,
   getFormulary,
   getLabCatalog,
   getPatient,
 } from "../lib/api";
-import type { AllergyConflict, FormularyItem, LabTest, Patient, Vitals } from "../lib/types";
+import type { AllergyConflict, Certainty, DiagnosisCatalogItem, FormularyItem, LabTest, Patient, Vitals } from "../lib/types";
 
 interface ConsultationsProps {
   initialPatientId?: string | null;
@@ -31,6 +33,12 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [formulary, setFormulary] = useState<FormularyItem[]>([]);
+  const [diagnosisCatalog, setDiagnosisCatalog] = useState<DiagnosisCatalogItem[]>([]);
+  const [diagnosisText, setDiagnosisText] = useState("");
+  const [certainty, setCertainty] = useState<Certainty>("confirmed");
+  const [diagnosisErrors, setDiagnosisErrors] = useState<string[]>([]);
+  const [recordedDiagnoses, setRecordedDiagnoses] = useState<string[]>([]);
+
   const [exam, setExam] = useState("");
   const [requester, setRequester] = useState("");
   const [isRequestingExam, setIsRequestingExam] = useState(false);
@@ -119,7 +127,25 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     getFormulary()
       .then((data) => setFormulary(data.items))
       .catch(() => setFormulary([]));
+    getDiagnosisCatalog()
+      .then((data) => setDiagnosisCatalog(data.diagnoses))
+      .catch(() => setDiagnosisCatalog([]));
   }, []);
+
+  async function handleAddDiagnosis(event: FormEvent) {
+    event.preventDefault();
+    if (!encounterId) return;
+    setDiagnosisErrors([]);
+    // Un libellé du catalogue envoie son code CIM-10 ; sinon le diagnostic reste libre.
+    const entry = diagnosisCatalog.find((item) => item.display === diagnosisText.trim());
+    try {
+      await createDiagnosis(encounterId, entry ? { code: entry.code, certainty } : { text: diagnosisText, certainty });
+      setRecordedDiagnoses((list) => [...list, entry ? `${entry.display} (${entry.code})` : diagnosisText.trim()]);
+      setDiagnosisText("");
+    } catch (error) {
+      setDiagnosisErrors(error instanceof ApiError ? (error.details ?? [error.message]) : ["Erreur inattendue."]);
+    }
+  }
 
   async function handleRequestExam(event: FormEvent) {
     event.preventDefault();
@@ -215,6 +241,58 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
           </div>
 
           <div className="p-10 space-y-8">
+            <form onSubmit={handleAddDiagnosis} className="space-y-4" data-testid="diagnosis-form">
+              <h3 className="text-sm font-medium text-zinc-400">Diagnostic</h3>
+              {diagnosisErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
+                  {diagnosisErrors.map((message) => (
+                    <p key={message} className="text-xs font-medium text-red-700">
+                      {message}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {recordedDiagnoses.length > 0 && (
+                <ul className="space-y-1 text-xs text-zinc-700">
+                  {recordedDiagnoses.map((label, index) => (
+                    <li key={index}>• {label}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  required
+                  list="diagnosis-catalog"
+                  data-testid="diagnosis-input"
+                  value={diagnosisText}
+                  onChange={(event) => setDiagnosisText(event.target.value)}
+                  className="flex-1 px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                  placeholder="Ex. : Paludisme à Plasmodium falciparum"
+                />
+                <datalist id="diagnosis-catalog">
+                  {diagnosisCatalog.map((item) => (
+                    <option key={item.code} value={item.display} />
+                  ))}
+                </datalist>
+                <select
+                  value={certainty}
+                  onChange={(event) => setCertainty(event.target.value as Certainty)}
+                  className="px-3 py-3 bg-zinc-50 border border-zinc-200 text-xs rounded-xl"
+                >
+                  <option value="confirmed">Confirmé</option>
+                  <option value="provisional">Provisoire</option>
+                </select>
+                <button
+                  type="submit"
+                  data-testid="diagnosis-submit"
+                  className="px-6 py-3 bg-[#1A6FD4] text-white text-xs font-medium hover:bg-[#1559ab] transition-all rounded-full"
+                >
+                  Ajouter
+                </button>
+              </div>
+            </form>
+
             {examRequested ? (
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 flex items-center gap-4 rounded-[18px]">
                 <FlaskConical className="w-6 h-6 text-zinc-400" />

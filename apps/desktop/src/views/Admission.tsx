@@ -62,7 +62,7 @@ export default function Admission() {
             <div className="text-center">
               <h2 className="text-xl font-medium">Dossier créé</h2>
               <p className="text-xs font-medium opacity-80">
-                Référence : {createdPatient.id}
+                N° de dossier : {createdPatient.mrn}
               </p>
             </div>
           </div>

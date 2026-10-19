@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
-import { type FhirPatient, fromFhirPatient } from "./patient.fhir.js";
+import { type FhirPatient, fromFhirPatient, idFromMrn } from "./patient.fhir.js";
 
 interface FhirBundle {
   entry?: { resource: FhirPatient }[];
@@ -13,9 +13,13 @@ const READ_ROLES = ["nurse", "doctor", "lab_tech", "radiologist", "receptionist"
 export async function listPatientsRoute(app: FastifyInstance) {
   app.get("/api/patients", { preHandler: [authenticate, authorize(...READ_ROLES)] }, async (request, reply) => {
     const { search } = request.query as { search?: string };
-    const query = search
-      ? `?name=${encodeURIComponent(search)}&_sort=-_lastUpdated`
-      : "?_sort=-_lastUpdated";
+    // Un numéro de dossier (PX-001401) retrouve directement le patient.
+    const mrnId = search ? idFromMrn(search) : undefined;
+    const query = mrnId
+      ? `?_id=${mrnId}`
+      : search
+        ? `?name=${encodeURIComponent(search)}&_sort=-_lastUpdated`
+        : "?_sort=-_lastUpdated";
 
     try {
       const bundle = await hapiClient.get<FhirBundle>(`/Patient${query}`);

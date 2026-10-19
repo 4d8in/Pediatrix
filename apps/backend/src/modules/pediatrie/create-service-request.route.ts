@@ -62,7 +62,7 @@ export async function createServiceRequestRoute(app: FastifyInstance) {
       try {
         const created = await hapiClient.post<FhirServiceRequest>(
           "/ServiceRequest",
-          toFhirServiceRequest(patientId, id, result.input),
+          toFhirServiceRequest(patientId, id, result.input, request.user.sub),
         );
         return reply.code(201).send({ serviceRequestId: created.id });
       } catch (error) {

@@ -47,7 +47,7 @@ export default function PatientPicker({ selected, onSelect, label = "Patient" }:
                 {selected.firstName} {selected.lastName}
               </p>
               <p className="text-xs text-zinc-400">
-                ID: {selected.id} — Né(e) le {selected.birthDate}
+                N° {selected.mrn} — Né(e) le {selected.birthDate}
               </p>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function PatientPicker({ selected, onSelect, label = "Patient" }:
           data-testid="patient-picker-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Rechercher un patient par nom"
+          placeholder="Rechercher par nom ou N° de dossier"
           className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-sm rounded-xl"
         />
       </div>
@@ -99,7 +99,7 @@ export default function PatientPicker({ selected, onSelect, label = "Patient" }:
                   {patient.firstName} {patient.lastName}
                 </p>
                 <p className="text-xs text-zinc-400">
-                  ID: {patient.id} — Né(e) le {patient.birthDate}
+                  N° {patient.mrn} — Né(e) le {patient.birthDate}
                 </p>
               </div>
             </button>

@@ -25,6 +25,8 @@ export interface Guardian {
 
 export interface Patient {
   id: string;
+  // Numéro de dossier (ex. PX-001401), à donner à l'accueil et aux services.
+  mrn: string;
   firstName: string;
   lastName: string;
   birthDate: string;
@@ -449,4 +451,21 @@ export interface AuditEntry {
   patientId: string | null;
   description: string;
   login: boolean;
+}
+
+export type Certainty = "confirmed" | "provisional";
+
+export interface DiagnosisCatalogItem {
+  code: string;
+  display: string;
+}
+
+export interface Diagnosis {
+  id: string;
+  code: string | null;
+  text: string;
+  certainty: Certainty;
+  encounterId: string | null;
+  date: string | null;
+  recorder: string | null;
 }

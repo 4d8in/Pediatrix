@@ -33,6 +33,9 @@ import type {
   AppointmentStatus,
   BillableEncounter,
   BillingSummary,
+  Certainty,
+  Diagnosis,
+  DiagnosisCatalogItem,
   DoctorOption,
   FormularyItem,
   Invoice,
@@ -488,4 +491,22 @@ export function updateAppointmentStatus(id: string, status: AppointmentStatus): 
 export function listAudit(patientId?: string): Promise<{ events: AuditEntry[] }> {
   const filter = patientId ? `&patientId=${encodeURIComponent(patientId)}` : "";
   return request<{ events: AuditEntry[] }>(`/api/audit?limit=200${filter}`);
+}
+
+export function getDiagnosisCatalog(): Promise<{ diagnoses: DiagnosisCatalogItem[] }> {
+  return request<{ diagnoses: DiagnosisCatalogItem[] }>("/api/diagnoses/catalog");
+}
+
+export function createDiagnosis(
+  encounterId: string,
+  input: { code?: string; text?: string; certainty: Certainty },
+): Promise<{ diagnosisId: string }> {
+  return request<{ diagnosisId: string }>(`/api/encounters/${encounterId}/diagnoses`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientDiagnoses(patientId: string): Promise<{ diagnoses: Diagnosis[] }> {
+  return request<{ diagnoses: Diagnosis[] }>(`/api/patients/${patientId}/diagnoses`);
 }

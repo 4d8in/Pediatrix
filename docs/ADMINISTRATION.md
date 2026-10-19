@@ -99,3 +99,7 @@ Les boutons « Imprimer » ouvrent la boîte de dialogue d'impression du systèm
 | Export DHIS2 refusé (409) | Correspondance non configurée (section précédente) |
 | Résultat de labo qui n'apparaît pas tout de suite | HAPI peut garder une recherche en cache quelques secondes ; l'écran se rafraîchit seul |
 | Electron plante au lancement avec `registerSchemesAsPrivileged` (développement) | La variable `ELECTRON_RUN_AS_NODE` est définie dans votre environnement ; `vite.config.ts` la retire désormais pour `npm run electron:dev` |
+
+## Fenêtre de la liste « à facturer »
+
+La caisse liste les consultations des `BILLING_WINDOW_DAYS` derniers jours (défaut 30, maximum 365) qui n'ont pas été facturées ou qui ont reçu des examens ou médicaments après la facture. À régler dans `apps/backend/.env`.

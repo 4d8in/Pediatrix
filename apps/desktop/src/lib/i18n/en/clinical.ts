@@ -1,4 +1,5 @@
 const dictionary: Record<string, string> = {
+  "Une allergie notée hors ligne n'est pas encore envoyée au serveur ({list}) : vérifiez-la avant de prescrire. Confirmez pour prescrire quand même.": "An allergy recorded offline has not yet been sent to the server ({list}): check it before prescribing. Confirm to prescribe anyway.",
   "mois": "months",
   "ans": "years",
   "Le serveur Pédiatrix est injoignable.": "The Pédiatrix server cannot be reached.",

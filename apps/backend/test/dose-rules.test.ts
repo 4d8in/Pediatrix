@@ -35,3 +35,16 @@ test("hasDoseRule distingue les médicaments contrôlés", async () => {
   assert.equal(hasDoseRule("PARA-SIR"), true);
   assert.equal(hasDoseRule("SRO"), false);
 });
+
+test("plafond absolu, contre-indication d'âge/poids et poids périmé", () => {
+  // 80 kg, 4 x 1500 mg de paracétamol = 6000 mg/j : 75 mg/kg mais surtout au-delà de 4000 mg/j.
+  assert.ok(checkDailyDose("PARA-CP", 1500, 4, 80)?.message.includes("plafond"));
+  // Ibuprofène avant 3 mois et sous 5 kg.
+  const young = checkDailyDose("IBU-SIR", 20, 3, 4, { ageMonths: 2 })?.message ?? "";
+  assert.ok(young.includes("avant 3 mois") && young.includes("sous 5 kg"));
+  // Poids de plus de 30 jours.
+  const old = checkDailyDose("PARA-SIR", 100, 4, 10, { weightDate: "2026-08-01T00:00:00Z", now: new Date("2026-10-19T00:00:00Z") });
+  assert.ok(old?.message.includes("à vérifier"));
+  // Poids récent, dose correcte, âge adapté : rien.
+  assert.equal(checkDailyDose("IBU-SIR", 100, 3, 12, { ageMonths: 24, weightDate: "2026-10-10T00:00:00Z", now: new Date("2026-10-19T00:00:00Z") }), null);
+});

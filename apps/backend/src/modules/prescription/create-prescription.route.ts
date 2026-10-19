@@ -4,6 +4,7 @@ import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { checkDailyDose, hasDoseRule } from "../../lib/dose-rules.js";
+import { ageInMonths } from "../../lib/nutrition.js";
 import { FORMULARY, findFormularyItem } from "../../lib/formulary.js";
 import { VITAL_LOINC_CODES } from "../../lib/vitals-codes.js";
 import { type FhirMedicationRequest, toFhirMedicationRequest } from "./prescription.fhir.js";
@@ -109,12 +110,17 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
         doseAlert = "Dose non vérifiée : renseignez la dose par prise et le nombre de prises par jour pour contrôler la dose par kg.";
       } else if (formularyCode && doseMg !== undefined && dosesPerDay !== undefined) {
         try {
-          const weightBundle = await hapiClient.get<{ entry?: { resource: { valueQuantity?: { value?: number } } }[] }>(
+          const weightBundle = await hapiClient.get<{ entry?: { resource: { valueQuantity?: { value?: number }; effectiveDateTime?: string; meta?: { lastUpdated?: string } } }[] }>(
             `/Observation?patient=${patientId}&code=${VITAL_LOINC_CODES.weight.code}&_sort=-date&_count=1`,
             { "Cache-Control": "no-cache" },
           );
-          const weight = weightBundle.entry?.[0]?.resource.valueQuantity?.value;
-          doseAlert = checkDailyDose(formularyCode, doseMg, dosesPerDay, weight)?.message;
+          const weightObs = weightBundle.entry?.[0]?.resource;
+          const patient = await hapiClient.get<{ birthDate?: string }>(`/Patient/${patientId}`);
+          const ageMonths = patient.birthDate ? ageInMonths(patient.birthDate, new Date().toISOString()) : null;
+          doseAlert = checkDailyDose(formularyCode, doseMg, dosesPerDay, weightObs?.valueQuantity?.value, {
+            weightDate: weightObs?.effectiveDateTime ?? weightObs?.meta?.lastUpdated,
+            ageMonths,
+          })?.message;
         } catch (error) {
           if (error instanceof HapiError) {
             return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });

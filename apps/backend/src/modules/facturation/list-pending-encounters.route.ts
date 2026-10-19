@@ -30,7 +30,8 @@ interface FhirOrder {
   context?: { reference?: string };
 }
 
-const WINDOW_DAYS = 14;
+// Fenêtre de la liste « à facturer » (jours), réglable par BILLING_WINDOW_DAYS (défaut 30).
+const WINDOW_DAYS = Math.min(Math.max(Number(process.env.BILLING_WINDOW_DAYS) || 30, 1), 365);
 
 // Consultations récentes à facturer : jamais facturées, ou avec des examens / médicaments ajoutés
 // après la facture (facture complémentaire).

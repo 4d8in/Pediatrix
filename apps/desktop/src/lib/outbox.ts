@@ -115,6 +115,15 @@ export async function enqueue(item: Omit<OutboxItem, "createdAt" | "userId" | "a
   if (!loadFailed) await persist();
 }
 
+// Allergies saisies hors ligne pour ce patient et pas encore envoyées : le serveur ne les connaît pas
+// encore, donc son contrôle d'allergie à la prescription ne peut pas les voir.
+export function pendingAllergiesFor(patientId: string): string[] {
+  return state.items
+    .filter((item) => item.path === `/api/patients/${patientId}/allergies`)
+    .map((item) => String(item.body.substance ?? ""))
+    .filter(Boolean);
+}
+
 export function dismissFailed(id: string): void {
   emit({ ...state, failed: state.failed.filter((item) => item.id !== id) });
   if (!loadFailed) void persist();

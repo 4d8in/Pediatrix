@@ -1,21 +1,65 @@
-MIT License
+PÉDIATRIX — LICENCE LOGICIELLE PROPRIÉTAIRE (PROJET)
 
-Copyright (c) 2026 4d8in
+Copyright (c) 2026 Edwin Tchouateu. Tous droits réservés.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+AVERTISSEMENT : ce texte est un projet rédigé sans avocat. Il doit être relu par
+un juriste spécialisé en propriété intellectuelle et en droit de la santé du ou
+des pays de commercialisation avant toute signature avec un client.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. DÉFINITIONS
+« Logiciel » : Pédiatrix, son code source, ses exécutables, sa documentation et
+ses mises à jour. « Titulaire » : l'auteur ci-dessus. « Licencié » : la personne
+ou l'établissement ayant obtenu une licence écrite du Titulaire.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. CONCESSION
+Sous réserve du paiement des redevances convenues, le Titulaire concède au
+Licencié un droit personnel, non exclusif, non cessible et non sous-licenciable
+d'utiliser le Logiciel, sous forme exécutable, dans les établissements et pour
+le nombre de postes indiqués au contrat.
+
+3. RESTRICTIONS
+Sauf autorisation écrite du Titulaire ou disposition légale impérative, le
+Licencié ne peut pas : copier ou redistribuer le Logiciel ; le revendre, le
+louer ou l'héberger pour des tiers ; en extraire le code source, le décompiler
+ou le désassembler ; supprimer les mentions de propriété ; contourner les
+mesures de licence ou de sécurité.
+
+4. PROPRIÉTÉ INTELLECTUELLE
+Le Logiciel reste la propriété exclusive du Titulaire. Les données cliniques,
+administratives et financières saisies par le Licencié restent la propriété du
+Licencié, qui en demeure responsable de traitement.
+
+5. COMPOSANTS TIERS
+Le Logiciel inclut des composants sous licences libres (MIT, BSD, Apache-2.0,
+ISC, MPL-2.0…), listés dans docs/LICENCES-TIERCES.md. Ces composants restent
+régis par leurs licences propres, qui prévalent pour eux seuls.
+
+6. DONNÉES DE SANTÉ
+Le Licencié est seul responsable de la conformité de son traitement des
+données de santé (consentement, hébergement, durée de conservation, droit
+d'accès) au regard du droit applicable dans son pays. Le Titulaire fournit des
+outils (journal d'audit, sauvegarde chiffrée, contrôle d'accès) mais ne se
+substitue pas à cette responsabilité.
+
+7. USAGE CLINIQUE ET GARANTIE
+Le Logiciel est un outil d'aide à la gestion et à la décision ; il ne remplace
+ni le jugement d'un professionnel de santé ni la validation locale des listes
+médicales, seuils et tarifs. Dans la limite permise par la loi, le Logiciel est
+fourni « en l'état », sans garantie d'aptitude à un usage particulier, et la
+responsabilité du Titulaire est limitée au montant des redevances versées sur
+les douze derniers mois, sauf faute lourde ou dol.
+
+8. SUPPORT ET MISES À JOUR
+Fournis uniquement selon le contrat de maintenance souscrit.
+
+9. DURÉE ET RÉSILIATION
+La licence dure selon le contrat. Elle prend fin de plein droit en cas de
+violation des articles 3 ou 4 ; le Licencié cesse alors toute utilisation et
+détruit les copies, tout en conservant l'accès à l'export de ses données.
+
+10. DROIT APPLICABLE
+À définir au contrat selon le pays du Licencié (juridiction et arbitrage).
+
+Versions antérieures : les révisions publiées avant cette date sous licence MIT
+(commit 524de66 et suivants jusqu'à ce changement) restent régies par la licence
+MIT sous laquelle elles ont été diffusées.

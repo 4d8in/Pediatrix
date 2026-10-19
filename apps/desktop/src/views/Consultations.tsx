@@ -17,6 +17,7 @@ import {
   getLabCatalog,
   getPatient,
 } from "../lib/api";
+import { pendingAllergiesFor } from "../lib/outbox";
 import type { AllergyConflict, Certainty, DiagnosisCatalogItem, FormularyItem, LabTest, Patient, Vitals } from "../lib/types";
 
 interface ConsultationsProps {
@@ -241,6 +242,20 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
           ? { formularyCode, doseMg: Number(doseMg.replace(",", ".")), dosesPerDay: Number(dosesPerDay) }
           : {};
       const allergyOk = confirmedAllergy || accept === "allergy";
+      // Allergie notée hors ligne et pas encore envoyée : le serveur ne peut pas la voir, on prévient ici.
+      const pendingAllergies = patient && !allergyOk ? pendingAllergiesFor(patient.id) : [];
+      if (pendingAllergies.length > 0) {
+        setAllergyConflict({
+          requiresConfirmation: true,
+          kind: "allergy",
+          allergy: pendingAllergies.join(", "),
+          message: t(
+            "Une allergie notée hors ligne n'est pas encore envoyée au serveur ({list}) : vérifiez-la avant de prescrire. Confirmez pour prescrire quand même.",
+            { list: pendingAllergies.join(", ") },
+          ),
+        });
+        return;
+      }
       const doseOk = confirmedDose || accept === "dose";
       if (accept === "allergy") setConfirmedAllergy(true);
       if (accept === "dose") setConfirmedDose(true);

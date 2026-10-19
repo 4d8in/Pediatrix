@@ -3,7 +3,8 @@ import { BedDouble, LogOut as DischargeIcon, RefreshCcw, Repeat } from "lucide-r
 import PatientPicker from "../components/PatientPicker";
 import { ApiError, dischargeStay, hospitalise, listBeds, setBedStatus, transferStay } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import type { Bed, BedStatus, Patient, Ward } from "../lib/types";
+import { DISCHARGE_OUTCOMES } from "../lib/types";
+import type { Bed, BedStatus, DischargeOutcome, Patient, Ward } from "../lib/types";
 import { cn } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
 
@@ -45,6 +46,9 @@ export default function Beds() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [reason, setReason] = useState("");
   const [transferTo, setTransferTo] = useState("");
+  const [dischargeOpen, setDischargeOpen] = useState(false);
+  const [dischargeOutcome, setDischargeOutcome] = useState<DischargeOutcome | "">("");
+  const [dischargeSummary, setDischargeSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +87,9 @@ export default function Beds() {
       setPatient(null);
       setReason("");
       setTransferTo("");
+      setDischargeOpen(false);
+      setDischargeOutcome("");
+      setDischargeSummary("");
       load();
     } catch (err) {
       setError(errorText(err, t));
@@ -258,17 +265,69 @@ export default function Beds() {
                         <Repeat className="h-4 w-4" /> {t("Transférer")}
                       </button>
                     </div>
-                    <button
-                      disabled={isBusy}
-                      onClick={() => {
-                        if (selected.stay && window.confirm(t("Confirmer la sortie de {name} ?", { name: selected.stay.patientName }))) {
-                          run(() => dischargeStay(selected.stay!.stayId));
-                        }
-                      }}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-40"
-                    >
-                      <DischargeIcon className="h-4 w-4" /> {t("Sortie du patient")}
-                    </button>
+                    {!dischargeOpen ? (
+                      <button
+                        disabled={isBusy}
+                        onClick={() => setDischargeOpen(true)}
+                        data-testid="discharge-open"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                      >
+                        <DischargeIcon className="h-4 w-4" /> {t("Sortie du patient")}
+                      </button>
+                    ) : (
+                      <div className="space-y-2 rounded-lg border border-red-200 p-3">
+                        <p className="text-sm text-zinc-600">{t("Sortie de {name}", { name: selected.stay?.patientName ?? "" })}</p>
+                        <select
+                          aria-label={t("Issue du séjour")}
+                          data-testid="discharge-outcome"
+                          value={dischargeOutcome}
+                          onChange={(event) => setDischargeOutcome(event.target.value as DischargeOutcome | "")}
+                          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#1A6FD4]"
+                        >
+                          <option value="">{t("Issue du séjour…")}</option>
+                          {DISCHARGE_OUTCOMES.map((item) => (
+                            <option key={item.value} value={item.value}>
+                              {t(item.label)}
+                            </option>
+                          ))}
+                        </select>
+                        <textarea
+                          aria-label={t("Résumé et consignes de sortie")}
+                          data-testid="discharge-summary"
+                          value={dischargeSummary}
+                          onChange={(event) => setDischargeSummary(event.target.value)}
+                          maxLength={2000}
+                          rows={3}
+                          placeholder={t("Résumé de l'évolution, traitement de sortie, consignes, rendez-vous de contrôle")}
+                          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-[#1A6FD4]"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            disabled={isBusy || !dischargeOutcome}
+                            data-testid="discharge-confirm"
+                            onClick={() =>
+                              selected.stay &&
+                              run(() =>
+                                dischargeStay(selected.stay!.stayId, {
+                                  outcome: dischargeOutcome || undefined,
+                                  summary: dischargeSummary.trim() || undefined,
+                                }),
+                              )
+                            }
+                            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm text-white transition hover:bg-red-700 disabled:opacity-40"
+                          >
+                            <DischargeIcon className="h-4 w-4" /> {t("Confirmer la sortie")}
+                          </button>
+                          <button
+                            disabled={isBusy}
+                            onClick={() => setDischargeOpen(false)}
+                            className="rounded-lg border border-zinc-200 px-3 text-sm text-zinc-600 hover:bg-zinc-50"
+                          >
+                            {t("Annuler")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

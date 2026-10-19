@@ -340,8 +340,19 @@ export interface Ward {
   beds: Bed[];
 }
 
+export type DischargeOutcome = "healed" | "improved" | "referred" | "against_advice" | "deceased";
+export const DISCHARGE_OUTCOMES: { value: DischargeOutcome; label: string }[] = [
+  { value: "healed", label: "Guéri" },
+  { value: "improved", label: "Amélioré" },
+  { value: "referred", label: "Référé vers une autre structure" },
+  { value: "against_advice", label: "Sortie contre avis médical" },
+  { value: "deceased", label: "Décédé" },
+];
+
 export interface PatientStay {
   id: string;
+  outcome?: DischargeOutcome | null;
+  summary?: string | null;
   inProgress: boolean;
   start: string | null;
   end: string | null;

@@ -3,6 +3,7 @@ import { hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import type { FhirLocation, FhirStay } from "./beds.fhir.js";
+import { readDischarge } from "../../lib/discharge.js";
 import { hapiErrorReply } from "./stay-store.js";
 
 interface FhirBundle {
@@ -35,6 +36,7 @@ export async function listPatientStaysRoute(app: FastifyInstance) {
             start: stay.period?.start ?? null,
             end: stay.period?.end ?? null,
             reason: stay.reasonCode?.[0]?.text ?? null,
+            ...readDischarge(stay as never),
             beds: (stay.location ?? []).map((entry) => {
               const bedId = entry.location?.reference?.replace("Location/", "") ?? "";
               return { name: beds.get(bedId) ?? bedId, start: entry.period?.start ?? null, end: entry.period?.end ?? null };

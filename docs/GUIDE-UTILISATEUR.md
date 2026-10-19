@@ -35,7 +35,7 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
 - **Trier les arrivées** (*File active*) : cliquer le point rouge (urgence), orange (prioritaire) ou vert (non urgent) à côté du patient. La file passe les urgences d'abord, puis les prioritaires, puis les patients pas encore triés, puis les non urgents. La logique est celle du tri ETAT de l'OMS.
 - **Constantes au tri** (*File active*, bouton « Constantes ») : saisir température, fréquences cardiaque et respiratoire, saturation en oxygène, puis choisir la catégorie de tri. Les valeurs sont résumées dans la file ; la saturation sous 90 % et une température à 39,5 °C ou plus (ou sous 35,5 °C) s'affichent en rouge. Ces seuils sont prudents et indépendants de l'âge : à faire valider par un pédiatre.
 - **Patient parti sans consultation** (*File active*, bouton « Parti ») : retire le patient de la file sans le compter comme consultation. Le temps d'attente s'affiche pour chaque patient en attente.
-- **Lits** : hospitaliser, transférer, faire sortir un enfant.
+- **Lits** : hospitaliser, transférer, faire sortir un enfant. À la sortie, indiquer l'**issue du séjour** (guéri, amélioré, référé, contre avis médical, décédé) et un résumé avec les consignes. Le **résumé de sortie** s'imprime ensuite depuis le dossier du patient (onglet *Hospitalisations*).
 - **Vaccinations et croissance** : voir ci-dessous (dossier patient).
 
 ## Pour le médecin

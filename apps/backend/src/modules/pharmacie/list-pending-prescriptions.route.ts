@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { fetchAll } from "../../lib/fhir-search.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
@@ -64,11 +65,10 @@ export async function listPendingPrescriptionsRoute(app: FastifyInstance) {
         // À délivrer : les plus anciennes d'abord, pour que celles qui attendent depuis le plus
         // longtemps ne soient jamais écartées par la limite de page ; historique : les plus récentes.
         const sort = requestStatus === "active" ? "authoredon" : "-authoredon";
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/MedicationRequest?status=${requestStatus}&_include=MedicationRequest:subject&_count=200&_sort=${sort}`,
-          { "Cache-Control": "no-cache" },
+        const resources = await fetchAll<NonNullable<FhirBundle["entry"]>[number]["resource"]>(
+          `/MedicationRequest?status=${requestStatus}&_include=MedicationRequest:subject&_sort=${sort}`,
         );
-        return reply.send({ prescriptions: parsePendingPrescriptions(bundle) });
+        return reply.send({ prescriptions: parsePendingPrescriptions({ entry: resources.map((resource) => ({ resource })) }) });
       } catch (error) {
         if (error instanceof HapiError) {
           return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });

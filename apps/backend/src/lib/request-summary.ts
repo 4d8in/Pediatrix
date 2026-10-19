@@ -1,3 +1,4 @@
+import { fetchAll } from "./fhir-search.js";
 import { hapiClient } from "./hapi-client.js";
 
 // Compteurs du jour d'un service prestataire (laboratoire ou imagerie) :
@@ -36,13 +37,12 @@ export async function computeRequestSummary(categoryFilter: string): Promise<Req
   const [pending, today, recent] = await Promise.all([
     hapiClient.get<FhirBundle>(`/ServiceRequest?status=active&${categoryFilter}&_summary=count`, noCache),
     hapiClient.get<FhirBundle>(`/DiagnosticReport?${categoryFilter}&issued=ge${startOfDay}&_summary=count`, noCache),
-    hapiClient.get<FhirBundle>(
-      `/DiagnosticReport?${categoryFilter}&issued=ge${since}&_include=DiagnosticReport:based-on&_count=200`,
-      noCache,
+    fetchAll<NonNullable<FhirBundle["entry"]>[number]["resource"]>(
+      `/DiagnosticReport?${categoryFilter}&issued=ge${since}&_include=DiagnosticReport:based-on`,
     ),
   ]);
 
-  const resources = (recent.entry ?? []).map((entry) => entry.resource);
+  const resources = recent;
   const requests = new Map(
     resources.filter((r) => r.resourceType === "ServiceRequest").map((r) => [`ServiceRequest/${r.id}`, r.authoredOn]),
   );

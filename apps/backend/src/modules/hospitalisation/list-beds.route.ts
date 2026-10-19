@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { fetchAll } from "../../lib/fhir-search.js";
 import { hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
@@ -27,17 +28,12 @@ export async function listBedsRoute(app: FastifyInstance) {
     { preHandler: [authenticate, authorize("nurse", "doctor", "director", "tech_admin")] },
     async (_request, reply) => {
       try {
-        const noCache = { "Cache-Control": "no-cache" };
-        const [locationsBundle, staysBundle] = await Promise.all([
-          hapiClient.get<FhirBundle>("/Location?_count=200", noCache),
-          hapiClient.get<FhirBundle>(
-            "/Encounter?class=IMP&status=in-progress&_include=Encounter:subject&_count=200",
-            noCache,
-          ),
+        const [locationResources, stayResources] = await Promise.all([
+          fetchAll<FhirLocation>("/Location"),
+          fetchAll<NonNullable<FhirBundle["entry"]>[number]["resource"]>("/Encounter?class=IMP&status=in-progress&_include=Encounter:subject"),
         ]);
 
-        const locations = (locationsBundle.entry ?? []).map((e) => e.resource as FhirLocation);
-        const stayResources = (staysBundle.entry ?? []).map((e) => e.resource);
+        const locations = locationResources;
         const stays = stayResources.filter((r): r is FhirStay => r.resourceType === "Encounter");
         const patients = stayResources.filter((r): r is FhirPatient => r.resourceType === "Patient");
 

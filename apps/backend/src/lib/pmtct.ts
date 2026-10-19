@@ -40,6 +40,7 @@ export interface MilestoneStatus {
   dueDate: string;
   state: MilestoneState;
   result: "negative" | "positive" | null;
+  resultDate: string | null;
 }
 
 export type FollowUpStatus = "in_follow_up" | "positive" | "cleared";
@@ -59,13 +60,23 @@ export function validateEnrolment(body: unknown): { input: Enrolment } | { error
   return { input: { motherStatus: b.motherStatus as MotherStatus, infantProphylaxis: b.infantProphylaxis as boolean } };
 }
 
-export function validateTest(body: unknown): { input: { milestone: MilestoneKey; result: "negative" | "positive" } } | { errors: string[] } {
+export function validateTest(
+  body: unknown,
+): { input: { milestone: MilestoneKey; result: "negative" | "positive"; sampleDate?: string } } | { errors: string[] } {
   const b = (body ?? {}) as Record<string, unknown>;
   const errors: string[] = [];
   if (!isMilestone(b.milestone)) errors.push("Jalon de dépistage invalide.");
   if (b.result !== "negative" && b.result !== "positive") errors.push("Le résultat doit être « negative » ou « positive ».");
+  // Date du prélèvement (facultative, AAAA-MM-JJ, pas dans le futur) : à défaut, la date de saisie.
+  let sampleDate: string | undefined;
+  if (b.sampleDate !== undefined && b.sampleDate !== "") {
+    if (typeof b.sampleDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.sampleDate) || Number.isNaN(Date.parse(b.sampleDate))) {
+      errors.push("Date du prélèvement invalide (AAAA-MM-JJ).");
+    } else if (Date.parse(b.sampleDate) > Date.now()) errors.push("La date du prélèvement ne peut pas être dans le futur.");
+    else sampleDate = b.sampleDate;
+  }
   if (errors.length > 0) return { errors };
-  return { input: { milestone: b.milestone as MilestoneKey, result: b.result as "negative" | "positive" } };
+  return { input: { milestone: b.milestone as MilestoneKey, result: b.result as "negative" | "positive", sampleDate } };
 }
 
 // Un résultat n'est accepté que dans les 14 jours précédant l'échéance du jalon (ou après) : un test fait
@@ -94,6 +105,7 @@ export function followUp(birthDate: string, results: TestResult[], now: Date = n
       dueDate: Number.isNaN(due) ? "" : new Date(due).toISOString().slice(0, 10),
       state,
       result: done?.result ?? null,
+      resultDate: done?.date ? done.date.slice(0, 10) : null,
     };
   });
   // Fin de suivi seulement si la sérologie finale est négative ET que le premier dépistage a été fait.

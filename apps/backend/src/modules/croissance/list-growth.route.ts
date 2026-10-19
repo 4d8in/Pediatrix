@@ -1,3 +1,4 @@
+import { fetchBundle } from "../../lib/fhir-search.js";
 import type { FastifyInstance } from "fastify";
 import { GROWTH_CATEGORY_SEARCH_TOKEN, HEAD_CIRCUMFERENCE_LOINC, MUAC_CODE } from "../../lib/growth-codes.js";
 import { classifyMuac } from "../../lib/nutrition.js";
@@ -44,10 +45,7 @@ export async function listGrowthRoute(app: FastifyInstance) {
         // category=...|growth isole les Observation créées par ce module de
         // celles créées par la Pédiatrie (Consultations) pour les mêmes codes
         // LOINC poids/taille — voir le commentaire dans lib/growth-codes.ts.
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/Observation?patient=${id}&code=${GROWTH_CODES.join(",")}&category=${GROWTH_CATEGORY_SEARCH_TOKEN}&_sort=-date`,
-          { "Cache-Control": "no-cache" },
-        );
+        const bundle = await fetchBundle<FhirBundle>(`/Observation?patient=${id}&code=${GROWTH_CODES.join(",")}&category=${GROWTH_CATEGORY_SEARCH_TOKEN}&_sort=-date`);
         const measurements = fromFhirGrowthBundle(bundle).map((measurement) => ({
           ...measurement,
           muacStatus:

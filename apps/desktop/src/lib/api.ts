@@ -416,7 +416,7 @@ export function enrolPmtct(patientId: string, input: { motherStatus: string; inf
   return request<{ ok: true }>(`/api/patients/${patientId}/ptme`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function recordPmtctTest(patientId: string, input: { milestone: string; result: "negative" | "positive" }): Promise<{ ok: true }> {
+export function recordPmtctTest(patientId: string, input: { milestone: string; result: "negative" | "positive"; sampleDate?: string }): Promise<{ ok: true }> {
   return request<{ ok: true }>(`/api/patients/${patientId}/ptme/tests`, { method: "POST", body: JSON.stringify(input) });
 }
 

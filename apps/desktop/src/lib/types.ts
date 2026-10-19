@@ -611,6 +611,7 @@ export interface PmtctMilestone {
   dueDate: string;
   state: "done" | "upcoming" | "due" | "overdue";
   result: "negative" | "positive" | null;
+  resultDate: string | null;
 }
 
 export interface PmtctFollowUp {

@@ -91,6 +91,7 @@ services:
       BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
       BACKUP_KEEP: ${BACKUP_KEEP:-14}
       BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+      BACKUP_ALLOW_PLAINTEXT: ${BACKUP_ALLOW_PLAINTEXT:-0}
     volumes:
       - ./backups:/backups
       - backend_data:/backend-data:ro

@@ -26,7 +26,10 @@ export async function changePasswordRoute(app: FastifyInstance) {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await upsertUser(account.username, { ...account.user, passwordHash });
-    return reply.send({ ok: true });
+    // Les jetons émis avant ce changement (par exemple volés) cessent de valoir ; un jeton neuf est renvoyé
+    // pour que la session en cours continue.
+    await upsertUser(account.username, { ...account.user, passwordHash, tokensValidFrom: new Date().toISOString() });
+    const token = await reply.jwtSign({ sub: account.user.practitionerId, role: account.user.role, name: account.user.displayName });
+    return reply.send({ ok: true, token });
   });
 }

@@ -86,7 +86,16 @@ export default function Pharmacy() {
     if (!selected) return;
     setDispenseErrors([]);
     try {
-      await dispensePrescription(selected.id, { itemCode, quantity: Number(quantity) });
+      try {
+        await dispensePrescription(selected.id, { itemCode, quantity: Number(quantity) });
+      } catch (error) {
+        // Article différent du médicament prescrit : le pharmacien doit confirmer explicitement.
+        if (error instanceof ApiError && (error.body as { kind?: string } | undefined)?.kind === "mismatch" && window.confirm(error.message)) {
+          await dispensePrescription(selected.id, { itemCode, quantity: Number(quantity), confirmMismatch: true });
+        } else {
+          throw error;
+        }
+      }
       setDispensed(selected.id);
       setPrescriptions((rows) => rows.filter((row) => row.id !== selected.id));
       getStock().then((data) => setStock(data.items)).catch(() => undefined);

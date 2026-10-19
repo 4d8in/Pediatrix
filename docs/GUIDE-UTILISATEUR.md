@@ -78,7 +78,7 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 
 ## Pharmacie
 
-- **Ordonnances à délivrer** : choisir l'ordonnance, l'article du formulaire délivré et la quantité. Le logiciel refuse une quantité supérieure au stock.
+- **Ordonnances à délivrer** : choisir l'ordonnance, l'article du formulaire délivré et la quantité. Le logiciel refuse une quantité supérieure au stock ; si l'article choisi ne correspond pas au médicament prescrit, une confirmation est demandée.
 - **Stock** : quantités utilisables ; les articles sous leur seuil sont signalés *À réapprovisionner*. Les lots les plus proches de leur péremption sortent en premier. Un lot périmé n'est plus compté dans le stock utilisable et s'affiche *périmé, à retirer* ; les lots qui périment sous 90 jours sont signalés.
 - **Réception** : enregistrer une livraison (article, quantité, numéro de lot, péremption). Un lot déjà périmé est refusé.
 

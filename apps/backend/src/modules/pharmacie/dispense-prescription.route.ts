@@ -12,6 +12,7 @@ interface FhirMedicationRequest {
   resourceType: "MedicationRequest";
   id: string;
   status?: string;
+  medicationCodeableConcept?: { text?: string };
   subject?: { reference?: string };
   encounter?: { reference?: string };
   [key: string]: unknown;
@@ -28,6 +29,7 @@ export async function dispensePrescriptionRoute(app: FastifyInstance) {
       const b = (request.body ?? {}) as Record<string, unknown>;
       const itemCode = typeof b.itemCode === "string" ? b.itemCode.trim() : "";
       const quantity = typeof b.quantity === "number" ? b.quantity : Number(b.quantity);
+      const confirmMismatch = b.confirmMismatch === true;
 
       const errors: string[] = [];
       const item = findFormularyItem(itemCode);
@@ -43,6 +45,14 @@ export async function dispensePrescriptionRoute(app: FastifyInstance) {
         const prescription = await hapiClient.get<FhirMedicationRequest>(`/MedicationRequest/${id}`);
         if (prescription.status !== "active") {
           return reply.code(409).send({ error: "Cette ordonnance a déjà été délivrée ou clôturée." });
+        }
+        // L'article délivré doit correspondre au médicament prescrit : sinon confirmation explicite (tracée par l'audit).
+        const prescribed = prescription.medicationCodeableConcept?.text ?? "";
+        if (!confirmMismatch && prescribed.trim().toLowerCase() !== item.name.trim().toLowerCase()) {
+          return reply.code(409).send({
+            kind: "mismatch",
+            error: `L'article choisi (${item.name}) ne correspond pas au médicament prescrit (${prescribed || "non précisé"}). Confirmer la délivrance ?`,
+          });
         }
         const patientReference = prescription.subject?.reference;
         if (!patientReference) {

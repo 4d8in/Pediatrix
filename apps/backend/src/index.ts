@@ -17,6 +17,7 @@ import { updatesRoute } from "./routes/updates.route.js";
 import { findUnsafeParam } from "./lib/safe-id.js";
 import { auditPlugin } from "./socle/audit/audit.plugin.js";
 import { listAuditRoute } from "./socle/audit/list-audit.route.js";
+import { accountsWithSeedPassword } from "./lib/seed-accounts-check.js";
 import { idempotencyPlugin } from "./socle/idempotency.plugin.js";
 import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
 import { loginRoute } from "./socle/auth/login.route.js";
@@ -269,6 +270,19 @@ await app.register(createBirthRoute);
 await app.register(getBirthRoute);
 await app.register(updateBedStatusRoute);
 await app.register(listPatientStaysRoute);
+
+// Production : refuse de démarrer tant que des comptes actifs ont encore le mot de passe de démonstration.
+{
+  const seeded = await accountsWithSeedPassword(process.env.SEED_USER_PASSWORD);
+  if (seeded.length > 0) {
+    const message = `Comptes actifs avec le mot de passe de démonstration : ${seeded.join(", ")}. Changez ces mots de passe ou désactivez ces comptes.`;
+    if (process.env.NODE_ENV === "production") {
+      app.log.error(message);
+      process.exit(1);
+    }
+    app.log.warn(message);
+  }
+}
 
 app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {

@@ -48,6 +48,11 @@ import { createInvoiceRoute } from "./modules/facturation/create-invoice.route.j
 import { listInvoicesRoute } from "./modules/facturation/list-invoices.route.js";
 import { addPaymentRoute } from "./modules/facturation/add-payment.route.js";
 import { billingSummaryRoute } from "./modules/facturation/billing-summary.route.js";
+import { listDoctorsRoute } from "./modules/rendez-vous/list-doctors.route.js";
+import { listSlotsRoute } from "./modules/rendez-vous/list-slots.route.js";
+import { listAppointmentsRoute } from "./modules/rendez-vous/list-appointments.route.js";
+import { createAppointmentRoute } from "./modules/rendez-vous/create-appointment.route.js";
+import { updateAppointmentStatusRoute } from "./modules/rendez-vous/update-appointment-status.route.js";
 import { imagingSummaryRoute } from "./modules/radiologie/imaging-summary.route.js";
 import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-request.route.js";
 import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
@@ -155,6 +160,11 @@ await app.register(createInvoiceRoute);
 await app.register(listInvoicesRoute);
 await app.register(addPaymentRoute);
 await app.register(billingSummaryRoute);
+await app.register(listDoctorsRoute);
+await app.register(listSlotsRoute);
+await app.register(listAppointmentsRoute);
+await app.register(createAppointmentRoute);
+await app.register(updateAppointmentStatusRoute);
 await app.register(imagingSummaryRoute);
 await app.register(markResultReadRoute);
 

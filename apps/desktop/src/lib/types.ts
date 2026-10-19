@@ -418,3 +418,22 @@ export interface BillingSummary {
   outstanding: number;
   insurerReceivable: number;
 }
+
+export type AppointmentStatus = "booked" | "arrived" | "fulfilled" | "cancelled" | "noshow";
+
+export interface Appointment {
+  id: string;
+  status: AppointmentStatus;
+  start: string;
+  end: string | null;
+  reason: string | null;
+  patientId: string;
+  patientName: string;
+  practitionerId: string;
+  practitionerName: string;
+}
+
+export interface DoctorOption {
+  practitionerId: string;
+  name: string;
+}

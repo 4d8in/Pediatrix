@@ -32,7 +32,7 @@ function startOfTodayIso(now: Date): string {
 export async function activeQueueRoute(app: FastifyInstance) {
   app.get(
     "/api/queue",
-    { preHandler: [authenticate, authorize("nurse", "doctor", "director")] },
+    { preHandler: [authenticate, authorize("nurse", "doctor", "receptionist", "director")] },
     async (_request, reply) => {
       try {
         const since = startOfTodayIso(new Date());

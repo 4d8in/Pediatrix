@@ -52,7 +52,7 @@ function validate(body: unknown): { input: CreatePatientInput } | { errors: stri
 }
 
 export async function createPatientRoute(app: FastifyInstance) {
-  app.post("/api/patients", { preHandler: [authenticate, authorize("nurse", "doctor")] }, async (request, reply) => {
+  app.post("/api/patients", { preHandler: [authenticate, authorize("nurse", "doctor", "receptionist")] }, async (request, reply) => {
     const result = validate(request.body);
     if ("errors" in result) {
       return reply.code(400).send({ error: "Requête invalide.", details: result.errors });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BedDouble,
+  CalendarDays,
   Banknote,
   CircleUserRound,
   FileText,
@@ -28,6 +29,7 @@ import Laboratory from "./views/Laboratory";
 import Radiology from "./views/Radiology";
 import Pharmacy from "./views/Pharmacy";
 import Billing from "./views/Billing";
+import Appointments from "./views/Appointments";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -57,6 +59,7 @@ type ViewType =
   | "radiology"
   | "pharmacy"
   | "billing"
+  | "appointments"
   | "fhirLog"
   | "vaccinations"
   | "stats"
@@ -83,8 +86,9 @@ const ALL_ROLES: Role[] = [
 // (preHandler authenticate/authorize sur chaque route, voir apps/backend).
 const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Role[] }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, roles: ["nurse", "doctor", "director"] },
-  { id: "queue", label: "File active", icon: ListOrdered, roles: ["nurse", "doctor", "director"] },
-  { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor"] },
+  { id: "queue", label: "File active", icon: ListOrdered, roles: ["nurse", "doctor", "receptionist", "director"] },
+  { id: "admission", label: "Admission", icon: UserPlus, roles: ["nurse", "doctor", "receptionist"] },
+  { id: "appointments", label: "Rendez-vous", icon: CalendarDays, roles: ["receptionist", "nurse", "doctor"] },
   { id: "consultations", label: "Consultations", icon: Stethoscope, roles: ["doctor"] },
   { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
   { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
@@ -183,6 +187,8 @@ function App() {
         return <Pharmacy />;
       case "billing":
         return <Billing />;
+      case "appointments":
+        return <Appointments />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":

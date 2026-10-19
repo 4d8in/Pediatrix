@@ -28,8 +28,11 @@ import type {
   ImagingReport,
   ImagingRequest,
   Immunization,
+  Appointment,
+  AppointmentStatus,
   BillableEncounter,
   BillingSummary,
+  DoctorOption,
   FormularyItem,
   Invoice,
   PaymentMethod,
@@ -448,4 +451,35 @@ export function addPayment(invoiceId: string, input: { amount: number; method: P
 
 export function getBillingSummary(): Promise<BillingSummary> {
   return request<BillingSummary>("/api/billing/summary");
+}
+
+export function listDoctors(): Promise<{ doctors: DoctorOption[] }> {
+  return request<{ doctors: DoctorOption[] }>("/api/appointments/doctors");
+}
+
+export function listAppointmentSlots(date: string, practitionerId: string): Promise<{ slots: string[] }> {
+  return request<{ slots: string[] }>(
+    `/api/appointments/slots?date=${encodeURIComponent(date)}&practitionerId=${encodeURIComponent(practitionerId)}`,
+  );
+}
+
+export function listAppointments(date: string, practitionerId?: string): Promise<{ appointments: Appointment[] }> {
+  const doctor = practitionerId ? `&practitionerId=${encodeURIComponent(practitionerId)}` : "";
+  return request<{ appointments: Appointment[] }>(`/api/appointments?date=${encodeURIComponent(date)}${doctor}`);
+}
+
+export function createAppointment(input: {
+  patientId: string;
+  practitionerId: string;
+  start: string;
+  reason: string;
+}): Promise<{ appointment: Appointment }> {
+  return request<{ appointment: Appointment }>("/api/appointments", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<{ appointment: Appointment }> {
+  return request<{ appointment: Appointment }>(`/api/appointments/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
 }

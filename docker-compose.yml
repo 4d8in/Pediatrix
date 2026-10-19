@@ -68,7 +68,8 @@ services:
       HAPI_FHIR_URL: "http://hapi-fhir:8080/fhir"
       PORT: "3001"
     ports:
-      - "3001:3001"
+      # BACKEND_BIND=127.0.0.1 avec le profil tls : seul Caddy (3443) reste joignable depuis le réseau.
+      - "${BACKEND_BIND:-0.0.0.0}:3001:3001"
     volumes:
       - backend_data:/app/data
     depends_on:

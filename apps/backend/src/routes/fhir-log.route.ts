@@ -49,7 +49,8 @@ export async function fhirLogRoute(app: FastifyInstance) {
           type: resource.resourceType,
           id: resource.id,
           lastUpdated: resource.meta?.lastUpdated ?? null,
-          json: resource,
+          // Contenu clinique retiré : l'administrateur technique ne voit que type, id et date.
+          json: { resourceType: resource.resourceType, id: resource.id } as FhirResource,
         }))
         .sort((a, b) => (b.lastUpdated ?? "").localeCompare(a.lastUpdated ?? ""))
         .slice(0, MAX_ENTRIES);

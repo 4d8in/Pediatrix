@@ -10,6 +10,12 @@ set -eu
 INTERVAL_HOURS="${BACKUP_INTERVAL_HOURS:-24}"
 KEEP="${BACKUP_KEEP:-14}"
 DEST=/backups
+umask 077
+chmod 700 "$DEST" 2>/dev/null || true
+
+if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+  echo "ATTENTION : BACKUP_PASSPHRASE est vide, les sauvegardes seront EN CLAIR." >&2
+fi
 
 # Chiffrement demandé mais impossible : on s'arrête plutôt que de laisser une sauvegarde en clair.
 if [ -n "${BACKUP_PASSPHRASE:-}" ] && ! command -v openssl >/dev/null 2>&1; then

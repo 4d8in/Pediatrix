@@ -138,6 +138,12 @@ export default function Surveillance() {
             </table>
           </div>
 
+          {report.uncoded > 0 && (
+            <p className="text-sm text-amber-700" data-testid="surveillance-uncoded">
+              {t("{n} diagnostic(s) de la semaine sans code CIM-10 ne sont pas comptés.", { n: report.uncoded })}
+            </p>
+          )}
+
           {report.immediateCases.length > 0 && (
             <div className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
               <h2 className="text-sm font-medium text-zinc-900">{t("Cas à déclaration immédiate")}</h2>

@@ -157,6 +157,7 @@ export default function Stats() {
 
             <UnavailableCard label={t("Taux d'hospitalisation")} icon={Bed} indicator={stats.tauxHospitalisation} />
             <UnavailableCard label={t("Durée moyenne de séjour")} icon={Clock} indicator={stats.dureeMoyenneSejour} />
+            <UnavailableCard label={t("Mortalité hospitalière")} icon={Clock} indicator={stats.mortaliteHospitaliere} />
             <UnavailableCard label={t("Lits occupés")} icon={TrendingUp} indicator={stats.litsOccupes} />
           </div>
 

@@ -47,6 +47,10 @@ import { createReportRoute } from "./modules/laboratoire/create-report.route.js"
 import { listBedsRoute } from "./modules/hospitalisation/list-beds.route.js";
 import { createStayRoute } from "./modules/hospitalisation/create-stay.route.js";
 import { transferStayRoute } from "./modules/hospitalisation/transfer-stay.route.js";
+import { createBirthRoute } from "./modules/naissance/create-birth.route.js";
+import { getBirthRoute } from "./modules/naissance/get-birth.route.js";
+import { recordAdministrationRoute } from "./modules/hospitalisation/record-administration.route.js";
+import { listAdministrationsRoute } from "./modules/hospitalisation/list-administrations.route.js";
 import { dischargeStayRoute } from "./modules/hospitalisation/discharge-stay.route.js";
 import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-status.route.js";
 import { listPatientStaysRoute } from "./modules/hospitalisation/list-patient-stays.route.js";
@@ -227,6 +231,10 @@ await app.register(listBedsRoute);
 await app.register(createStayRoute);
 await app.register(transferStayRoute);
 await app.register(dischargeStayRoute);
+await app.register(recordAdministrationRoute);
+await app.register(listAdministrationsRoute);
+await app.register(createBirthRoute);
+await app.register(getBirthRoute);
 await app.register(updateBedStatusRoute);
 await app.register(listPatientStaysRoute);
 

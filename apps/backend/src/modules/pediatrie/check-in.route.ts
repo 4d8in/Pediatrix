@@ -21,7 +21,10 @@ export async function checkInRoute(app: FastifyInstance) {
       const occurred = parseOccurredAt(rawOccurred);
       if ("error" in occurred) return reply.code(400).send({ error: occurred.error });
       try {
-        await hapiClient.get(`/Patient/${id}`);
+        const patient = await hapiClient.get<{ deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${id}`);
+        if (patient.deceasedDateTime || patient.deceasedBoolean) {
+          return reply.code(409).send({ error: "Ce patient est enregistré comme décédé." });
+        }
         if (await findTodayArrival(id)) {
           return reply.code(409).send({ error: "Ce patient est déjà dans la file active du jour." });
         }

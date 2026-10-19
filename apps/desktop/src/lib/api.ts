@@ -28,6 +28,8 @@ import type {
   Role,
   FhirLogEntry,
   GrowthMeasurement,
+  BirthRecord,
+  Administration,
   Stats,
   ImagingReport,
   ImagingRequest,
@@ -398,6 +400,28 @@ export function getWeeklySurveillance(week: string): Promise<SurveillanceReport>
 
 export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcome; summary?: string } = {}): Promise<{ ok: true }> {
   return request<{ ok: true }>(`/api/hospitalisations/${stayId}/discharge`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function getPatientBirth(patientId: string): Promise<{ birth: BirthRecord | null }> {
+  return request<{ birth: BirthRecord | null }>(`/api/patients/${patientId}/birth`);
+}
+
+export function createBirth(
+  patientId: string,
+  input: { birthWeightG: number; gestationalAgeWeeks?: number; apgar1?: number; apgar5?: number; deliveryMode?: string },
+): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/patients/${patientId}/birth`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function getStayAdministrations(stayId: string): Promise<{ administrations: Administration[] }> {
+  return request<{ administrations: Administration[] }>(`/api/hospitalisations/${stayId}/administrations`);
+}
+
+export function recordAdministration(
+  stayId: string,
+  input: { prescriptionId: string; given: boolean; note?: string },
+): Promise<{ id: string }> {
+  return request<{ id: string }>(`/api/hospitalisations/${stayId}/administrations`, { method: "POST", body: JSON.stringify(input) });
 }
 
 export function setBedStatus(bedId: string, status: Exclude<BedStatus, "O">): Promise<{ ok: true }> {

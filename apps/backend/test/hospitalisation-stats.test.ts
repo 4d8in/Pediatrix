@@ -38,3 +38,18 @@ test("computeHospitalisationStats calcule occupation, séjours et durée moyenne
   assert.equal(stats.dureeMoyenneJours, 3, "moyenne de 2 j et 4 j");
   assert.deepEqual(stats.parService, [{ service: "Pédiatrie", total: 3, occupes: 1 }]);
 });
+
+test("computeHospitalisationStats compte les décès parmi les sorties", async (t) => {
+  const withOutcome = bundle([
+    { status: "finished", period: { start: start.toISOString(), end: new Date(start.getTime() + DAY).toISOString() }, extension: [{ url: "http://pediatrix.local/fhir/discharge-outcome", valueCode: "deceased" }] },
+    { status: "finished", period: { start: start.toISOString(), end: new Date(start.getTime() + DAY).toISOString() }, extension: [{ url: "http://pediatrix.local/fhir/discharge-outcome", valueCode: "healed" }] },
+    { status: "in-progress", period: { start: start.toISOString() } },
+  ]);
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    const body = String(url).includes("/Location") ? locations : withOutcome;
+    return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/fhir+json" } });
+  });
+  const stats = await computeHospitalisationStats();
+  assert.equal(stats.sorties, 2);
+  assert.equal(stats.deces, 1);
+});

@@ -219,6 +219,18 @@ check "GET /api/beds (directeur, autorisé en lecture)" "200" "$REQ_CODE"
 req GET "/api/beds" "$TOKEN_LAB"
 check "GET /api/beds (technicien labo, interdit)" "403" "$REQ_CODE"
 
+req POST "/api/patients/inconnu/birth" "$TOKEN_LAB" '{"birthWeightG":3000}'
+check "POST /api/patients/:id/birth (technicien labo, interdit)" "403" "$REQ_CODE"
+
+req GET "/api/patients/inconnu/birth" "$TOKEN_DIRECTOR"
+check "GET /api/patients/:id/birth (directeur, interdit)" "403" "$REQ_CODE"
+
+req POST "/api/hospitalisations/inconnu/administrations" "$TOKEN_DOCTOR" '{}'
+check "POST /api/hospitalisations/:id/administrations (médecin, interdit)" "403" "$REQ_CODE"
+
+req GET "/api/hospitalisations/inconnu/administrations" "$TOKEN_LAB"
+check "GET /api/hospitalisations/:id/administrations (technicien labo, interdit)" "403" "$REQ_CODE"
+
 req POST "/api/hospitalisations" "$TOKEN_DIRECTOR" '{}'
 check "POST /api/hospitalisations (directeur, interdit)" "403" "$REQ_CODE"
 

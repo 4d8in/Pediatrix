@@ -1,6 +1,8 @@
 import { DISCHARGE_OUTCOMES } from "../../lib/types";
 import type { PatientStay } from "../../lib/types";
+import type { Prescription } from "../../lib/types";
 import { useI18n } from "../../lib/i18n";
+import AdministrationPanel from "./AdministrationPanel";
 
 function durationDays(start: string | null, end: string | null, t: (fr: string, vars?: Record<string, string | number>) => string): string {
   if (!start) return "—";
@@ -9,7 +11,15 @@ function durationDays(start: string | null, end: string | null, t: (fr: string, 
 }
 
 // Séjours hospitaliers du patient (module Hospitalisation), avec les lits occupés.
-export default function StaysSection({ stays, onPrintSummary }: { stays: PatientStay[]; onPrintSummary?: (stay: PatientStay) => void }) {
+export default function StaysSection({
+  stays,
+  prescriptions = [],
+  onPrintSummary,
+}: {
+  stays: PatientStay[];
+  prescriptions?: Prescription[];
+  onPrintSummary?: (stay: PatientStay) => void;
+}) {
   const { t, formatDate } = useI18n();
   const fmt = (date: string | null) => (date ? formatDate(date) : "—");
   return (
@@ -43,6 +53,10 @@ export default function StaysSection({ stays, onPrintSummary }: { stays: Patient
                 </p>
               )}
               {stay.summary && <p className="whitespace-pre-wrap text-zinc-600">{stay.summary}</p>}
+              {stay.inProgress && <AdministrationPanel
+                  stayId={stay.id}
+                  prescriptions={prescriptions.filter((rx) => stay.start && rx.date && Date.parse(rx.date) >= Date.parse(stay.start) - 86_400_000)}
+                />}
               {!stay.inProgress && onPrintSummary && (
                 <button
                   onClick={() => onPrintSummary(stay)}

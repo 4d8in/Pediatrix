@@ -21,14 +21,25 @@ interface Condition {
 // Surveillance épidémiologique hebdomadaire : cas des maladies prioritaires par semaine ISO, avec la
 // moyenne des 4 semaines précédentes et les alertes. Agrégats seulement : aucune identité de patient
 // (les cas à déclaration immédiate donnent âge et sexe, pas de nom).
+function facilityOffsetMinutes(): number {
+  const value = Number(process.env.FACILITY_UTC_OFFSET_MINUTES ?? 0);
+  if (Number.isInteger(value) && Math.abs(value) <= 14 * 60) return value;
+  console.warn("FACILITY_UTC_OFFSET_MINUTES invalide (entier de minutes attendu) : UTC utilisé.");
+  return 0;
+}
+
 export async function surveillanceRoute(app: FastifyInstance) {
   app.get(
     "/api/surveillance/weekly",
     { preHandler: [authenticate, authorize("director", "doctor", "tech_admin")] },
     async (request, reply) => {
       const { week: requested } = request.query as { week?: string };
-      const week = parseIsoWeek(requested ?? isoWeekOf(new Date()));
-      if (!week) return reply.code(400).send({ error: "Semaine invalide (format AAAA-Sww, ex. 2026-W43)." });
+      // Les semaines suivent l'heure de l'établissement (décalage par rapport à l'UTC, en minutes).
+      const offsetMs = facilityOffsetMinutes() * 60_000;
+      const label = requested ?? isoWeekOf(new Date(Date.now() + offsetMs));
+      const parsed = parseIsoWeek(label);
+      if (!parsed) return reply.code(400).send({ error: "Semaine invalide (format AAAA-Sww, ex. 2026-W43)." });
+      const week = { start: new Date(parsed.start.getTime() - offsetMs), end: new Date(parsed.end.getTime() - offsetMs) };
 
       try {
         const since = new Date(week.start.getTime() - 4 * 7 * 86_400_000).toISOString();
@@ -60,13 +71,25 @@ export async function surveillanceRoute(app: FastifyInstance) {
             ];
           });
 
+        // Diagnostics de la semaine sans code CIM-10 : invisibles pour la surveillance, signalés à l'écran.
+        const uncoded = (resources as Condition[]).filter((r) => {
+          if (r.resourceType !== "Condition" || !r.recordedDate) return false;
+          const status = r.verificationStatus?.coding?.[0]?.code;
+          if (status === "refuted" || status === "entered-in-error") return false;
+          const at = Date.parse(r.recordedDate);
+          const hasIcd = r.code?.coding?.some((coding) => coding.system?.includes("icd-10") && coding.code);
+          return !hasIcd && at >= week.start.getTime() && at < week.end.getTime();
+        }).length;
+
         const { rows, immediateCases } = weeklySurveillance(facts, week);
         return reply.send({
-          week: requested ?? isoWeekOf(new Date()),
+          week: label,
           from: week.start.toISOString(),
           to: week.end.toISOString(),
           rows,
           immediateCases,
+          uncoded,
+          utcOffsetMinutes: facilityOffsetMinutes(),
         });
       } catch (error) {
         if (error instanceof HapiError) {

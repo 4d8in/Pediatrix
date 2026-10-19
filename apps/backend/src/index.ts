@@ -13,6 +13,7 @@ import { activeQueueRoute } from "./routes/active-queue.route.js";
 import { recentResultsRoute } from "./routes/recent-results.route.js";
 import { markResultReadRoute } from "./routes/mark-result-read.route.js";
 import { updatesRoute } from "./routes/updates.route.js";
+import { findUnsafeParam } from "./lib/safe-id.js";
 import { auditPlugin } from "./socle/audit/audit.plugin.js";
 import { listAuditRoute } from "./socle/audit/list-audit.route.js";
 import { jwtPlugin } from "./socle/auth/jwt.plugin.js";
@@ -100,6 +101,13 @@ app.addHook("onSend", async (request, reply) => {
   reply.header("X-Frame-Options", "DENY");
   reply.header("Referrer-Policy", "no-referrer");
   if (request.url.startsWith("/api/")) reply.header("Cache-Control", "no-store");
+});
+
+// Refuse tout paramètre d'URL qui ne ressemble pas à un identifiant simple : ces valeurs
+// finissent dans des adresses envoyées à HAPI (voir lib/safe-id.ts).
+app.addHook("onRequest", async (request, reply) => {
+  const unsafe = findUnsafeParam(request.params);
+  if (unsafe) return reply.code(400).send({ error: `Paramètre « ${unsafe} » invalide.` });
 });
 
 await app.register(healthRoute);

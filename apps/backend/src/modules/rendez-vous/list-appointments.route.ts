@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError } from "../../lib/hapi-client.js";
+import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { readDayAppointments } from "./appointment-store.js";
@@ -17,6 +18,9 @@ export async function listAppointmentsRoute(app: FastifyInstance) {
       if (!isValidDate(date)) return reply.code(400).send({ error: "Date invalide (AAAA-MM-JJ)." });
 
       const practitionerId = request.user.role === "doctor" ? request.user.sub : query.practitionerId;
+      if (practitionerId !== undefined && !isSafeId(practitionerId)) {
+        return reply.code(400).send({ error: "Paramètre practitionerId invalide." });
+      }
       try {
         return reply.send({ date, appointments: await readDayAppointments(date, config, practitionerId) });
       } catch (error) {

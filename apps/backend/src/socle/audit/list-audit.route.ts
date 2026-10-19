@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 import { summarizeAuditEvent } from "./audit.fhir.js";
@@ -11,7 +12,8 @@ export async function listAuditRoute(app: FastifyInstance) {
   app.get("/api/audit", { preHandler: [authenticate, authorize("tech_admin", "director")] }, async (request, reply) => {
     const { limit, patientId } = request.query as { limit?: string; patientId?: string };
     const count = Math.min(Math.max(Number(limit) || 100, 1), MAX_LIMIT);
-    const entity = patientId ? `&entity=Patient/${encodeURIComponent(patientId)}` : "";
+    if (patientId !== undefined && !isSafeId(patientId)) return reply.code(400).send({ error: "Paramètre patientId invalide." });
+    const entity = patientId ? `&entity=Patient/${patientId}` : "";
     try {
       const bundle = await hapiClient.get<{ entry?: { resource: Record<string, unknown> }[] }>(
         `/AuditEvent?_sort=-date&_count=${count}${entity}`,

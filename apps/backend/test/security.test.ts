@@ -86,3 +86,25 @@ test("un AuditEvent relu redonne qui, quoi, résultat et patient", () => {
   assert.equal(login.success, false);
   assert.equal(login.description, "Connexion refusée.");
 });
+
+import { findUnsafeParam, isSafeId } from "../src/lib/safe-id.js";
+
+test("seuls les identifiants simples passent : pas de « ? », « & », « / » ni d'espace", () => {
+  assert.equal(isSafeId("1401"), true);
+  assert.equal(isSafeId("abc-123_X.4"), true);
+  assert.equal(isSafeId("1&_include=*"), false);
+  assert.equal(isSafeId("1?x=y"), false);
+  assert.equal(isSafeId("../Patient"), false);
+  assert.equal(isSafeId("a b"), false);
+  assert.equal(isSafeId(""), false);
+  assert.equal(isSafeId("x".repeat(65)), false);
+  assert.equal(isSafeId(undefined), false);
+});
+
+test("findUnsafeParam repère le paramètre fautif et laisse passer le nom de fichier des mises à jour", () => {
+  assert.equal(findUnsafeParam({ id: "42" }), undefined);
+  assert.equal(findUnsafeParam({ id: "42&x=1" }), "id");
+  assert.equal(findUnsafeParam({ id: "42", username: "medecin1" }), undefined);
+  assert.equal(findUnsafeParam({ file: "Pediatrix Setup 1.0.0.exe" }), undefined); // contrôlé par sa propre liste blanche
+  assert.equal(findUnsafeParam(undefined), undefined);
+});

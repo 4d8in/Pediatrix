@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError } from "../../lib/hapi-client.js";
+import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { readDayAppointments } from "./appointment-store.js";
@@ -12,7 +13,7 @@ export async function listSlotsRoute(app: FastifyInstance) {
     { preHandler: [authenticate, authorize("receptionist", "nurse", "doctor")] },
     async (request, reply) => {
       const { date, practitionerId } = request.query as { date?: string; practitionerId?: string };
-      if (!date || !isValidDate(date) || !practitionerId) {
+      if (!date || !isValidDate(date) || !isSafeId(practitionerId)) {
         return reply.code(400).send({ error: "Paramètres date (AAAA-MM-JJ) et practitionerId requis." });
       }
       const config = scheduleConfig();

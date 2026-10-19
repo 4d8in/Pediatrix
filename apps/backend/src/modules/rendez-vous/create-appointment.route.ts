@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { findUserByPractitionerId } from "../../socle/auth/user-store.js";
@@ -20,8 +21,8 @@ export async function createAppointmentRoute(app: FastifyInstance) {
       const reason = typeof b.reason === "string" ? b.reason.trim() : "";
 
       const errors: string[] = [];
-      if (!patientId) errors.push("Le patient est requis.");
-      if (!practitionerId) errors.push("Le médecin est requis.");
+      if (!isSafeId(patientId)) errors.push("Le patient est requis.");
+      if (!isSafeId(practitionerId)) errors.push("Le médecin est requis.");
       if (!reason) errors.push("Le motif est requis.");
       if (Number.isNaN(Date.parse(start))) errors.push("Le créneau est invalide.");
       if (errors.length > 0) return reply.code(400).send({ error: "Requête invalide.", details: errors });

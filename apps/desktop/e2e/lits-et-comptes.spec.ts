@@ -46,8 +46,11 @@ test("lits : hospitaliser, faire sortir, puis remettre le lit en service", async
   await expect(bedTile).toContainText(lastName);
 
   // Sortie : le lit passe en nettoyage.
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Sortie du patient" }).click();
+  await page.getByTestId("discharge-open").click();
+  await expect(page.getByTestId("discharge-confirm")).toBeDisabled(); // l'issue du séjour est obligatoire
+  await page.getByTestId("discharge-outcome").selectOption("improved");
+  await page.getByTestId("discharge-summary").fill("Évolution favorable, contrôle dans 7 jours.");
+  await page.getByTestId("discharge-confirm").click();
   await expect(bedTile).toContainText("En nettoyage");
 
   // Remise en service pour laisser les données dans l'état initial.

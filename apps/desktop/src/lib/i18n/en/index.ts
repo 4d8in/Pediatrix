@@ -4,7 +4,8 @@ import services from "./services";
 import management from "./management";
 import record from "./record";
 import print from "./print";
+import hospital from "./hospital";
 import overrides from "./overrides";
 
 // Dictionnaire français -> anglais, découpé par zone pour éviter les conflits d'édition.
-export const EN: Record<string, string> = { ...app, ...clinical, ...services, ...management, ...record, ...print, ...overrides };
+export const EN: Record<string, string> = { ...app, ...clinical, ...services, ...management, ...record, ...print, ...hospital, ...overrides };

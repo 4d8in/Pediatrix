@@ -12,7 +12,9 @@ import type {
   CreateServiceRequestInput,
   DashboardCounters,
   DashboardOverview,
+  DischargeOutcome,
   QueueEntry,
+  SurveillanceReport,
   ReferenceRange,
   TriageVitals,
   HealthStatus,
@@ -390,8 +392,12 @@ export function transferStay(stayId: string, bedId: string): Promise<{ ok: true 
   });
 }
 
-export function dischargeStay(stayId: string): Promise<{ ok: true }> {
-  return request<{ ok: true }>(`/api/hospitalisations/${stayId}/discharge`, { method: "POST", body: "{}" });
+export function getWeeklySurveillance(week: string): Promise<SurveillanceReport> {
+  return request<SurveillanceReport>(`/api/surveillance/weekly?week=${encodeURIComponent(week)}`);
+}
+
+export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcome; summary?: string } = {}): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/hospitalisations/${stayId}/discharge`, { method: "POST", body: JSON.stringify(input) });
 }
 
 export function setBedStatus(bedId: string, status: Exclude<BedStatus, "O">): Promise<{ ok: true }> {

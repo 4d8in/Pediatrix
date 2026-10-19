@@ -37,6 +37,10 @@ Application : table de références pédiatriques par âge et sexe (`lib/lab-ref
 - Bahmni, [Patient Billing and Accounting](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/32604217/Patient+Billing+and+Accounting) (brouillon de facture créé à partir des commandes) et flux d'assurance ([openIMIS](https://openimis.atlassian.net/wiki/x/DICyLQ)) : séparation de la part prise en charge et de la part en espèces.
 Application : factures complémentaires par éléments non encore facturés (suivi par ressource source, reprise des anciennes factures par date) ; facture à 100 % soldée d'emblée.
 
+- OpenMRS, [Visit Summary (Printable; early discharge summary)](https://openmrs.atlassian.net/wiki/spaces/projects/pages/473333762/Discharge+Summary+Visit+Summary) : résumé imprimable de séjour (diagnostics, traitements, examens, notes de sortie). Application : résumé de sortie d'hospitalisation avec issue du séjour.
+- OMS Afrique, approche IDSR (surveillance intégrée de la maladie et riposte, pages nationales publiques) : maladies à déclaration immédiate et hebdomadaire, comptage hebdomadaire. Application : tableau de surveillance hebdomadaire ; liste de départ à remplacer par la liste nationale.
+- HL7 discharge-disposition (norme ouverte) pour l'issue du séjour.
+
 Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.

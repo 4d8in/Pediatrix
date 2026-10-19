@@ -19,6 +19,7 @@ import {
   Syringe,
   Terminal,
   BarChart3,
+  Activity,
   FileSpreadsheet,
   UserPlus,
   UsersRound,
@@ -34,6 +35,7 @@ import Billing from "./views/Billing";
 import Appointments from "./views/Appointments";
 import AuditLog from "./views/AuditLog";
 import Reporting from "./views/Reporting";
+import Surveillance from "./views/Surveillance";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -58,6 +60,7 @@ import "./App.css";
 
 type ViewType =
   | "dashboard"
+  | "surveillance"
   | "admission"
   | "consultations"
   | "record"
@@ -110,6 +113,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "beds", label: "Gestion des lits", icon: BedDouble, roles: ["nurse", "doctor", "director", "tech_admin"] },
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
   { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
+  { id: "surveillance", label: "Surveillance", icon: Activity, roles: ["director", "doctor", "tech_admin"] },
   { id: "reporting", label: "Rapports", icon: FileSpreadsheet, roles: ["director", "tech_admin"] },
   { id: "profile", label: "Mon profil", icon: CircleUserRound, roles: ALL_ROLES },
   { id: "settings", label: "Paramètres", icon: SettingsIcon, roles: ALL_ROLES },
@@ -189,6 +193,8 @@ function App() {
         return <AuditLog />;
       case "reporting":
         return <Reporting />;
+      case "surveillance":
+        return <Surveillance />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":

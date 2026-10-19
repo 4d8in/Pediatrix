@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
+import { validateDischarge, withDischarge } from "../../lib/discharge.js";
 import { currentBedId } from "./beds.fhir.js";
 import { getBed, getStay, hapiErrorReply, putBedEntry, putStayEntry, runTransaction } from "./stay-store.js";
 
@@ -10,6 +11,9 @@ export async function dischargeStayRoute(app: FastifyInstance) {
     "/api/hospitalisations/:id/discharge",
     { preHandler: [authenticate, authorize("nurse", "doctor")] },
     async (request, reply) => {
+      const discharge = validateDischarge(request.body);
+      if ("errors" in discharge) return reply.code(400).send({ error: "Requête invalide.", details: discharge.errors });
+
       try {
         const stay = await getStay(request.params.id);
         if (!stay) return reply.code(404).send({ error: "Séjour en cours introuvable." });
@@ -19,7 +23,7 @@ export async function dischargeStayRoute(app: FastifyInstance) {
         const now = new Date().toISOString();
 
         const finishedStay = {
-          ...stay,
+          ...withDischarge(stay, discharge.outcome, discharge.summary),
           status: "finished",
           period: { ...stay.period, end: now },
           location: (stay.location ?? []).map((entry) =>
@@ -27,7 +31,7 @@ export async function dischargeStayRoute(app: FastifyInstance) {
           ),
         };
 
-        await runTransaction([putStayEntry(finishedStay), ...(bed ? [putBedEntry(bed, "H")] : [])]);
+        await runTransaction([putStayEntry(finishedStay as typeof stay), ...(bed ? [putBedEntry(bed, "H")] : [])]);
         return reply.send({ ok: true });
       } catch (error) {
         const failure = hapiErrorReply(error);

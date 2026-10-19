@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { Diagnosis, Facility, Immunization, Invoice, Patient, Prescription, Referral, Report } from "../../lib/types";
+import { DISCHARGE_OUTCOMES } from "../../lib/types";
+import type { Diagnosis, Facility, Immunization, ImagingReport, Invoice, Patient, PatientStay, Prescription, Referral, Report } from "../../lib/types";
 import { formatMoney } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
 
@@ -222,6 +223,95 @@ export function ReferralSheet({
         </p>
       )}
       <Signature label={referral.sender ? `Dr ${referral.sender.replace(/^Dr\.?\s+/i, "")}` : t("Le médecin")} />
+    </Page>
+  );
+}
+
+// Résumé de sortie d'hospitalisation : séjour, diagnostics, traitements, examens et consignes de sortie.
+export function DischargeSummarySheet({
+  facility,
+  patient,
+  stay,
+  diagnoses,
+  prescriptions,
+  reports,
+  imagingReports,
+}: {
+  facility: Facility;
+  patient: Patient;
+  stay: PatientStay;
+  diagnoses: Diagnosis[];
+  prescriptions: Prescription[];
+  reports: Report[];
+  imagingReports: ImagingReport[];
+}) {
+  const { t, formatDate, formatDateTime } = useI18n();
+  const outcome = DISCHARGE_OUTCOMES.find((item) => item.value === stay.outcome);
+  return (
+    <Page>
+      <Letterhead facility={facility} title={t("Résumé de sortie")} />
+      <PatientBlock patient={patient} />
+      <p>
+        <strong>{t("Hospitalisation :")}</strong> {t("Du {debut}", { debut: formatDate(stay.start) })}{" "}
+        {stay.end ? t("au {fin}", { fin: formatDate(stay.end) }) : ""}
+        {stay.beds.length > 0 && ` — ${t("Lits : {lits}", { lits: stay.beds.map((bed) => bed.name).join(" → ") })}`}
+      </p>
+      {stay.reason && (
+        <p>
+          <strong>{t("Motif d'admission :")}</strong> {stay.reason}
+        </p>
+      )}
+      {diagnoses.length > 0 && (
+        <p>
+          <strong>{t("Diagnostic(s) :")}</strong>{" "}
+          {diagnoses.map((d) => `${d.text}${d.code ? ` (${t("CIM-10")} ${d.code})` : ""}${d.certainty === "provisional" ? ` — ${t("provisoire")}` : ""}`).join(" ; ")}
+        </p>
+      )}
+      {prescriptions.length > 0 && (
+        <>
+          <p style={{ marginBottom: 2 }}>
+            <strong>{t("Traitements prescrits :")}</strong>
+          </p>
+          <ul style={{ marginTop: 0 }}>
+            {prescriptions.map((p) => (
+              <li key={p.id}>
+                {p.medication} — {p.dosage}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {(reports.length > 0 || imagingReports.length > 0) && (
+        <>
+          <p style={{ marginBottom: 2 }}>
+            <strong>{t("Examens réalisés :")}</strong>
+          </p>
+          <ul style={{ marginTop: 0 }}>
+            {reports.map((r) => (
+              <li key={r.id}>
+                {r.exam} ({formatDate(r.date)})
+                {r.results.length > 0 && ` : ${r.results.map((x) => `${x.label} ${x.value}${x.flag === "HH" || x.flag === "LL" ? ` [${t("critique")}]` : ""}`).join(" ; ")}`}
+                {r.conclusion && ` — ${r.conclusion}`}
+              </li>
+            ))}
+            {imagingReports.map((r) => (
+              <li key={r.id}>
+                {r.exam} ({formatDate(r.date)}){r.conclusion && ` — ${r.conclusion}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p>
+        <strong>{t("Issue du séjour :")}</strong> {outcome ? t(outcome.label) : t("Non renseignée")}
+      </p>
+      {stay.summary && (
+        <p style={{ whiteSpace: "pre-wrap" }}>
+          <strong>{t("Résumé et consignes de sortie :")}</strong> {stay.summary}
+        </p>
+      )}
+      <p style={{ fontSize: "9pt" }}>{t("Établi le {date}", { date: formatDateTime(new Date().toISOString()) })}</p>
+      <Signature label={t("Le médecin")} />
     </Page>
   );
 }

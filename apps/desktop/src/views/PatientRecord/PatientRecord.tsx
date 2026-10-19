@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import PatientPicker from "../../components/PatientPicker";
+import { DischargeSummarySheet } from "../../components/print/PrintSheets";
+import { usePrint } from "../../lib/print";
 import { useI18n } from "../../lib/i18n";
 import PatientIdentity from "./PatientIdentity";
 import ConsultationHistory from "./ConsultationHistory";
@@ -45,6 +47,7 @@ interface PatientRecordProps {
 
 export default function PatientRecord({ initialPatientId }: PatientRecordProps) {
   const { t } = useI18n();
+  const { printDocument } = usePrint();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [record, setRecord] = useState<PatientRecordData | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -190,7 +193,37 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 <PrescriptionsHistory prescriptions={prescriptions} patient={record.patient} />
               </>
             )}
-            {activeTab === "stays" && <StaysSection stays={stays} />}
+            {activeTab === "stays" && (
+              <StaysSection
+                stays={stays}
+                onPrintSummary={(stay) => {
+                  // Éléments du dossier rattachés au séjour : ceux datés du jour d'admission au jour de
+                  // sortie inclus (pas de marge au-delà). Sans date de début ou de fin fiable, aucun
+                  // élément n'est joint plutôt que d'imprimer tout l'historique de l'enfant.
+                  const startDay = stay.start ? new Date(stay.start) : null;
+                  const endDay = stay.end ? new Date(stay.end) : null;
+                  if (startDay) startDay.setHours(0, 0, 0, 0);
+                  if (endDay) endDay.setHours(23, 59, 59, 999);
+                  const from = startDay ? startDay.getTime() : Number.NaN;
+                  const to = endDay ? endDay.getTime() : Number.NaN;
+                  const within = (date: string | null) => {
+                    const time = date ? Date.parse(date) : Number.NaN;
+                    return !Number.isNaN(time) && !Number.isNaN(from) && !Number.isNaN(to) && time >= from && time <= to;
+                  };
+                  printDocument((facility) => (
+                    <DischargeSummarySheet
+                      facility={facility}
+                      patient={record.patient}
+                      stay={stay}
+                      diagnoses={diagnoses.filter((d) => within(d.date))}
+                      prescriptions={prescriptions.filter((p) => within(p.date))}
+                      reports={reports.filter((r) => within(r.date))}
+                      imagingReports={imagingReports.filter((r) => within(r.date))}
+                    />
+                  ));
+                }}
+              />
+            )}
             {activeTab === "exams" && (
               <>
                 <ReportsHistory reports={reports} patient={record.patient} />

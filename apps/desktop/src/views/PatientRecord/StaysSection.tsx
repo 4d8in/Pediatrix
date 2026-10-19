@@ -1,3 +1,4 @@
+import { DISCHARGE_OUTCOMES } from "../../lib/types";
 import type { PatientStay } from "../../lib/types";
 import { useI18n } from "../../lib/i18n";
 
@@ -8,7 +9,7 @@ function durationDays(start: string | null, end: string | null, t: (fr: string, 
 }
 
 // Séjours hospitaliers du patient (module Hospitalisation), avec les lits occupés.
-export default function StaysSection({ stays }: { stays: PatientStay[] }) {
+export default function StaysSection({ stays, onPrintSummary }: { stays: PatientStay[]; onPrintSummary?: (stay: PatientStay) => void }) {
   const { t, formatDate } = useI18n();
   const fmt = (date: string | null) => (date ? formatDate(date) : "—");
   return (
@@ -36,6 +37,21 @@ export default function StaysSection({ stays }: { stays: PatientStay[] }) {
               </div>
               {stay.reason && <p className="text-zinc-600">{t("Motif : {motif}", { motif: stay.reason })}</p>}
               <p className="text-zinc-500">{t("Lits : {lits}", { lits: stay.beds.map((bed) => bed.name).join(" → ") || "—" })}</p>
+              {stay.outcome && (
+                <p className="text-zinc-600">
+                  {t("Issue du séjour :")} {t(DISCHARGE_OUTCOMES.find((item) => item.value === stay.outcome)?.label ?? "")}
+                </p>
+              )}
+              {stay.summary && <p className="whitespace-pre-wrap text-zinc-600">{stay.summary}</p>}
+              {!stay.inProgress && onPrintSummary && (
+                <button
+                  onClick={() => onPrintSummary(stay)}
+                  data-testid="print-discharge-summary"
+                  className="mt-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
+                >
+                  {t("Imprimer le résumé de sortie")}
+                </button>
+              )}
             </li>
           ))}
         </ul>

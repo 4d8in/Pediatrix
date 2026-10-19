@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
-import { e2ePassword, login } from "./fixtures";
+import { e2ePassword, login, logout } from "./fixtures";
 
 const BACKEND_URL = "http://localhost:3001";
 
@@ -86,4 +86,17 @@ test("pharmacie : une réception de stock augmente le stock affiché", async ({ 
 
   await page.getByTestId("pharmacy-tab-stock").click();
   await expect(page.getByRole("row", { name: /Sels de réhydratation orale/ })).toBeVisible();
+});
+
+test("surveillance : le directeur voit le tableau hebdomadaire, la pharmacie n'y a pas accès", async ({ page }) => {
+  await login(page, "directeur1", e2ePassword());
+  await page.getByTestId("nav-surveillance").click();
+  await expect(page.getByRole("heading", { name: "Surveillance épidémiologique" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Rougeole" })).toBeVisible();
+  await page.getByTestId("surveillance-week").fill("2026-W99");
+  await expect(page.getByText("Semaine invalide")).toBeVisible();
+  await logout(page);
+
+  await login(page, "pharmacien1", e2ePassword());
+  await expect(page.getByTestId("nav-surveillance")).toHaveCount(0);
 });

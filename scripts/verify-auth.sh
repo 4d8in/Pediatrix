@@ -175,6 +175,12 @@ req POST "/api/patients/${PATIENT_ID}/arrival/left" "$TOKEN_LAB" '{}'
 check "POST /api/patients/:id/arrival/left (technicien labo, interdit)" "403" "$REQ_CODE"
 req POST "/api/patients/${PATIENT_ID}/arrival/left" "$TOKEN_DIRECTOR" '{}'
 check "POST /api/patients/:id/arrival/left (directeur, interdit)" "403" "$REQ_CODE"
+req GET "/api/surveillance/weekly" "$TOKEN_DIRECTOR"
+check "GET /api/surveillance/weekly (directeur, autorisé)" "200" "$REQ_CODE"
+req GET "/api/surveillance/weekly" "$TOKEN_LAB"
+check "GET /api/surveillance/weekly (technicien labo, interdit)" "403" "$REQ_CODE"
+req GET "/api/surveillance/weekly" "$TOKEN_NURSE"
+check "GET /api/surveillance/weekly (infirmière, interdit)" "403" "$REQ_CODE"
 LAB_CONSULTATIONS=$(echo "$REQ_BODY" | jq -r '.consultations | length')
 check "GET /api/patients/:id (labo) : aucune consultation renvoyée" "0" "$LAB_CONSULTATIONS"
 

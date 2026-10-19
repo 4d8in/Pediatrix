@@ -35,7 +35,7 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
 - **Trier les arrivées** (*File active*) : cliquer le point rouge (urgence), orange (prioritaire) ou vert (non urgent) à côté du patient. La file passe les urgences d'abord, puis les prioritaires, puis les patients pas encore triés, puis les non urgents. La logique est celle du tri ETAT de l'OMS.
 - **Constantes au tri** (*File active*, bouton « Constantes ») : saisir température, fréquences cardiaque et respiratoire, saturation en oxygène, puis choisir la catégorie de tri. Les valeurs sont résumées dans la file ; la saturation sous 90 % et une température à 39,5 °C ou plus (ou sous 35,5 °C) s'affichent en rouge. Ces seuils sont prudents et indépendants de l'âge : à faire valider par un pédiatre.
 - **Patient parti sans consultation** (*File active*, bouton « Parti ») : retire le patient de la file sans le compter comme consultation. Le temps d'attente s'affiche pour chaque patient en attente.
-- **Lits** : hospitaliser, transférer, faire sortir un enfant.
+- **Lits** : hospitaliser, transférer, faire sortir un enfant. À la sortie, indiquer l'**issue du séjour** (guéri, amélioré, référé, contre avis médical, décédé) et un résumé avec les consignes. Le **résumé de sortie** s'imprime ensuite depuis le dossier du patient (onglet *Hospitalisations*).
 - **Vaccinations et croissance** : voir ci-dessous (dossier patient).
 
 ## Pour le médecin
@@ -82,6 +82,12 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 
 - **À facturer** : consultations récentes pas encore facturées. Indiquer au besoin l'assureur et le taux de prise en charge, puis *Facturer* : la facture reprend la consultation, les examens et les médicaments délivrés. Si des examens ou des médicaments s'ajoutent *après* la facture, la consultation revient dans la liste avec la mention *Complément* : *Facturer le complément* crée une seconde facture avec les seuls éléments non facturés. Une facture entièrement prise en charge par l'assureur (100 %) est soldée d'emblée.
 - **Factures** : choisir une facture, saisir le montant et le mode de paiement (espèces, mobile money, carte), *Encaisser*. Un paiement partiel est possible ; la facture est *soldée* quand tout est payé. *Imprimer la facture* ou *le reçu*.
+
+## Surveillance épidémiologique
+
+*Surveillance* (médecin, direction, administration technique) : cas des maladies prioritaires par semaine ISO (lundi au dimanche), d'après les diagnostics CIM-10 saisis en consultation. Pour chaque maladie : cas, cas confirmés, moins de 5 ans, et moyenne des 4 semaines précédentes. Une **alerte immédiate** s'affiche dès un cas d'une maladie à déclaration immédiate (choléra, rougeole, poliomyélite, méningite…), avec l'âge et le sexe du cas (jamais l'identité). Une **alerte de seuil** s'affiche pour une maladie hebdomadaire avec au moins 5 cas et au moins le double de la moyenne précédente. *Exporter en CSV* pour le rapport au district.
+
+Cette liste de maladies et ces seuils sont une base de départ : ils doivent être adaptés à la liste nationale de surveillance (IDSR) de votre pays avant usage.
 
 ## Direction
 

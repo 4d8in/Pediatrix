@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { hapiClient } from "../../lib/hapi-client.js";
+import { fetchBundle } from "../../lib/fhir-search.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import type { FhirLocation, FhirStay } from "./beds.fhir.js";
@@ -17,9 +17,8 @@ export async function listPatientStaysRoute(app: FastifyInstance) {
     { preHandler: [authenticate, authorize("nurse", "doctor")] },
     async (request, reply) => {
       try {
-        const bundle = await hapiClient.get<FhirBundle>(
-          `/Encounter?patient=${encodeURIComponent(request.params.id)}&class=IMP&_include=Encounter:location&_sort=-date&_count=50`,
-          { "Cache-Control": "no-cache" },
+        const bundle = await fetchBundle<FhirBundle>(
+          `/Encounter?patient=${encodeURIComponent(request.params.id)}&class=IMP&_include=Encounter:location&_sort=-date`,
         );
         const resources = (bundle.entry ?? []).map((entry) => entry.resource);
         const beds = new Map(

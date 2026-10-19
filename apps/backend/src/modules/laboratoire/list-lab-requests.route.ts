@@ -7,7 +7,7 @@ import { authorize } from "../../socle/auth/authorize.js";
 interface FhirServiceRequest {
   resourceType: "ServiceRequest";
   id: string;
-  code?: { text?: string };
+  code?: { text?: string; coding?: { code?: string }[] };
   subject?: { reference?: string };
   requester?: { display?: string };
   authoredOn?: string;
@@ -28,6 +28,7 @@ interface LabRequestSummary {
   patientId: string;
   patientName: string;
   exam: string | null;
+  examCode: string | null;
   requester: string | null;
   authoredOn: string | null;
 }
@@ -49,6 +50,7 @@ function parseLabRequests(bundle: FhirBundle): LabRequestSummary[] {
         patientId,
         patientName,
         exam: sr.code?.text ?? null,
+        examCode: sr.code?.coding?.[0]?.code ?? null,
         requester: sr.requester?.display ?? null,
         authoredOn: sr.authoredOn ?? null,
       };

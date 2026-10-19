@@ -9,9 +9,10 @@ import {
   createImagingRequest,
   createPrescription,
   createServiceRequest,
+  getLabCatalog,
   getPatient,
 } from "../lib/api";
-import type { AllergyConflict, Patient, Vitals } from "../lib/types";
+import type { AllergyConflict, LabTest, Patient, Vitals } from "../lib/types";
 
 interface ConsultationsProps {
   initialPatientId?: string | null;
@@ -27,6 +28,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [errors, setErrors] = useState<string[]>([]);
   const [encounterId, setEncounterId] = useState<string | null>(null);
 
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [exam, setExam] = useState("");
   const [requester, setRequester] = useState("");
   const [isRequestingExam, setIsRequestingExam] = useState(false);
@@ -107,6 +109,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     }
   }
 
+  // Le catalogue sert de suggestion : s'il est indisponible, la saisie libre continue de marcher.
+  useEffect(() => {
+    getLabCatalog()
+      .then((data) => setLabTests(data.tests))
+      .catch(() => setLabTests([]));
+  }, []);
+
   async function handleRequestExam(event: FormEvent) {
     event.preventDefault();
     if (!encounterId) return;
@@ -115,7 +124,8 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setIsRequestingExam(true);
 
     try {
-      await createServiceRequest(encounterId, { exam, requester });
+      const examCode = labTests.find((test) => test.display === exam.trim())?.code;
+      await createServiceRequest(encounterId, { exam, requester, examCode });
       setExamRequested(true);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -231,11 +241,17 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     type="text"
                     required
                     data-testid="exam-request-exam"
+                    list="lab-exam-catalog"
                     value={exam}
                     onChange={(event) => setExam(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Numération Formule Sanguine"
+                    placeholder="Ex. : Numération formule sanguine (NFS)"
                   />
+                  <datalist id="lab-exam-catalog">
+                    {labTests.map((test) => (
+                      <option key={test.code} value={test.display} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="space-y-3">

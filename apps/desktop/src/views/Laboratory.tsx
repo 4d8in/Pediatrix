@@ -3,10 +3,40 @@ import type { FormEvent } from "react";
 import { CheckCircle2, FlaskConical, Plus, RefreshCw, Trash2, User } from "lucide-react";
 import CompletedRequests from "../components/CompletedRequests";
 import ServiceSummary from "../components/ServiceSummary";
-import { ApiError, getLabSummary, createReport, listLabRequests } from "../lib/api";
-import type { LabRequest, LabResultInput } from "../lib/types";
+import { ApiError, getLabCatalog, getLabSummary, createReport, listLabRequests } from "../lib/api";
+import type { LabRequest, LabResultInput, LabTest, ResultFlag } from "../lib/types";
 
 const EMPTY_ROW: LabResultInput = { label: "", value: "" };
+
+const FLAG_STYLE: Record<ResultFlag, { label: string; className: string }> = {
+  H: { label: "Élevé", className: "bg-red-50 text-red-700 border-red-200" },
+  L: { label: "Bas", className: "bg-amber-50 text-amber-700 border-amber-200" },
+  N: { label: "Normal", className: "bg-green-50 text-green-700 border-green-200" },
+};
+
+// Même règle que le backend : pas de plage saisie, pas de jugement.
+function flagFor(row: LabResultInput): ResultFlag | null {
+  const value = Number(row.value.replace(",", "."));
+  if (row.value.trim() === "" || !Number.isFinite(value)) return null;
+  const low = row.referenceLow?.trim() ? Number(row.referenceLow.replace(",", ".")) : undefined;
+  const high = row.referenceHigh?.trim() ? Number(row.referenceHigh.replace(",", ".")) : undefined;
+  if ((low === undefined || Number.isNaN(low)) && (high === undefined || Number.isNaN(high))) return null;
+  if (low !== undefined && !Number.isNaN(low) && value < low) return "L";
+  if (high !== undefined && !Number.isNaN(high) && value > high) return "H";
+  return "N";
+}
+
+// Lignes à saisir pour une demande : les analyses du catalogue (une seule, ou celles
+// d'un panel comme la NFS) ; une demande en texte libre garde une ligne vide.
+function rowsForRequest(request: LabRequest, catalog: LabTest[]): LabResultInput[] {
+  const entry = request.examCode ? catalog.find((test) => test.code === request.examCode) : undefined;
+  if (!entry) return [EMPTY_ROW];
+  const analytes = entry.panel ? entry.panel.map((code) => catalog.find((test) => test.code === code)) : [entry];
+  const rows = analytes
+    .filter((test): test is LabTest => test !== undefined)
+    .map((test): LabResultInput => ({ label: test.display, value: "", code: test.code, unit: test.unit ?? "" }));
+  return rows.length > 0 ? rows : [EMPTY_ROW];
+}
 
 // La file peut rester momentanément périmée juste après la création d'une
 // demande côté Pédiatrie (voir scripts/verify-lab-flow.sh) : ce rafraîchissement
@@ -21,6 +51,7 @@ export default function Laboratory() {
   const [queueError, setQueueError] = useState<string | null>(null);
   const [selected, setSelected] = useState<LabRequest | null>(null);
 
+  const [catalog, setCatalog] = useState<LabTest[]>([]);
   const [results, setResults] = useState<LabResultInput[]>([EMPTY_ROW]);
   const [conclusion, setConclusion] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +67,13 @@ export default function Laboratory() {
       .finally(() => setIsLoadingQueue(false));
   }
 
+  // Sans catalogue (erreur réseau), la saisie libre habituelle reste disponible.
+  useEffect(() => {
+    getLabCatalog()
+      .then((data) => setCatalog(data.tests))
+      .catch(() => setCatalog([]));
+  }, []);
+
   useEffect(() => {
     loadQueue();
     const intervalId = setInterval(loadQueue, AUTO_REFRESH_INTERVAL_MS);
@@ -44,7 +82,7 @@ export default function Laboratory() {
 
   function selectRequest(request: LabRequest) {
     setSelected(request);
-    setResults([EMPTY_ROW]);
+    setResults(rowsForRequest(request, catalog));
     setConclusion("");
     setErrors([]);
     setSubmitted(false);
@@ -218,6 +256,10 @@ export default function Laboratory() {
                         <th className="px-6 py-4 text-xs font-medium text-zinc-400">
                           Valeur
                         </th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Unité</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Réf. basse</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Réf. haute</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Résultat</th>
                         <th className="px-6 py-4 w-12"></th>
                       </tr>
                     </thead>
@@ -243,6 +285,27 @@ export default function Laboratory() {
                               placeholder="Ex. : 8.2 g/dL"
                               className="w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
                             />
+                          </td>
+                          {(["unit", "referenceLow", "referenceHigh"] as const).map((field) => (
+                            <td key={field} className="px-3 py-4">
+                              <input
+                                type="text"
+                                data-testid={`lab-result-${field}-input`}
+                                value={row[field] ?? ""}
+                                onChange={(event) => updateResultRow(index, field, event.target.value)}
+                                className="w-20 bg-zinc-50 border border-zinc-200 px-2 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
+                              />
+                            </td>
+                          ))}
+                          <td className="px-3 py-4">
+                            {(() => {
+                              const flag = flagFor(row);
+                              return flag ? (
+                                <span className={`text-xs font-medium border px-2 py-1 rounded-xl ${FLAG_STYLE[flag].className}`}>
+                                  {FLAG_STYLE[flag].label}
+                                </span>
+                              ) : null;
+                            })()}
                           </td>
                           <td className="px-6 py-4 text-right">
                             {results.length > 1 && (

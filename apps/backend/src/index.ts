@@ -35,6 +35,7 @@ import { dischargeStayRoute } from "./modules/hospitalisation/discharge-stay.rou
 import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-status.route.js";
 import { listPatientStaysRoute } from "./modules/hospitalisation/list-patient-stays.route.js";
 import { labSummaryRoute } from "./modules/laboratoire/lab-summary.route.js";
+import { labCatalogRoute } from "./modules/laboratoire/lab-catalog.route.js";
 import { imagingSummaryRoute } from "./modules/radiologie/imaging-summary.route.js";
 import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-request.route.js";
 import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
@@ -129,6 +130,7 @@ await app.register(dashboardOverviewRoute);
 await app.register(activeQueueRoute);
 await app.register(recentResultsRoute);
 await app.register(labSummaryRoute);
+await app.register(labCatalogRoute);
 await app.register(imagingSummaryRoute);
 await app.register(markResultReadRoute);
 

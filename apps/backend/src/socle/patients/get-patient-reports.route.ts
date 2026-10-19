@@ -21,6 +21,8 @@ interface FhirObservation {
   code?: { text?: string };
   valueString?: string;
   valueQuantity?: { value?: number; unit?: string };
+  referenceRange?: { low?: { value?: number }; high?: { value?: number } }[];
+  interpretation?: { coding?: { code?: string }[] }[];
 }
 
 interface FhirBundle {
@@ -32,7 +34,15 @@ interface ReportSummary {
   date: string | null;
   exam: string | null;
   conclusion: string | null;
-  results: { label: string; value: string }[];
+  results: ReportResult[];
+}
+
+interface ReportResult {
+  label: string;
+  value: string;
+  // H élevé, L bas, N normal ; absent quand aucune plage de référence n'a été saisie.
+  flag?: "H" | "L" | "N";
+  reference?: string;
 }
 
 function formatObservationValue(obs: FhirObservation): string {
@@ -43,6 +53,21 @@ function formatObservationValue(obs: FhirObservation): string {
   return "";
 }
 
+function readReference(obs: FhirObservation): string | undefined {
+  const range = obs.referenceRange?.[0];
+  const low = range?.low?.value;
+  const high = range?.high?.value;
+  if (low !== undefined && high !== undefined) return `${low} – ${high}`;
+  if (low !== undefined) return `≥ ${low}`;
+  if (high !== undefined) return `≤ ${high}`;
+  return undefined;
+}
+
+function readFlag(obs: FhirObservation): ReportResult["flag"] {
+  const code = obs.interpretation?.[0]?.coding?.[0]?.code;
+  return code === "H" || code === "L" || code === "N" ? code : undefined;
+}
+
 function parseReports(bundle: FhirBundle): ReportSummary[] {
   const resources = (bundle.entry ?? []).map((entry) => entry.resource);
   const reports = resources.filter((r): r is FhirDiagnosticReport => r.resourceType === "DiagnosticReport");
@@ -51,13 +76,18 @@ function parseReports(bundle: FhirBundle): ReportSummary[] {
   return reports
     .map((report): ReportSummary => {
       const results = (report.result ?? [])
-        .map((ref) => {
+        .map((ref): ReportResult | null => {
           const obsId = ref.reference?.split("/")[1];
           const obs = observations.find((o) => o.id === obsId);
           if (!obs) return null;
-          return { label: obs.code?.text ?? "Résultat", value: formatObservationValue(obs) };
+          return {
+            label: obs.code?.text ?? "Résultat",
+            value: formatObservationValue(obs),
+            flag: readFlag(obs),
+            reference: readReference(obs),
+          };
         })
-        .filter((r): r is { label: string; value: string } => r !== null);
+        .filter((r): r is ReportResult => r !== null);
 
       return {
         id: report.id,

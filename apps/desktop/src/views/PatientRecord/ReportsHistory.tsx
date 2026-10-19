@@ -31,9 +31,18 @@ export default function ReportsHistory({ reports }: { reports: Report[] }) {
                   {report.results.map((result) => (
                     <span
                       key={result.label}
-                      className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl"
+                      className={`text-sm font-medium border px-3 py-1 rounded-xl ${
+                        result.flag === "H" || result.flag === "L"
+                          ? "text-red-700 bg-red-50 border-red-200"
+                          : "text-zinc-500 bg-zinc-50 border-zinc-200"
+                      }`}
                     >
                       {result.label}: {result.value}
+                      {result.flag === "H" && " ↑"}
+                      {result.flag === "L" && " ↓"}
+                      {result.reference && (
+                        <span className="ml-2 text-xs font-normal text-zinc-400">(réf. {result.reference})</span>
+                      )}
                     </span>
                   ))}
                 </div>

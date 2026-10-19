@@ -29,6 +29,7 @@ import type {
   ImagingRequest,
   Immunization,
   LabRequest,
+  LabTest,
   Patient,
   PatientRecord,
   Prescription,
@@ -147,6 +148,10 @@ export function createServiceRequest(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getLabCatalog(): Promise<{ tests: LabTest[] }> {
+  return request<{ tests: LabTest[] }>("/api/lab/catalog");
 }
 
 export function listLabRequests(status: "active" | "completed" = "active"): Promise<{ requests: LabRequest[] }> {

@@ -61,6 +61,16 @@ export interface CreateEncounterInput {
 export interface CreateServiceRequestInput {
   exam: string;
   requester: string;
+  // Code LOINC de l'examen quand il vient du catalogue du laboratoire.
+  examCode?: string;
+}
+
+// Entrée du catalogue d'examens (GET /api/lab/catalog). Un panel (ex. NFS) liste ses analyses.
+export interface LabTest {
+  code: string;
+  display: string;
+  unit?: string;
+  panel?: string[];
 }
 
 export interface LabRequest {
@@ -68,6 +78,7 @@ export interface LabRequest {
   patientId: string;
   patientName: string;
   exam: string | null;
+  examCode: string | null;
   requester: string | null;
   authoredOn: string | null;
 }
@@ -75,6 +86,20 @@ export interface LabRequest {
 export interface LabResultInput {
   label: string;
   value: string;
+  // Renseignés pour une analyse du catalogue ; bornes saisies en texte (champ du formulaire).
+  code?: string;
+  unit?: string;
+  referenceLow?: string;
+  referenceHigh?: string;
+}
+
+export type ResultFlag = "H" | "L" | "N";
+
+export interface ReportResult {
+  label: string;
+  value: string;
+  flag?: ResultFlag;
+  reference?: string;
 }
 
 export interface CreateReportInput {
@@ -87,7 +112,7 @@ export interface Report {
   date: string | null;
   exam: string | null;
   conclusion: string | null;
-  results: { label: string; value: string }[];
+  results: ReportResult[];
 }
 
 export interface CreateImagingRequestInput {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { ApiError, getStayAdministrations, recordAdministration } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
-import type { Administration, Prescription } from "../../lib/types";
+import type { Administration, DoseSchedule, Prescription } from "../../lib/types";
 
 // Suivi d'administration des médicaments d'un séjour en cours : l'infirmier note chaque prise
 // donnée ou non donnée (avec le motif) ; le médecin consulte.
@@ -11,6 +11,7 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
   const { user } = useAuth();
   const canRecord = user?.role === "nurse";
   const [items, setItems] = useState<Administration[]>([]);
+  const [schedule, setSchedule] = useState<DoseSchedule[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refusing, setRefusing] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -18,7 +19,10 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
 
   const load = useCallback(() => {
     getStayAdministrations(stayId)
-      .then((r) => setItems(r.administrations))
+      .then((r) => {
+        setItems(r.administrations);
+        setSchedule(r.schedule ?? []);
+      })
       .catch(() => setError(t("Historique indisponible : rechargez avant de donner un médicament.")));
   }, [stayId, t]);
   useEffect(load, [load]);
@@ -48,6 +52,26 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
             <li key={rx.id} className="flex flex-wrap items-center gap-2 text-xs">
               <span className="flex-1 text-zinc-800">
                 {rx.medication ?? "—"} {rx.dosage ? `· ${rx.dosage}` : ""}
+                {(() => {
+                  const due = schedule.find((s) => s.prescriptionId === rx.id);
+                  if (!due) return null;
+                  return (
+                    <span
+                      data-testid={`dose-${due.state}`}
+                      className={`ml-2 rounded-full px-2 py-0.5 ${
+                        due.state === "overdue" ? "bg-red-100 text-red-700" : due.state === "due" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
+                      {due.state === "awaiting_pharmacy"
+                        ? t("En attente de la pharmacie")
+                        : due.state === "overdue"
+                        ? t("En retard depuis {heure}", { heure: formatDateTime(due.nextDueAt) })
+                        : due.state === "due"
+                          ? t("À donner maintenant")
+                          : t("Prochaine prise : {heure}", { heure: formatDateTime(due.nextDueAt) })}
+                    </span>
+                  );
+                })()}
               </span>
               <button
                 disabled={busy}

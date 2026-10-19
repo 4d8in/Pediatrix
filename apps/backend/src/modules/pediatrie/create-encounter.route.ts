@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { DECEASED_MESSAGE, isDeceased } from "../../lib/deceased.js";
 import { PLAUSIBLE_RANGES, checkRange } from "../../lib/validation.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
@@ -51,7 +52,8 @@ export async function createEncounterRoute(app: FastifyInstance) {
       const { id } = request.params as { id: string };
 
       try {
-        await hapiClient.get(`/Patient/${id}`);
+        const patient = await hapiClient.get<{ deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${id}`);
+        if (isDeceased(patient)) return reply.code(409).send({ error: DECEASED_MESSAGE });
       } catch (error) {
         if (error instanceof HapiError) {
           const statusCode = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : error.statusCode;

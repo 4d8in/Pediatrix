@@ -54,8 +54,13 @@ export async function dischargeStayRoute(app: FastifyInstance) {
             // La date de décès déjà enregistrée est conservée.
             const request_: Record<string, unknown> = { method: "PUT", url: `Patient/${patientId}` };
             if (patient.meta?.versionId) request_.ifMatch = `W/"${patient.meta.versionId}"`;
+            const stayStart = stay.period?.start ? Date.parse(stay.period.start) : Number.NaN;
+            if (discharge.deceasedAt && !Number.isNaN(stayStart) && Date.parse(discharge.deceasedAt) < stayStart) {
+              return reply.code(400).send({ error: "La date du décès ne peut pas précéder l'admission." });
+            }
+            const { deceasedBoolean: _legacy, ...alive } = patient as Record<string, unknown>;
             patientEntries.push({
-              resource: { ...patient, deceasedDateTime: (patient.deceasedDateTime as string | undefined) ?? now },
+              resource: { ...alive, deceasedDateTime: (patient.deceasedDateTime as string | undefined) ?? discharge.deceasedAt ?? now },
               request: request_,
             });
           }

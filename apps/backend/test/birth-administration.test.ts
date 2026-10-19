@@ -52,3 +52,49 @@ test("administration : donné / non donné", () => {
   assert.equal(list[0].note, "Enfant vomit");
   assert.equal(list[1].by, "Inf. Test");
 });
+
+import { doseSchedule } from "../src/lib/administration-schedule.js";
+import { isDeceased } from "../src/lib/deceased.js";
+import { validateDischarge, withDischarge, withoutDeath, readDischarge } from "../src/lib/discharge.js";
+
+test("échéancier : prise due, en retard, ou pas encore due", () => {
+  const now = new Date("2026-10-19T12:00:00Z");
+  // 3 prises/jour = toutes les 8 h ; dernière prise à 06h -> prochaine à 14h
+  assert.equal(doseSchedule({ dosesPerDay: 3, lastGivenAt: "2026-10-19T06:00:00Z", anchor: "2026-10-18T00:00:00Z", now })?.state, "not_due");
+  assert.equal(doseSchedule({ dosesPerDay: 3, lastGivenAt: "2026-10-19T04:00:00Z", anchor: "2026-10-18T00:00:00Z", now })?.state, "due");
+  assert.equal(doseSchedule({ dosesPerDay: 3, lastGivenAt: "2026-10-19T00:00:00Z", anchor: "2026-10-18T00:00:00Z", now })?.state, "overdue");
+  // jamais donné : due dès l'ordonnance
+  assert.equal(doseSchedule({ dosesPerDay: 2, lastGivenAt: null, anchor: "2026-10-19T11:50:00Z", now })?.state, "due");
+  assert.equal(doseSchedule({ dosesPerDay: 0, lastGivenAt: null, anchor: "2026-10-19T11:50:00Z", now }), null);
+});
+
+test("décès : date réelle validée, helper, correction tracée", () => {
+  assert.equal(isDeceased({}), false);
+  assert.equal(isDeceased({ deceasedBoolean: true }), true);
+  assert.equal(isDeceased({ deceasedDateTime: "2026-10-19T00:00:00Z" }), true);
+  const ok = validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-18T22:30:00Z" });
+  assert.deepEqual(ok, { outcome: "deceased", summary: undefined, deceasedAt: "2026-10-18T22:30:00.000Z" });
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2999-01-01T00:00:00Z" }));
+  assert.ok("errors" in validateDischarge({ outcome: "healed", deceasedAt: "2026-10-18T22:30:00Z" }));
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "n'importe quoi" }));
+  const stay = withDischarge({ resourceType: "Encounter", id: "1" }, "deceased", "x");
+  const fixed = withoutDeath(stay, "erreur de saisie");
+  assert.equal(readDischarge(fixed as never).outcome, null);
+  assert.equal((fixed.hospitalization as unknown), undefined);
+  assert.ok(JSON.stringify(fixed).includes("erreur de saisie"));
+});
+
+test("échéancier : bornes (exactement au délai de grâce, 1 et 24 prises par jour)", () => {
+  const anchor = "2026-10-19T00:00:00Z";
+  // 1 prise/jour, dernière à 00h : due à 24h, grâce = max(30 min, 6 h) = 6 h
+  assert.equal(doseSchedule({ dosesPerDay: 1, lastGivenAt: anchor, anchor, now: new Date("2026-10-20T05:59:00Z") })?.state, "due");
+  assert.equal(doseSchedule({ dosesPerDay: 1, lastGivenAt: anchor, anchor, now: new Date("2026-10-20T06:00:00Z") })?.state, "overdue");
+  assert.ok(doseSchedule({ dosesPerDay: 24, lastGivenAt: anchor, anchor, now: new Date("2026-10-19T00:30:00Z") }));
+  assert.equal(doseSchedule({ dosesPerDay: 25, lastGivenAt: null, anchor }), null);
+});
+
+test("décès : la date doit être un ISO complet avec fuseau", () => {
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19" }));
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00" }));
+  assert.ok("deceasedAt" in (validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00:00+01:00" }) as object));
+});

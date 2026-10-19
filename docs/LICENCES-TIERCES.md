@@ -22,6 +22,10 @@ Aucun code repris. Documentation publique consultée (octobre 2026), idées seul
 - Bahmni, [Patient Queues & Observation Forms Configuration](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/2941681665) : files configurables par service.
 Applications : temps d'attente et sortie « parti sans consultation » dans la file active (`leave-without-consultation.route.ts`).
 
+- Bahmni, [Configure rules based medication dosage](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/3464527901/Configure+rules+based+medication+dosage) et [Prescribing Medications](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/40501375/Prescribing+Medications) : doses cadrées par des règles mg/kg, voie, fréquence et durée par ordonnance.
+- HL7 EHR-S Functional Model (norme ouverte), exigence d'alertes sur dosage propre au patient, interactions et allergies, avec traçabilité du passage outre.
+Application : contrôle de la dose quotidienne par kg (`lib/dose-rules.ts`, maxima « à valider » par le pharmacien responsable), confirmation tracée par extension FHIR.
+
 Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.

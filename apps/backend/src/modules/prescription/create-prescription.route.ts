@@ -3,6 +3,9 @@ import { type FhirAllergyIntolerance, findMatchingAllergy } from "./allergy.fhir
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
+import { checkDailyDose } from "../../lib/dose-rules.js";
+import { findFormularyItem } from "../../lib/formulary.js";
+import { VITAL_LOINC_CODES } from "../../lib/vitals-codes.js";
 import { type FhirMedicationRequest, toFhirMedicationRequest } from "./prescription.fhir.js";
 import type { CreatePrescriptionInput } from "./prescription.types.js";
 
@@ -27,9 +30,19 @@ function validate(body: unknown): { input: CreatePrescriptionInput } | { errors:
   if (!medication) errors.push("Le médicament est requis.");
   if (!dosage) errors.push("La posologie est requise.");
 
+  const formularyCode = typeof b.formularyCode === "string" && b.formularyCode.trim() ? b.formularyCode.trim() : undefined;
+  const doseMg = b.doseMg === undefined || b.doseMg === null || b.doseMg === "" ? undefined : Number(b.doseMg);
+  const dosesPerDay = b.dosesPerDay === undefined || b.dosesPerDay === null || b.dosesPerDay === "" ? undefined : Number(b.dosesPerDay);
+  if (formularyCode && !findFormularyItem(formularyCode)) errors.push("Article absent du formulaire.");
+  if (doseMg !== undefined && (!Number.isFinite(doseMg) || doseMg <= 0 || doseMg > 10000)) errors.push("La dose (mg) est invalide.");
+  if (dosesPerDay !== undefined && (!Number.isInteger(dosesPerDay) || dosesPerDay < 1 || dosesPerDay > 12)) {
+    errors.push("Le nombre de prises par jour doit être un entier entre 1 et 12.");
+  }
+  if ((doseMg === undefined) !== (dosesPerDay === undefined)) errors.push("La dose et le nombre de prises par jour vont ensemble.");
+
   if (errors.length > 0) return { errors };
 
-  return { input: { medication, dosage, confirmed } };
+  return { input: { medication, dosage, confirmed, formularyCode, doseMg, dosesPerDay } };
 }
 
 export async function createPrescriptionRoute(app: FastifyInstance) {
@@ -84,13 +97,35 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
         });
       }
 
+      // Contrôle de la dose quotidienne par kg, si une dose structurée est fournie.
+      let doseAlert: string | undefined;
+      const { formularyCode, doseMg, dosesPerDay } = result.input;
+      if (formularyCode && doseMg !== undefined && dosesPerDay !== undefined) {
+        try {
+          const weightBundle = await hapiClient.get<{ entry?: { resource: { valueQuantity?: { value?: number } } }[] }>(
+            `/Observation?patient=${patientId}&code=${VITAL_LOINC_CODES.weight.code}&_sort=-date&_count=1`,
+            { "Cache-Control": "no-cache" },
+          );
+          const weight = weightBundle.entry?.[0]?.resource.valueQuantity?.value;
+          doseAlert = checkDailyDose(formularyCode, doseMg, dosesPerDay, weight)?.message;
+        } catch (error) {
+          if (error instanceof HapiError) {
+            return reply.code(error.statusCode >= 500 ? 502 : error.statusCode).send({ error: error.message });
+          }
+          throw error;
+        }
+        if (doseAlert && !result.input.confirmed) {
+          return reply.code(409).send({ requiresConfirmation: true, allergy: "", message: doseAlert });
+        }
+      }
+
       try {
         const created = await hapiClient.post<FhirMedicationRequest>(
           "/MedicationRequest",
           toFhirMedicationRequest(patientId, id, result.input, matchedAllergy?.code?.text, {
             id: request.user.sub,
             name: request.user.name,
-          }),
+          }, doseAlert),
         );
         return reply.code(201).send({ prescriptionId: created.id });
       } catch (error) {

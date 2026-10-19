@@ -202,6 +202,9 @@ export interface CreatePrescriptionInput {
   medication: string;
   dosage: string;
   confirmed?: boolean;
+  formularyCode?: string;
+  doseMg?: number;
+  dosesPerDay?: number;
 }
 
 export interface Prescription {

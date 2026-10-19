@@ -6,6 +6,8 @@ import type { CreatePrescriptionInput, PrescriptionSummary } from "./prescriptio
 // allergie connue (exigé par la demande : "enregistrer l'indicateur de confirmation").
 export const ALLERGY_OVERRIDE_EXTENSION_URL = "http://pediatrix.local/fhir/allergy-override-confirmed";
 
+export const DOSE_OVERRIDE_EXTENSION_URL = "http://pediatrix.local/fhir/dose-override-confirmed";
+
 export interface FhirMedicationRequest {
   resourceType: "MedicationRequest";
   id: string;
@@ -22,7 +24,16 @@ export function toFhirMedicationRequest(
   input: CreatePrescriptionInput,
   overrideAllergy: string | undefined,
   prescriber?: { id: string; name: string },
+  doseOverride?: string,
 ) {
+  const notes = [
+    overrideAllergy ? { text: `Prescription confirmée malgré une allergie connue à "${overrideAllergy}".` } : undefined,
+    doseOverride ? { text: `Dose confirmée malgré l'alerte : ${doseOverride}` } : undefined,
+  ].filter((n): n is { text: string } => Boolean(n));
+  const extensions = [
+    overrideAllergy ? { url: ALLERGY_OVERRIDE_EXTENSION_URL, valueBoolean: true } : undefined,
+    doseOverride ? { url: DOSE_OVERRIDE_EXTENSION_URL, valueBoolean: true } : undefined,
+  ].filter((e): e is { url: string; valueBoolean: boolean } => Boolean(e));
   return {
     resourceType: "MedicationRequest",
     status: "active",
@@ -32,13 +43,17 @@ export function toFhirMedicationRequest(
     encounter: { reference: `Encounter/${encounterId}` },
     authoredOn: new Date().toISOString(),
     requester: prescriber ? { reference: `Practitioner/${prescriber.id}`, display: prescriber.name } : undefined,
-    dosageInstruction: [{ text: input.dosage }],
-    note: overrideAllergy
-      ? [{ text: `Prescription confirmée malgré une allergie connue à "${overrideAllergy}".` }]
-      : undefined,
-    extension: overrideAllergy
-      ? [{ url: ALLERGY_OVERRIDE_EXTENSION_URL, valueBoolean: true }]
-      : undefined,
+    dosageInstruction: [
+      {
+        text: input.dosage,
+        timing: input.dosesPerDay ? { repeat: { frequency: input.dosesPerDay, period: 1, periodUnit: "d" } } : undefined,
+        doseAndRate: input.doseMg
+          ? [{ doseQuantity: { value: input.doseMg, unit: "mg", system: "http://unitsofmeasure.org", code: "mg" } }]
+          : undefined,
+      },
+    ],
+    note: notes.length > 0 ? notes : undefined,
+    extension: extensions.length > 0 ? extensions : undefined,
   };
 }
 

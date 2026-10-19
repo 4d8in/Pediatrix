@@ -61,6 +61,8 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
   const [medication, setMedication] = useState("");
   const [dosage, setDosage] = useState("");
+  const [doseMg, setDoseMg] = useState("");
+  const [dosesPerDay, setDosesPerDay] = useState("");
   const [isPrescribing, setIsPrescribing] = useState(false);
   const [prescriptionErrors, setPrescriptionErrors] = useState<string[]>([]);
   const [allergyConflict, setAllergyConflict] = useState<AllergyConflict | null>(null);
@@ -82,6 +84,8 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setImagingRequested(false);
     setMedication("");
     setDosage("");
+    setDoseMg("");
+    setDosesPerDay("");
     setPrescriptionErrors([]);
     setAllergyConflict(null);
     setPrescriptionCreated(false);
@@ -222,7 +226,12 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setIsPrescribing(true);
 
     try {
-      await createPrescription(encounterId, { medication, dosage, confirmed });
+      const formularyCode = formulary.find((item) => item.name === medication)?.code;
+      const structured =
+        doseMg.trim() && dosesPerDay.trim()
+          ? { formularyCode, doseMg: Number(doseMg.replace(",", ".")), dosesPerDay: Number(dosesPerDay) }
+          : {};
+      await createPrescription(encounterId, { medication, dosage, confirmed, ...structured });
       setAllergyConflict(null);
       setPrescriptionCreated(true);
     } catch (error) {
@@ -601,6 +610,36 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     placeholder="Ex. : 5ml x 3/j pendant 7 jours"
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Dose par prise (mg, facultatif)
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      data-testid="prescription-dose-mg"
+                      value={doseMg}
+                      onChange={(event) => setDoseMg(event.target.value)}
+                      className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                      placeholder="Ex. : 150"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-zinc-400">
+                    Prises par jour
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      data-testid="prescription-doses-per-day"
+                      value={dosesPerDay}
+                      onChange={(event) => setDosesPerDay(event.target.value)}
+                      className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                      placeholder="Ex. : 3"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Avec une dose et un médicament du formulaire, la dose quotidienne par kg est contrôlée d'après le dernier poids enregistré.
+                </p>
 
                 <button
                   type="submit"

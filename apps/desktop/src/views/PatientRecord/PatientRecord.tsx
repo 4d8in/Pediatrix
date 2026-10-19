@@ -197,12 +197,18 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
               <StaysSection
                 stays={stays}
                 onPrintSummary={(stay) => {
-                  // Éléments du dossier rattachés au séjour : ceux datés entre l'admission et la sortie.
-                  const from = stay.start ? Date.parse(stay.start) : 0;
-                  const to = stay.end ? Date.parse(stay.end) : Date.now();
+                  // Éléments du dossier rattachés au séjour : ceux datés du jour d'admission au jour de
+                  // sortie inclus (pas de marge au-delà). Sans date de début ou de fin fiable, aucun
+                  // élément n'est joint plutôt que d'imprimer tout l'historique de l'enfant.
+                  const startDay = stay.start ? new Date(stay.start) : null;
+                  const endDay = stay.end ? new Date(stay.end) : null;
+                  if (startDay) startDay.setHours(0, 0, 0, 0);
+                  if (endDay) endDay.setHours(23, 59, 59, 999);
+                  const from = startDay ? startDay.getTime() : Number.NaN;
+                  const to = endDay ? endDay.getTime() : Number.NaN;
                   const within = (date: string | null) => {
                     const time = date ? Date.parse(date) : Number.NaN;
-                    return !Number.isNaN(time) && time >= from - 86_400_000 && time <= to + 86_400_000;
+                    return !Number.isNaN(time) && !Number.isNaN(from) && !Number.isNaN(to) && time >= from && time <= to;
                   };
                   printDocument((facility) => (
                     <DischargeSummarySheet

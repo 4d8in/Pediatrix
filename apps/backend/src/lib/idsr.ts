@@ -25,7 +25,7 @@ export const PRIORITY_DISEASES: PriorityDisease[] = [
   { key: "yellow_fever", label: "Fièvre jaune", tier: "immediate", prefixes: ["A95"] },
   { key: "diphtheria", label: "Diphtérie", tier: "immediate", prefixes: ["A36"] },
   { key: "neonatal_tetanus", label: "Tétanos néonatal", tier: "immediate", prefixes: ["A33"] },
-  { key: "meningitis", label: "Méningite", tier: "immediate", prefixes: ["G00", "A39"] },
+  { key: "meningitis", label: "Méningite", tier: "immediate", prefixes: ["G00", "G03", "A390"] },
   { key: "malaria", label: "Paludisme", tier: "weekly", prefixes: ["B50", "B51", "B52", "B53", "B54"] },
   { key: "diarrhoea", label: "Diarrhée aiguë", tier: "weekly", prefixes: ["A09"] },
   { key: "pneumonia", label: "Pneumonie", tier: "weekly", prefixes: ["J18", "J15"] },
@@ -72,6 +72,9 @@ export function isoWeekOf(date: Date): string {
 // --- Comptage ------------------------------------------------------------------------------------
 
 export interface CaseFact {
+  // Identifiant interne du patient : sert uniquement à ne compter qu'une fois un même enfant
+  // pour une même maladie dans une semaine (jamais exposé dans la réponse).
+  patientId?: string;
   icdCode: string;
   recordedAt: string;
   confirmed: boolean;
@@ -124,14 +127,34 @@ export function weeklySurveillance(
   const previousTotals = new Map<string, number>();
   const immediateCases: ImmediateCase[] = [];
 
+  // Un même enfant n'est compté qu'une fois par maladie et par semaine (diagnostic provisoire puis
+  // confirmé, contrôle de suivi…) : on garde le statut le plus fort et la date la plus ancienne.
+  const WEEK_MS = 7 * 86_400_000;
+  const kept = new Map<string, { fact: CaseFact; disease: PriorityDisease; at: number; confirmed: boolean }>();
+  let anonymous = 0;
   for (const fact of facts) {
     const disease = diseaseOf(fact.icdCode);
     const at = Date.parse(fact.recordedAt);
-    if (!disease || Number.isNaN(at)) continue;
+    if (!disease || Number.isNaN(at) || at < previousStartMs || at >= endMs) continue;
+    const bucket = Math.floor((at - previousStartMs) / WEEK_MS);
+    const key = fact.patientId ? `${fact.patientId}|${disease.key}|${bucket}` : `anon-${anonymous++}`;
+    const existing = kept.get(key);
+    if (!existing) {
+      kept.set(key, { fact, disease, at, confirmed: fact.confirmed });
+    } else {
+      existing.confirmed = existing.confirmed || fact.confirmed;
+      if (at < existing.at) {
+        existing.fact = fact;
+        existing.at = at;
+      }
+    }
+  }
+
+  for (const { fact, disease, at, confirmed } of kept.values()) {
     const row = byKey.get(disease.key)!;
-    if (at >= startMs && at < endMs) {
+    if (at >= startMs) {
       row.cases += 1;
-      if (fact.confirmed) row.confirmed += 1;
+      if (confirmed) row.confirmed += 1;
       const months = fact.birthDate ? ageInMonths(fact.birthDate, fact.recordedAt) : null;
       if (months !== null && months < 60) row.underFive += 1;
       if (disease.tier === "immediate") {
@@ -143,7 +166,7 @@ export function weeklySurveillance(
           sex: fact.sex ?? "unknown",
         });
       }
-    } else if (at >= previousStartMs && at < startMs) {
+    } else {
       previousTotals.set(disease.key, (previousTotals.get(disease.key) ?? 0) + 1);
     }
   }

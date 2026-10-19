@@ -40,6 +40,7 @@ const dictionary: Record<string, string> = {
   "Infection à VIH": "HIV infection",
   "Malnutrition aiguë sévère": "Severe acute malnutrition",
   "Confirmer la sortie": "Confirm discharge",
+  "Confirmer l'issue « décédé » ? Elle ne pourra plus être modifiée.": "Confirm the \"deceased\" outcome? It cannot be changed afterwards.",
   "Établi le {date}": "Issued on {date}",
   "Examens réalisés :": "Tests performed:",
   "Hospitalisation :": "Hospital stay:",

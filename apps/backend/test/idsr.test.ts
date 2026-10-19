@@ -66,3 +66,19 @@ test("comptage hebdomadaire, moins de 5 ans, alerte immédiate et seuil comparé
   assert.ok(!("patientId" in immediateCases[0]));
   assert.equal(rows.find((r) => r.key === "cholera")!.alert, null);
 });
+
+test("un même enfant n'est compté qu'une fois par maladie et par semaine", () => {
+  const week = parseIsoWeek("2026-W43")!;
+  const day = (n: number) => new Date(week.start.getTime() + n * 86_400_000).toISOString();
+  const { rows } = weeklySurveillance(
+    [
+      { patientId: "p1", icdCode: "B05.9", recordedAt: day(1), confirmed: false },
+      { patientId: "p1", icdCode: "B05.9", recordedAt: day(2), confirmed: true },
+      { patientId: "p2", icdCode: "B05.9", recordedAt: day(2), confirmed: false },
+    ],
+    week,
+  );
+  const measles = rows.find((r) => r.key === "measles")!;
+  assert.equal(measles.cases, 2);
+  assert.equal(measles.confirmed, 1);
+});

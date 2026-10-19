@@ -306,7 +306,7 @@ export function DischargeSummarySheet({
         <strong>{t("Issue du séjour :")}</strong> {outcome ? t(outcome.label) : t("Non renseignée")}
       </p>
       {stay.summary && (
-        <p>
+        <p style={{ whiteSpace: "pre-wrap" }}>
           <strong>{t("Résumé et consignes de sortie :")}</strong> {stay.summary}
         </p>
       )}

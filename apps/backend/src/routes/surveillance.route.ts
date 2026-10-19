@@ -45,9 +45,12 @@ export async function surveillanceRoute(app: FastifyInstance) {
           .flatMap((c) => {
             const icdCode = c.code?.coding?.find((coding) => coding.system?.includes("icd-10"))?.code;
             if (!icdCode || !c.recordedDate) return [];
+            const status = c.verificationStatus?.coding?.[0]?.code;
+            if (status === "refuted" || status === "entered-in-error") return [];
             const patient = patients.get(c.subject?.reference?.split("/")[1] ?? "");
             return [
               {
+                patientId: c.subject?.reference?.split("/")[1],
                 icdCode,
                 recordedAt: c.recordedDate,
                 confirmed: c.verificationStatus?.coding?.[0]?.code === "confirmed",

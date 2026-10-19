@@ -307,6 +307,8 @@ export default function Beds() {
                             data-testid="discharge-confirm"
                             onClick={() =>
                               selected.stay &&
+                              (dischargeOutcome !== "deceased" ||
+                                window.confirm(t("Confirmer l'issue « décédé » ? Elle ne pourra plus être modifiée."))) &&
                               run(() =>
                                 dischargeStay(selected.stay!.stayId, {
                                   outcome: dischargeOutcome || undefined,

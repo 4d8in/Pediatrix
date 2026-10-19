@@ -42,7 +42,7 @@ export default function StaysSection({ stays, onPrintSummary }: { stays: Patient
                   {t("Issue du séjour :")} {t(DISCHARGE_OUTCOMES.find((item) => item.value === stay.outcome)?.label ?? "")}
                 </p>
               )}
-              {stay.summary && <p className="text-zinc-600">{stay.summary}</p>}
+              {stay.summary && <p className="whitespace-pre-wrap text-zinc-600">{stay.summary}</p>}
               {!stay.inProgress && onPrintSummary && (
                 <button
                   onClick={() => onPrintSummary(stay)}

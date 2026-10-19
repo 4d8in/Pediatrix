@@ -29,6 +29,7 @@ import type {
   ImagingRequest,
   Immunization,
   Appointment,
+  TriageCategory,
   AuditEntry,
   AppointmentStatus,
   BillableEncounter,
@@ -542,4 +543,15 @@ export function getVaccineCatalog(): Promise<{ vaccines: Vaccine[] }> {
 
 export function getVaccinationSchedule(patientId: string): Promise<{ schedule: ScheduleItem[] }> {
   return request<{ schedule: ScheduleItem[] }>(`/api/patients/${patientId}/vaccination-schedule`);
+}
+
+export function checkInPatient(patientId: string): Promise<{ encounterId: string }> {
+  return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival`, { method: "POST", body: "{}" });
+}
+
+export function setTriage(patientId: string, category: TriageCategory, note?: string): Promise<{ encounterId: string }> {
+  return request<{ encounterId: string }>(`/api/patients/${patientId}/triage`, {
+    method: "POST",
+    body: JSON.stringify({ category, note }),
+  });
 }

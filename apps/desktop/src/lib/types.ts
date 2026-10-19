@@ -250,7 +250,7 @@ export interface Stats {
   tauxHospitalisation: UnavailableIndicator | AvailableIndicator;
   dureeMoyenneSejour: UnavailableIndicator | AvailableIndicator;
   litsOccupes: UnavailableIndicator | AvailableIndicator;
-  chargeParPraticien: UnavailableIndicator;
+  chargeParPraticien: UnavailableIndicator | (AvailableIndicator & { parPraticien: { nom: string; consultations: number }[] });
 }
 
 export interface DashboardCounters {
@@ -275,8 +275,12 @@ export interface DashboardOverview {
   sexes: { feminin: number; masculin: number; autre: number };
 }
 
+export type TriageCategory = "emergency" | "priority" | "non_urgent";
+
 export interface QueueEntry {
   patientId: string;
+  encounterId: string | null;
+  triage: TriageCategory | null;
   name: string;
   birthDate: string | null;
   gender: Gender;

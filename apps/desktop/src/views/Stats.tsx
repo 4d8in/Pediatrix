@@ -220,21 +220,32 @@ export default function Stats() {
               )}
             </div>
 
-            {/* Charge de travail par praticien : non calculable honnêtement avec
-                ce socle (pas de lien Encounter -> Practitioner structuré),
-                signalé comme tel plutôt qu'inventé. */}
+            {/* Charge de travail par praticien : calculée d'après le praticien enregistré sur
+                chaque consultation ; signalée comme non disponible tant qu'aucune n'en porte. */}
             <div className="bg-white border border-zinc-200/70 flex flex-col rounded-[18px]">
               <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-zinc-900 flex items-center gap-3">
                   Charge de travail par praticien
                 </h3>
               </div>
-              <div className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-4">
-                <LockKeyhole className="w-8 h-8 text-zinc-300" />
-                <p className="text-sm font-medium text-zinc-400 max-w-xs leading-relaxed">
-                  Non disponible — {stats.chargeParPraticien.raison}
-                </p>
-              </div>
+              {stats.chargeParPraticien.disponible ? (
+                <div className="flex-1 space-y-3 p-8" data-testid="charge-par-praticien">
+                  {stats.chargeParPraticien.parPraticien.map((row) => (
+                    <div key={row.nom} className="flex items-center justify-between text-sm font-medium text-zinc-900">
+                      <span>{row.nom}</span>
+                      <span className="text-zinc-500">{row.consultations} consultation(s)</span>
+                    </div>
+                  ))}
+                  <p className="pt-2 text-xs text-zinc-400">{stats.chargeParPraticien.detail}</p>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-4">
+                  <LockKeyhole className="w-8 h-8 text-zinc-300" />
+                  <p className="text-sm font-medium text-zinc-400 max-w-xs leading-relaxed">
+                    Non disponible — {stats.chargeParPraticien.raison}
+                  </p>
+                </div>
+              )}
               <div className="p-6 bg-white border-t border-zinc-100 flex items-center gap-3 text-zinc-400 rounded-[18px]">
                 <Info className="w-3.5 h-3.5" />
                 <p className="text-xs">

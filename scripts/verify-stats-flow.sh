@@ -260,11 +260,16 @@ echo "Vérification que les indicateurs non calculables sont signalés comme tel
 for field in tauxHospitalisation dureeMoyenneSejour litsOccupes chargeParPraticien; do
   DISPONIBLE=$(echo "$AFTER_RESPONSE" | jq -r --arg f "$field" '.[$f].disponible')
   RAISON=$(echo "$AFTER_RESPONSE" | jq -r --arg f "$field" '.[$f].raison // empty')
-  if [ "$DISPONIBLE" != "false" ] || [ -z "$RAISON" ]; then
-    echo "ÉCHEC : l'indicateur ${field} devrait être { disponible: false, raison: <texte> }, reçu disponible=${DISPONIBLE} raison=\"${RAISON}\"." >&2
+  VALEUR=$(echo "$AFTER_RESPONSE" | jq -r --arg f "$field" '.[$f].valeur // empty')
+  # Contrat d'honnêteté : soit une valeur calculée, soit « non disponible » avec une raison.
+  if [ "$DISPONIBLE" = "true" ] && [ -n "$VALEUR" ]; then
+    echo "OK : ${field} calculé (valeur : ${VALEUR})."
+  elif [ "$DISPONIBLE" = "false" ] && [ -n "$RAISON" ]; then
+    echo "OK : ${field} signalé non disponible (raison : ${RAISON})."
+  else
+    echo "ÉCHEC : l'indicateur ${field} devrait être { disponible: true, valeur } ou { disponible: false, raison }, reçu disponible=${DISPONIBLE} valeur=\"${VALEUR}\" raison=\"${RAISON}\"." >&2
     exit 1
   fi
-  echo "OK : ${field} signalé non disponible (raison : ${RAISON})."
 done
 
 # --- Contrôle d'accès ---------------------------------------------------------

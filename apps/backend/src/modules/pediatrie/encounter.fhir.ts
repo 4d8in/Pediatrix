@@ -10,15 +10,24 @@ export interface PractitionerRef {
   name: string;
 }
 
-export function toEncounterTransactionBundle(patientId: string, input: CreateEncounterInput, practitioner?: PractitionerRef) {
+// Si le patient est déjà arrivé aujourd'hui (arrivée enregistrée à l'accueil), la
+// consultation reprend cet Encounter et le clôt au lieu d'en créer un second :
+// l'heure d'arrivée et le tri sont ainsi conservés.
+export function toEncounterTransactionBundle(
+  patientId: string,
+  input: CreateEncounterInput,
+  practitioner?: PractitionerRef,
+  arrival?: { id: string; period?: { start?: string } } & Record<string, unknown>,
+) {
   const patientRef = `Patient/${patientId}`;
-  const encounterFullUrl = `urn:uuid:${randomUUID()}`;
+  const encounterFullUrl = arrival ? `Encounter/${arrival.id}` : `urn:uuid:${randomUUID()}`;
   const now = new Date().toISOString();
 
   const entries: unknown[] = [
     {
       fullUrl: encounterFullUrl,
       resource: {
+        ...(arrival ?? {}),
         resourceType: "Encounter",
         status: "finished",
         class: { code: "AMB", display: "ambulatory" },
@@ -28,9 +37,9 @@ export function toEncounterTransactionBundle(patientId: string, input: CreateEnc
           ? [{ individual: { reference: `Practitioner/${practitioner.id}`, display: practitioner.name } }]
           : undefined,
         reasonCode: [{ text: input.reason }],
-        period: { start: now, end: now },
+        period: { start: arrival?.period?.start ?? now, end: now },
       },
-      request: { method: "POST", url: "Encounter" },
+      request: arrival ? { method: "PUT", url: `Encounter/${arrival.id}` } : { method: "POST", url: "Encounter" },
     },
   ];
 

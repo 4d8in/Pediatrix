@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../lib/hapi-client.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
+import { fetchAll } from "../lib/fhir-search.js";
 import { computeHospitalisationStats, computeMonthlyActivity } from "../lib/hospitalisation-stats.js";
 import { IMAGING_CATEGORY_CODE } from "../lib/service-category.js";
 
@@ -89,6 +90,22 @@ function available(valeur: string, detail: string) {
   return { disponible: true as const, valeur, detail };
 }
 
+// Consultations du mois par praticien (Encounter.participant). Les consultations
+// antérieures au suivi des praticiens n'ont pas de participant et sont comptées à part.
+export function countByPractitioner(encounters: { participant?: { individual?: { display?: string } }[] }[]) {
+  const counts = new Map<string, number>();
+  let sansPraticien = 0;
+  for (const encounter of encounters) {
+    const name = encounter.participant?.find((p) => p.individual?.display)?.individual?.display;
+    if (!name) sansPraticien += 1;
+    else counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const parPraticien = [...counts.entries()]
+    .map(([nom, consultations]) => ({ nom, consultations }))
+    .sort((a, b) => b.consultations - a.consultations || a.nom.localeCompare(b.nom));
+  return { parPraticien, sansPraticien };
+}
+
 export async function statsRoute(app: FastifyInstance) {
   app.get(
     "/api/stats",
@@ -116,10 +133,14 @@ export async function statsRoute(app: FastifyInstance) {
           countResource("MedicationRequest"),
           countExamensParType(),
         ]);
-        const [hospitalisation, activiteMensuelle] = await Promise.all([
+        const [hospitalisation, activiteMensuelle, consultationsDuMois] = await Promise.all([
           computeHospitalisationStats(),
           computeMonthlyActivity(IMAGING_CATEGORY_CODE),
+          fetchAll<{ participant?: { individual?: { display?: string } }[] }>(
+            `/Encounter?class=AMB&date=ge${start}&date=lt${end}`,
+          ),
         ]);
+        const charge = countByPractitioner(consultationsDuMois);
 
         return reply.send({
           genereLe: new Date().toISOString(),
@@ -149,9 +170,20 @@ export async function statsRoute(app: FastifyInstance) {
                   `${Math.round((hospitalisation.litsOccupes / hospitalisation.litsTotal) * 100)} % d'occupation`,
                 )
               : unavailable("Aucun lit configuré (script seed-beds.ts non lancé)."),
-          chargeParPraticien: unavailable(
-            "Encounter ne référence pas de Practitioner structuré dans ce socle : le champ « demandeur » des examens est du texte libre, pas un lien fiable vers un utilisateur.",
-          ),
+          chargeParPraticien:
+            charge.parPraticien.length > 0
+              ? {
+                  ...available(
+                    `${charge.parPraticien.length} praticien(s)`,
+                    charge.sansPraticien > 0
+                      ? `${charge.sansPraticien} consultation(s) du mois sans praticien enregistré (avant le suivi par praticien)`
+                      : "Consultations du mois courant",
+                  ),
+                  parPraticien: charge.parPraticien,
+                }
+              : unavailable(
+                  "Aucune consultation du mois n'est rattachée à un praticien (suivi activé récemment : la charge apparaîtra avec les prochaines consultations).",
+                ),
         });
       } catch (error) {
         if (error instanceof HapiError) {

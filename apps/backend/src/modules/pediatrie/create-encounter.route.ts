@@ -4,6 +4,7 @@ import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
+import { findTodayArrival } from "../../lib/arrival.js";
 import { parseEncounterTransactionResponse, toEncounterTransactionBundle } from "./encounter.fhir.js";
 import type { CreateEncounterInput } from "./encounter.types.js";
 
@@ -66,9 +67,10 @@ export async function createEncounterRoute(app: FastifyInstance) {
       }
 
       try {
+        const arrival = await findTodayArrival(id);
         const responseBundle = await hapiClient.post<TransactionResponseBundle>(
           "",
-          toEncounterTransactionBundle(id, result.input, { id: request.user.sub, name: request.user.name }),
+          toEncounterTransactionBundle(id, result.input, { id: request.user.sub, name: request.user.name }, arrival),
         );
         const { encounterId } = parseEncounterTransactionResponse(responseBundle);
         return reply.code(201).send({ encounterId });

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
+import { createArrival } from "../../lib/arrival.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 import { MRN_SYSTEM, type FhirPatient, fromFhirPatient, mrnFromId, toFhirPatient } from "./patient.fhir.js";
@@ -67,6 +68,10 @@ export async function createPatientRoute(app: FastifyInstance) {
         identifier: [{ system: MRN_SYSTEM, value: mrnFromId(created.id ?? "") }],
       };
       const stored = await hapiClient.put<FhirPatient>(`/Patient/${created.id}`, withMrn).catch(() => withMrn);
+      // Un patient admis entre dans la file active du jour (sauf checkIn: false).
+      if ((request.body as { checkIn?: unknown } | undefined)?.checkIn !== false) {
+        await createArrival(created.id ?? "").catch((err) => request.log.warn({ err }, "Arrivée non enregistrée."));
+      }
       return reply.code(201).send(fromFhirPatient(stored));
     } catch (error) {
       if (error instanceof HapiError) {

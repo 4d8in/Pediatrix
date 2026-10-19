@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { DECEASED_MESSAGE, isDeceased } from "../../lib/deceased.js";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -44,7 +45,8 @@ export async function createAppointmentRoute(app: FastifyInstance) {
       }
 
       try {
-        const patient = await hapiClient.get<{ name?: { family?: string; given?: string[] }[] }>(`/Patient/${patientId}`);
+        const patient = await hapiClient.get<{ name?: { family?: string; given?: string[] }[]; deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${patientId}`);
+        if (isDeceased(patient)) return reply.code(409).send({ error: DECEASED_MESSAGE });
         const name = patient.name?.[0];
         const patientName = name ? `${name.given?.[0] ?? ""} ${name.family ?? ""}`.trim() : "";
 

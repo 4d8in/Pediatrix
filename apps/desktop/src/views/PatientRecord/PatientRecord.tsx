@@ -3,6 +3,7 @@ import PatientPicker from "../../components/PatientPicker";
 import { DischargeSummarySheet } from "../../components/print/PrintSheets";
 import { usePrint } from "../../lib/print";
 import { useI18n } from "../../lib/i18n";
+import { useAuth } from "../../lib/auth-context";
 import PatientIdentity from "./PatientIdentity";
 import ConsultationHistory from "./ConsultationHistory";
 import ReportsHistory from "./ReportsHistory";
@@ -20,6 +21,7 @@ import {
   getPatient,
   getPatientAllergies,
   getPatientBirth,
+  revokeDeath,
   getPatientDiagnoses,
   getPatientReferrals,
   getPatientGrowth,
@@ -51,6 +53,9 @@ interface PatientRecordProps {
 export default function PatientRecord({ initialPatientId }: PatientRecordProps) {
   const { t } = useI18n();
   const { printDocument } = usePrint();
+  const { user } = useAuth();
+  const [revoking, setRevoking] = useState(false);
+  const [revokeReason, setRevokeReason] = useState("");
   const [patient, setPatient] = useState<Patient | null>(null);
   const [record, setRecord] = useState<PatientRecordData | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -176,6 +181,41 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 )}
                 {ageLabel(record.patient.birthDate, t)} • {t(SEX_LABELS[record.patient.gender])} • {t("N° de dossier : {mrn}", { mrn: record.patient.mrn })}
               </p>
+              {record.patient.deceasedAt && user?.role === "doctor" && (
+                <div className="mt-1 text-xs">
+                  {!revoking ? (
+                    <button onClick={() => setRevoking(true)} className="text-zinc-500 underline" data-testid="revoke-death-open">
+                      {t("Corriger : le patient n'est pas décédé")}
+                    </button>
+                  ) : (
+                    <span className="flex gap-2">
+                      <input
+                        aria-label={t("Motif de la correction")}
+                        value={revokeReason}
+                        maxLength={500}
+                        onChange={(event) => setRevokeReason(event.target.value)}
+                        placeholder={t("Motif de la correction (requis)")}
+                        className="w-64 rounded border border-zinc-200 px-2 py-1"
+                      />
+                      <button
+                        disabled={revokeReason.trim().length < 5}
+                        onClick={() =>
+                          revokeDeath(record.patient.id, revokeReason.trim())
+                            .then(() => {
+                              setRevoking(false);
+                              setRevokeReason("");
+                              loadRecord();
+                            })
+                            .catch((err) => setError(err instanceof ApiError ? err.message : t("Erreur lors de la correction.")))
+                        }
+                        className="rounded bg-zinc-800 px-2 py-1 text-white disabled:opacity-40"
+                      >
+                        {t("Annuler le décès")}
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

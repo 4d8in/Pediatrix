@@ -49,6 +49,7 @@ export default function Beds() {
   const [dischargeOpen, setDischargeOpen] = useState(false);
   const [dischargeOutcome, setDischargeOutcome] = useState<DischargeOutcome | "">("");
   const [dischargeSummary, setDischargeSummary] = useState("");
+  const [deceasedAt, setDeceasedAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +90,7 @@ export default function Beds() {
       setTransferTo("");
       setDischargeOpen(false);
       setDischargeOutcome("");
+      setDeceasedAt("");
       setDischargeSummary("");
       load();
     } catch (err) {
@@ -291,6 +293,18 @@ export default function Beds() {
                             </option>
                           ))}
                         </select>
+                        {dischargeOutcome === "deceased" && (
+                          <label className="block space-y-1 text-xs text-zinc-500">
+                            {t("Date et heure du décès (laisser vide = maintenant)")}
+                            <input
+                              type="datetime-local"
+                              data-testid="discharge-deceased-at"
+                              value={deceasedAt}
+                              onChange={(event) => setDeceasedAt(event.target.value)}
+                              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                            />
+                          </label>
+                        )}
                         <textarea
                           aria-label={t("Résumé et consignes de sortie")}
                           data-testid="discharge-summary"
@@ -313,6 +327,7 @@ export default function Beds() {
                                 dischargeStay(selected.stay!.stayId, {
                                   outcome: dischargeOutcome || undefined,
                                   summary: dischargeSummary.trim() || undefined,
+                                  deceasedAt: dischargeOutcome === "deceased" && deceasedAt ? new Date(deceasedAt).toISOString() : undefined,
                                 }),
                               )
                             }

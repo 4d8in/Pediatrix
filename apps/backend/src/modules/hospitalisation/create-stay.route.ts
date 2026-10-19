@@ -1,3 +1,4 @@
+import { DECEASED_MESSAGE, isDeceased } from "../../lib/deceased.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
@@ -21,7 +22,8 @@ export async function createStayRoute(app: FastifyInstance) {
 
     try {
       try {
-        await hapiClient.get(`/Patient/${encodeURIComponent(patientId)}`);
+        const patient = await hapiClient.get<{ deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${encodeURIComponent(patientId)}`);
+        if (isDeceased(patient)) return reply.code(409).send({ error: DECEASED_MESSAGE });
       } catch (error) {
         if (error instanceof HapiError && error.statusCode === 404) {
           return reply.code(404).send({ error: "Patient introuvable." });

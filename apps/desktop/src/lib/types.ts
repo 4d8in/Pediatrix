@@ -604,6 +604,12 @@ export interface BirthRecord {
   alerts: BirthAlert[];
 }
 
+export interface DoseSchedule {
+  prescriptionId: string;
+  nextDueAt: string;
+  state: "not_due" | "due" | "overdue";
+}
+
 export interface Administration {
   id: string;
   prescriptionId: string | null;

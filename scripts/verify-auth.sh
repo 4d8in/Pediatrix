@@ -231,6 +231,9 @@ check "POST /api/hospitalisations/:id/administrations (médecin, interdit)" "403
 req GET "/api/hospitalisations/inconnu/administrations" "$TOKEN_LAB"
 check "GET /api/hospitalisations/:id/administrations (technicien labo, interdit)" "403" "$REQ_CODE"
 
+req POST "/api/patients/inconnu/deceased/revoke" "$TOKEN_NURSE" '{"reason":"test de blocage"}'
+check "POST /api/patients/:id/deceased/revoke (infirmière, interdit)" "403" "$REQ_CODE"
+
 req POST "/api/hospitalisations" "$TOKEN_DIRECTOR" '{}'
 check "POST /api/hospitalisations (directeur, interdit)" "403" "$REQ_CODE"
 

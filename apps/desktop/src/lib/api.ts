@@ -30,6 +30,7 @@ import type {
   GrowthMeasurement,
   BirthRecord,
   Administration,
+  DoseSchedule,
   Stats,
   ImagingReport,
   ImagingRequest,
@@ -398,8 +399,12 @@ export function getWeeklySurveillance(week: string): Promise<SurveillanceReport>
   return request<SurveillanceReport>(`/api/surveillance/weekly?week=${encodeURIComponent(week)}`);
 }
 
-export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcome; summary?: string } = {}): Promise<{ ok: true }> {
+export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcome; summary?: string; deceasedAt?: string } = {}): Promise<{ ok: true }> {
   return request<{ ok: true }>(`/api/hospitalisations/${stayId}/discharge`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function revokeDeath(patientId: string, reason: string): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/patients/${patientId}/deceased/revoke`, { method: "POST", body: JSON.stringify({ reason }) });
 }
 
 export function getPatientBirth(patientId: string): Promise<{ birth: BirthRecord | null }> {
@@ -413,8 +418,8 @@ export function createBirth(
   return request<{ ok: true }>(`/api/patients/${patientId}/birth`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function getStayAdministrations(stayId: string): Promise<{ administrations: Administration[] }> {
-  return request<{ administrations: Administration[] }>(`/api/hospitalisations/${stayId}/administrations`);
+export function getStayAdministrations(stayId: string): Promise<{ administrations: Administration[]; schedule: DoseSchedule[] }> {
+  return request<{ administrations: Administration[]; schedule: DoseSchedule[] }>(`/api/hospitalisations/${stayId}/administrations`);
 }
 
 export function recordAdministration(

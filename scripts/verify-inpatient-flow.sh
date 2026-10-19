@@ -69,10 +69,30 @@ COUNT=$(body "$(api GET "$DOCTOR" "/api/hospitalisations/${STAY}/administrations
 [ "$(status "$(api GET "$LAB" "/api/hospitalisations/${STAY}/administrations")")" = "403" ] || fail "le laboratoire ne devrait pas lire (403)."
 echo "OK : administration des médicaments."
 
+# --- Échéancier des doses ---
+RX3=$(body "$(api POST "$DOCTOR" "/api/encounters/${ENC}/prescriptions" '{"medication":"Cotrimoxazole sirop","dosage":"3 prises par jour","doseMg":240,"dosesPerDay":3,"doseConfirmed":true}')" | jq -r '.prescriptionId // empty')
+[ -n "$RX3" ] || fail "prescription à 3 prises par jour."
+sleep 1
+STATE=$(body "$(api GET "$NURSE" "/api/hospitalisations/${STAY}/administrations")" | jq -r --arg id "$RX3" '.schedule[] | select(.prescriptionId==$id) | .state')
+[ "$STATE" = "due" ] || [ "$STATE" = "overdue" ] || fail "première dose attendue due, état : ${STATE:-absent}."
+[ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/administrations" "{\"prescriptionId\":\"${RX3}\",\"given\":true}")")" = "201" ] || fail "administration 3 prises refusée."
+STATE=$(body "$(api GET "$NURSE" "/api/hospitalisations/${STAY}/administrations")" | jq -r --arg id "$RX3" '.schedule[] | select(.prescriptionId==$id) | .state')
+[ "$STATE" = "not_due" ] || fail "après la prise, état attendu not_due : ${STATE:-absent}."
+echo "OK : échéancier des doses."
+
 # --- Décès à la sortie ---
 [ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased"}')")" = "403" ] || fail "l'infirmière ne devrait pas enregistrer un décès (403)."
+[ "$(status "$(api POST "$DOCTOR" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased","deceasedAt":"2999-01-01T00:00:00Z"}')")" = "400" ] || fail "date de décès future non refusée."
 [ "$(status "$(api POST "$DOCTOR" "/api/hospitalisations/${STAY}/discharge" '{"outcome":"deceased","summary":"Test de vérification"}')")" = "200" ] || fail "sortie refusée."
 [ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/arrival")")" = "409" ] || fail "arrivée d'un patient décédé non refusée (409)."
 DECEASED=$(body "$(api GET "$DOCTOR" "/api/patients/${PATIENT}")" | jq -r '.patient.deceased // .deceased // empty')
+[ "$(status "$(api POST "$DOCTOR" /api/hospitalisations "{\"patientId\":\"${PATIENT}\",\"bedId\":\"${BED}\"}")")" = "409" ] || fail "hospitalisation d'un patient décédé non refusée (409)."
+[ "$(status "$(api POST "$DOCTOR" "/api/patients/${PATIENT}/encounters" '{"reason":"Test"}')")" = "409" ] || fail "consultation d'un patient décédé non refusée (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/deceased/revoke" '{"reason":"Erreur de saisie"}')")" = "403" ] || fail "l'infirmière ne devrait pas corriger un décès (403)."
+[ "$(status "$(api POST "$DOCTOR" "/api/patients/${PATIENT}/deceased/revoke" '{"reason":"x"}')")" = "400" ] || fail "motif trop court non refusé."
+[ "$(status "$(api POST "$DOCTOR" "/api/patients/${PATIENT}/deceased/revoke" '{"reason":"Erreur de saisie de l issue"}')")" = "200" ] || fail "correction refusée."
+[ "$(status "$(api POST "$DOCTOR" "/api/patients/${PATIENT}/deceased/revoke" '{"reason":"Erreur de saisie de l issue"}')")" = "409" ] || fail "2e correction non refusée (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/arrival")")" = "201" ] || fail "après correction, l'arrivée devrait être acceptée."
+echo "OK : garde-fous du décès et correction."
 echo "OK : décès enregistré (champ deceased : ${DECEASED:-non exposé})."
 echo "SUCCÈS : naissance, administration et décès vérifiés."

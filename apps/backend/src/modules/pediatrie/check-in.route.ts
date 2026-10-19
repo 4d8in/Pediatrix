@@ -4,6 +4,7 @@ import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { createArrival, findTodayArrival } from "../../lib/arrival.js";
 import { KEY_PATTERN } from "../../lib/idempotency.js";
+import { DECEASED_MESSAGE, isDeceased } from "../../lib/deceased.js";
 import { parseOccurredAt } from "../../lib/occurred-at.js";
 
 // Enregistre l'arrivée d'un patient déjà connu : il entre dans la file active du jour.
@@ -22,9 +23,7 @@ export async function checkInRoute(app: FastifyInstance) {
       if ("error" in occurred) return reply.code(400).send({ error: occurred.error });
       try {
         const patient = await hapiClient.get<{ deceasedDateTime?: string; deceasedBoolean?: boolean }>(`/Patient/${id}`);
-        if (patient.deceasedDateTime || patient.deceasedBoolean) {
-          return reply.code(409).send({ error: "Ce patient est enregistré comme décédé." });
-        }
+        if (isDeceased(patient)) return reply.code(409).send({ error: DECEASED_MESSAGE });
         if (await findTodayArrival(id)) {
           return reply.code(409).send({ error: "Ce patient est déjà dans la file active du jour." });
         }

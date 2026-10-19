@@ -5,6 +5,7 @@ import { ApiError, getMyProfile, updateMyProfile } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { UserProfile } from "../lib/types";
 import { ROLE_LABELS } from "../lib/roles";
+import { useI18n } from "../lib/i18n";
 
 const PHOTO_SIZE = 256;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
@@ -51,6 +52,7 @@ const inputClass = "w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm
 // Page « Mon profil » : nom affiché, téléphone, e-mail et photo de l'utilisateur connecté.
 export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) => void }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,7 +61,7 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
   useEffect(() => {
     getMyProfile()
       .then(setProfile)
-      .catch((err) => setMessage({ ok: false, text: err instanceof ApiError ? err.message : "Serveur injoignable." }));
+      .catch((err) => setMessage({ ok: false, text: err instanceof ApiError ? err.message : t("Serveur injoignable.") }));
   }, []);
 
   async function handlePhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -67,18 +69,18 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
     event.target.value = "";
     if (!file || !profile) return;
     if (!["image/jpeg", "image/png"].includes(file.type)) {
-      setMessage({ ok: false, text: "Choisissez une image JPG ou PNG." });
+      setMessage({ ok: false, text: t("Choisissez une image JPG ou PNG.") });
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setMessage({ ok: false, text: "Image trop lourde (2 Mo maximum)." });
+      setMessage({ ok: false, text: t("Image trop lourde (2 Mo maximum).") });
       return;
     }
     try {
       setProfile({ ...profile, photo: await resizePhoto(file) });
       setMessage(null);
     } catch {
-      setMessage({ ok: false, text: "Impossible de lire cette image." });
+      setMessage({ ok: false, text: t("Impossible de lire cette image.") });
     }
   }
 
@@ -91,9 +93,9 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
       const saved = await updateMyProfile(profile);
       setProfile(saved);
       onSaved(saved);
-      setMessage({ ok: true, text: "Profil enregistré." });
+      setMessage({ ok: true, text: t("Profil enregistré.") });
     } catch (err) {
-      const text = err instanceof ApiError ? (err.details ?? [err.message]).join(" ") : "Serveur injoignable.";
+      const text = err instanceof ApiError ? (err.details ?? [err.message]).join(" ") : t("Serveur injoignable.");
       setMessage({ ok: false, text });
     } finally {
       setIsSaving(false);
@@ -105,8 +107,8 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Mon profil</h1>
-        <p className="mt-1 text-sm text-zinc-500">Vos informations et votre photo, visibles par vos collègues</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Mon profil")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Vos informations et votre photo, visibles par vos collègues")}</p>
       </div>
 
       {message && (
@@ -124,7 +126,7 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
           <section className="flex flex-col items-center gap-4 rounded-[18px] border border-zinc-200/70 bg-white p-6">
             <div className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-full bg-[#1A6FD4]/10 text-4xl font-medium text-[#1A6FD4]">
               {profile.photo ? (
-                <img src={photoSrc(profile.photo)} alt="Photo de profil" className="h-full w-full object-cover" />
+                <img src={photoSrc(profile.photo)} alt={t("Photo de profil")} className="h-full w-full object-cover" />
               ) : (
                 initialsOf(profile.displayName)
               )}
@@ -136,12 +138,12 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
                 onClick={() => fileInput.current?.click()}
                 className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
               >
-                <Camera className="h-4 w-4" /> Changer la photo
+                <Camera className="h-4 w-4" /> {t("Changer la photo")}
               </button>
               {profile.photo && (
                 <button
                   type="button"
-                  aria-label="Retirer la photo"
+                  aria-label={t("Retirer la photo")}
                   onClick={() => setProfile({ ...profile, photo: null })}
                   className="rounded-lg border border-zinc-200 px-3 py-2 text-zinc-500 transition hover:border-red-200 hover:text-red-600"
                 >
@@ -149,13 +151,13 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
                 </button>
               )}
             </div>
-            <p className="text-center text-xs text-zinc-400">JPG ou PNG, 2 Mo maximum. Recadrée automatiquement.</p>
+            <p className="text-center text-xs text-zinc-400">{t("JPG ou PNG, 2 Mo maximum. Recadrée automatiquement.")}</p>
           </section>
 
           <section className="space-y-4 rounded-[18px] border border-zinc-200/70 bg-white p-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="space-y-1.5 text-sm text-zinc-600">
-                Nom affiché
+                {t("Nom affiché")}
                 <input
                   required
                   maxLength={80}
@@ -165,11 +167,11 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
                 />
               </label>
               <label className="space-y-1.5 text-sm text-zinc-600">
-                Rôle
-                <input disabled value={ROLE_LABELS[user.role]} className={`${inputClass} bg-zinc-50 text-zinc-500`} />
+                {t("Rôle")}
+                <input disabled value={t(ROLE_LABELS[user.role])} className={`${inputClass} bg-zinc-50 text-zinc-500`} />
               </label>
               <label className="space-y-1.5 text-sm text-zinc-600">
-                Téléphone professionnel
+                {t("Téléphone professionnel")}
                 <input
                   type="tel"
                   placeholder="+221 77 000 00 00"
@@ -179,7 +181,7 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
                 />
               </label>
               <label className="space-y-1.5 text-sm text-zinc-600">
-                E-mail professionnel
+                {t("E-mail professionnel")}
                 <input
                   type="email"
                   placeholder="prenom.nom@hopital.sn"
@@ -190,14 +192,14 @@ export default function Profile({ onSaved }: { onSaved: (profile: UserProfile) =
               </label>
             </div>
             <p className="text-xs text-zinc-400">
-              L'identifiant de connexion et le rôle ne sont modifiables que par l'administrateur technique.
+              {t("L'identifiant de connexion et le rôle ne sont modifiables que par l'administrateur technique.")}
             </p>
             <button
               type="submit"
               disabled={isSaving}
               className="rounded-lg bg-[#1A6FD4] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#155bb0] disabled:opacity-50"
             >
-              {isSaving ? "Enregistrement…" : "Enregistrer"}
+              {isSaving ? t("Enregistrement…") : t("Enregistrer")}
             </button>
           </section>
         </form>

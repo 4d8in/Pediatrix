@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BedDouble, CalendarCheck, ChevronRight, FlaskConical, Info, MoreVertical, Plus, Syringe, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../lib/utils";
+import { LOCALES, useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth-context";
 import RecentResults from "../components/RecentResults";
 import { ApiError, getDashboardOverview, listPatients } from "../lib/api";
@@ -43,7 +44,7 @@ function PatientAvatar({ name }: { name: string }) {
   );
 }
 
-function computeAge(birthDate: string): string {
+function computeAge(birthDate: string, t: (fr: string) => string): string {
   const birth = new Date(birthDate);
   if (Number.isNaN(birth.getTime())) return "—";
   const now = new Date();
@@ -54,8 +55,8 @@ function computeAge(birthDate: string): string {
     years -= 1;
     months += 12;
   }
-  if (years < 1) return `${Math.max(months, 0)} mois`;
-  return `${years} ans`;
+  if (years < 1) return `${Math.max(months, 0)} ${t("mois")}`;
+  return `${years} ${t("ans")}`;
 }
 
 const GENDER_LABELS: Record<Patient["gender"], string> = {
@@ -64,11 +65,6 @@ const GENDER_LABELS: Record<Patient["gender"], string> = {
   other: "Autre",
   unknown: "Non renseigné",
 };
-
-function formatDate(date: string): string {
-  const parsed = new Date(date);
-  return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString("fr-FR");
-}
 
 interface CardProps {
   title: string;
@@ -132,6 +128,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const { user } = useAuth();
+  const { t, lang, formatDate: formatLocalDate } = useI18n();
   const [breakdown, setBreakdown] = useState<"sexe" | "age">("sexe");
 
   // Indicateurs et graphiques, tous calculés par le backend (GET /api/dashboard/overview).
@@ -142,7 +139,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
         if (!cancelled) setOverview(data);
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.");
+        if (!cancelled) setLoadError(err instanceof ApiError ? err.message : t("Le serveur Pédiatrix est injoignable."));
       });
     return () => {
       cancelled = true;
@@ -161,7 +158,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
         })
         .catch((err) => {
           if (cancelled) return;
-          setLoadError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.");
+          setLoadError(err instanceof ApiError ? err.message : t("Le serveur Pédiatrix est injoignable."));
         })
         .finally(() => {
           if (!cancelled) setIsLoading(false);
@@ -195,8 +192,8 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
   return (
     <div className="space-y-4">
       <div className="pb-2">
-        <h1 className="text-[22px] font-medium text-zinc-900">Tableau de bord</h1>
-        <p className="mt-1 text-sm text-zinc-500">Vue d'ensemble de l'activité du service</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Tableau de bord")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Vue d'ensemble de l'activité du service")}</p>
       </div>
       {loadError && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError}</div>
@@ -204,28 +201,28 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
-          label="Consultations"
+          label={t("Consultations")}
           value={overview?.consultations.total}
           icon={CalendarCheck}
           chart={<Sparkline values={overview?.consultations.last7Days ?? [0, 0]} />}
-          caption={`${sum(overview?.consultations.last7Days)} consultation(s) ces 7 derniers jours`}
+          caption={t("{n} consultation(s) ces 7 derniers jours", { n: sum(overview?.consultations.last7Days) })}
         />
         <StatCard
-          label="Examens"
+          label={t("Examens")}
           value={overview?.examens.total}
           icon={FlaskConical}
           chart={<MiniBars values={overview?.examens.last7Days ?? []} />}
-          caption={`${lab?.enAttente ?? 0} examen(s) en attente au laboratoire`}
+          caption={t("{n} examen(s) en attente au laboratoire", { n: lab?.enAttente ?? 0 })}
         />
         <StatCard
-          label="Patients"
+          label={t("Patients")}
           value={overview?.patients.total}
           icon={Users}
           chart={<MiniBars values={overview?.patients.parTrancheAge ?? []} />}
-          caption="Répartition : < 1 an, 1–4 ans, 5–9 ans, 10 ans et +"
+          caption={t("Répartition : < 1 an, 1–4 ans, 5–9 ans, 10 ans et +")}
         />
         <StatCard
-          label="Hospitalisés"
+          label={t("Hospitalisés")}
           value={overview?.hospitalisation.enCours}
           icon={BedDouble}
           chart={
@@ -235,27 +232,27 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
           }
           caption={
             overview && overview.hospitalisation.litsTotal > 0
-              ? `${overview.hospitalisation.litsOccupes} lit(s) occupé(s) sur ${overview.hospitalisation.litsTotal}`
-              : "Aucun lit configuré"
+              ? t("{occupied} lit(s) occupé(s) sur {total}", { occupied: overview.hospitalisation.litsOccupes, total: overview.hospitalisation.litsTotal })
+              : t("Aucun lit configuré")
           }
         />
         <StatCard
-          label="Vaccinations"
+          label={t("Vaccinations")}
           value={overview?.vaccinations.total}
           icon={Syringe}
           chart={<MiniBars values={overview?.vaccinations.last7Days ?? []} />}
-          caption={`${sum(overview?.vaccinations.last7Days)} vaccin(s) administré(s) ces 7 derniers jours`}
+          caption={t("{n} vaccin(s) administré(s) ces 7 derniers jours", { n: sum(overview?.vaccinations.last7Days) })}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_1fr_0.9fr]">
-        <Card title="Activité mensuelle">
+        <Card title={t("Activité mensuelle")}>
           <div className="my-4 flex justify-center gap-4 text-sm text-zinc-700">
             <span className="flex items-center gap-2">
-              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> Consultations
+              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> {t("Consultations")}
             </span>
             <span className="flex items-center gap-2">
-              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> Examens demandés
+              <span className="h-2.5 w-6 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> {t("Examens demandés")}
             </span>
           </div>
           <MonthlyBars
@@ -264,7 +261,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
           />
         </Card>
 
-        <Card title="Laboratoire" className="flex flex-col">
+        <Card title={t("Laboratoire")} className="flex flex-col">
           <div className="relative mt-6 flex flex-1 justify-center">
             <SegmentGauge done={lab?.termines ?? 0} pending={lab?.enAttente ?? 0} />
             <div className="absolute bottom-3 text-center">
@@ -274,20 +271,20 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
           </div>
           <div className="mt-4 flex justify-center gap-2 text-sm text-zinc-600">
             <span className="flex items-center gap-2 whitespace-nowrap rounded-full border border-zinc-200 px-3 py-1">
-              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> Terminés ·{" "}
+              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.dark }} /> {t("Terminés")} ·{" "}
               <b className="font-medium text-zinc-900">{lab?.termines ?? 0}</b>
             </span>
             <span className="flex items-center gap-2 whitespace-nowrap rounded-full border border-zinc-200 px-3 py-1">
-              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> En attente ·{" "}
+              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: CHART_COLORS.light }} /> {t("En attente")} ·{" "}
               <b className="font-medium text-zinc-900">{lab?.enAttente ?? 0}</b>
             </span>
           </div>
         </Card>
 
-        <Card title="Examens en attente">
+        <Card title={t("Examens en attente")}>
           <div className="mt-4 space-y-3">
             {overview && overview.examensEnAttente.length === 0 && (
-              <p className="py-8 text-center text-sm text-zinc-400">Aucun examen en attente.</p>
+              <p className="py-8 text-center text-sm text-zinc-400">{t("Aucun examen en attente.")}</p>
             )}
             {overview?.examensEnAttente.map((exam) => {
               const date = exam.demandeLe ? new Date(exam.demandeLe) : null;
@@ -295,7 +292,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                 <div key={exam.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3">
                   <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-[#1A6FD4]/10 text-[#1A6FD4]">
                     <span className="text-[10px] capitalize">
-                      {date ? date.toLocaleDateString("fr-FR", { weekday: "short" }) : "—"}
+                      {date ? date.toLocaleDateString(LOCALES[lang], { weekday: "short" }) : "—"}
                     </span>
                     <span className="text-lg leading-none">{date ? date.getDate() : "—"}</span>
                   </div>
@@ -303,7 +300,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                     <p className="truncate font-medium text-zinc-900">{exam.examen}</p>
                     <p className="truncate text-xs text-zinc-500">
                       {exam.patient}
-                      {date && ` · ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
+                      {date && ` · ${date.toLocaleTimeString(LOCALES[lang], { hour: "2-digit", minute: "2-digit" })}`}
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-zinc-700" />
@@ -319,14 +316,14 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2.25fr_0.9fr]">
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-lg text-zinc-500">Patients récents</h2>
+            <h2 className="text-lg text-zinc-500">{t("Patients récents")}</h2>
             <button
               onClick={() => selectedId && onOpenConsultation?.(selectedId)}
               disabled={!selectedId}
-              title={selectedId ? undefined : "Sélectionnez un patient dans la liste pour activer ce bouton"}
+              title={selectedId ? undefined : t("Sélectionnez un patient dans la liste pour activer ce bouton")}
               className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-4 py-2 text-sm text-white transition hover:bg-[#155bb0] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <Plus className="h-4 w-4" /> Saisir paramètres vitaux
+              <Plus className="h-4 w-4" /> {t("Saisir paramètres vitaux")}
             </button>
           </div>
 
@@ -334,25 +331,25 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
             <thead>
               <tr className="border-b border-zinc-200 text-zinc-500">
                 <th className="w-10 py-3 font-normal" />
-                <th className="py-3 font-normal">Nom du patient</th>
-                <th className="py-3 font-normal">Âge</th>
-                <th className="py-3 font-normal">Date de naissance</th>
-                <th className="py-3 font-normal">Sexe</th>
-                <th className="py-3 text-right font-normal">Action</th>
+                <th className="py-3 font-normal">{t("Nom du patient")}</th>
+                <th className="py-3 font-normal">{t("Âge")}</th>
+                <th className="py-3 font-normal">{t("Date de naissance")}</th>
+                <th className="py-3 font-normal">{t("Sexe")}</th>
+                <th className="py-3 text-right font-normal">{t("Action")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {isLoading && (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-zinc-400">
-                    Chargement des patients…
+                    {t("Chargement des patients…")}
                   </td>
                 </tr>
               )}
               {!isLoading && patients.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-zinc-400">
-                    Aucun patient pour le moment.
+                    {t("Aucun patient pour le moment.")}
                   </td>
                 </tr>
               )}
@@ -369,7 +366,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                       <input
                         type="radio"
                         name="dashboard-patient"
-                        aria-label={`Sélectionner ${name}`}
+                        aria-label={t("Sélectionner {name}", { name })}
                         checked={isSelected}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => setSelectedId(patient.id)}
@@ -382,9 +379,9 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                         <span className="text-zinc-900">{name}</span>
                       </div>
                     </td>
-                    <td className="py-3 text-zinc-700">{computeAge(patient.birthDate)}</td>
-                    <td className="py-3 text-zinc-700">{formatDate(patient.birthDate)}</td>
-                    <td className="py-3 text-zinc-700">{GENDER_LABELS[patient.gender]}</td>
+                    <td className="py-3 text-zinc-700">{computeAge(patient.birthDate, t)}</td>
+                    <td className="py-3 text-zinc-700">{formatLocalDate(patient.birthDate) || "—"}</td>
+                    <td className="py-3 text-zinc-700">{t(GENDER_LABELS[patient.gender])}</td>
                     <td className="py-3 text-right">
                       <button
                         onClick={(e) => {
@@ -392,7 +389,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                           onOpenRecord(patient.id);
                         }}
                         className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-[#1A6FD4]"
-                        title="Consulter le dossier"
+                        title={t("Consulter le dossier")}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -405,16 +402,16 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
         </section>
 
         <Card
-          title="Répartition des patients"
+          title={t("Répartition des patients")}
           action={
             <select
-              aria-label="Critère de répartition"
+              aria-label={t("Critère de répartition")}
               value={breakdown}
               onChange={(event) => setBreakdown(event.target.value as "sexe" | "age")}
               className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-[#1A6FD4]"
             >
-              <option value="sexe">Par sexe</option>
-              <option value="age">Par âge</option>
+              <option value="sexe">{t("Par sexe")}</option>
+              <option value="age">{t("Par âge")}</option>
             </select>
           }
         >
@@ -425,7 +422,7 @@ export default function Dashboard({ search, onOpenRecord, onOpenConsultation }: 
                 <li key={slice.label} className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-zinc-700">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: slice.color }} />
-                    {slice.label}
+                    {t(slice.label)}
                   </span>
                   <span className="text-zinc-500">
                     {slice.value} · {percent(slice.value, breakdownTotal)}

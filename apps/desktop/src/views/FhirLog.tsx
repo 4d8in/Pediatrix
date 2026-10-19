@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { RefreshCcw, Terminal } from "lucide-react";
 import { ApiError, getFhirLog } from "../lib/api";
 import type { FhirLogEntry } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 const BADGE_COLORS: Record<string, string> = {
   Patient: "bg-blue-500/10 text-blue-700 border-blue-500/30",
@@ -15,6 +16,7 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export default function FhirLog() {
+  const { t, formatDateTime } = useI18n();
   const [resources, setResources] = useState<FhirLogEntry[]>([]);
   const [selected, setSelected] = useState<FhirLogEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +30,7 @@ export default function FhirLog() {
         setResources(data.resources);
         setSelected((current) => current ?? data.resources[0] ?? null);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du flux FHIR."))
+      .catch((err) => setError(err instanceof ApiError ? err.message : t("Erreur de chargement du flux FHIR.")))
       .finally(() => setIsLoading(false));
   }
 
@@ -39,15 +41,15 @@ export default function FhirLog() {
   return (
     <div className="flex h-full flex-col gap-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Flux FHIR</h1>
-        <p className="mt-1 text-sm text-zinc-500">Ressources FHIR réellement émises par le backend</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Flux FHIR")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Ressources FHIR réellement émises par le backend")}</p>
       </div>
       <div className="grid flex-1 min-h-[560px] grid-cols-[minmax(280px,35%)_1fr] gap-4">
         <section className="flex flex-col overflow-hidden rounded-[18px] border border-zinc-200/70 bg-white">
           <div className="flex items-center justify-between border-b border-zinc-100 p-5">
             <div>
               <h2 className="flex items-center gap-2 text-lg text-zinc-700">
-                <Terminal className="h-5 w-5 text-[#1A6FD4]" /> Ressources émises
+                <Terminal className="h-5 w-5 text-[#1A6FD4]" /> {t("Ressources émises")}
               </h2>
               <p className="mt-1 text-xs text-zinc-500">FHIR R4</p>
             </div>
@@ -55,14 +57,14 @@ export default function FhirLog() {
               onClick={load}
               className="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
             >
-              <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
+              <RefreshCcw className="h-3.5 w-3.5" /> {t("Actualiser")}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
-            {isLoading && <p className="p-3 text-sm text-zinc-500">Chargement…</p>}
+            {isLoading && <p className="p-3 text-sm text-zinc-500">{t("Chargement…")}</p>}
             {error && <p className="p-3 text-sm text-red-600">{error}</p>}
             {!isLoading && !error && resources.length === 0 && (
-              <p className="p-3 text-sm text-zinc-500">Aucune ressource émise pour le moment.</p>
+              <p className="p-3 text-sm text-zinc-500">{t("Aucune ressource émise pour le moment.")}</p>
             )}
             {resources.map((resource) => {
               const isSelected = selected?.id === resource.id && selected.type === resource.type;
@@ -76,7 +78,7 @@ export default function FhirLog() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
-                      {resource.lastUpdated ? new Date(resource.lastUpdated).toLocaleString("fr-FR") : "—"}
+                      {resource.lastUpdated ? formatDateTime(resource.lastUpdated) : "—"}
                     </span>
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[11px] ${
@@ -99,7 +101,7 @@ export default function FhirLog() {
           {selected ? (
             <>
               <div className="flex items-center gap-3 border-b border-zinc-100 p-5 text-lg">
-                <span className="text-zinc-500">Ressource JSON</span>
+                <span className="text-zinc-500">{t("Ressource JSON")}</span>
                 <span className="text-zinc-300">/</span>
                 <span className="text-[#1A6FD4]">
                   {selected.type}/{selected.id}
@@ -113,7 +115,7 @@ export default function FhirLog() {
             </>
           ) : (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-zinc-400">Sélectionnez une ressource pour afficher son JSON</p>
+              <p className="text-sm text-zinc-400">{t("Sélectionnez une ressource pour afficher son JSON")}</p>
             </div>
           )}
         </section>

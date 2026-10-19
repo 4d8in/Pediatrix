@@ -10,6 +10,7 @@ import {
   receiveStock,
 } from "../lib/api";
 import type { FormularyItem, PendingPrescription, StockLevel } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 type Tab = "prescriptions" | "stock" | "reception";
 
@@ -22,9 +23,9 @@ const TABS: { id: Tab; label: string }[] = [
 const inputClass =
   "w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl";
 
-function errorText(error: unknown): string[] {
+function errorText(error: unknown, t: (fr: string) => string): string[] {
   if (error instanceof ApiError) return error.details ?? [error.message];
-  return ["Erreur inattendue."];
+  return [t("Erreur inattendue.")];
 }
 
 // Propose l'article du formulaire dont le nom ressemble le plus au médicament prescrit.
@@ -36,6 +37,7 @@ function suggestItem(medication: string | null, formulary: FormularyItem[]): str
 }
 
 export default function Pharmacy() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("prescriptions");
   const [formulary, setFormulary] = useState<FormularyItem[]>([]);
   const [stock, setStock] = useState<StockLevel[]>([]);
@@ -65,7 +67,7 @@ export default function Pharmacy() {
         setStock(stockData.items);
         setPrescriptions(prescriptionData.prescriptions);
       })
-      .catch((error) => setLoadError(errorText(error).join(" ")))
+      .catch((error) => setLoadError(errorText(error, t).join(" ")))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -89,7 +91,7 @@ export default function Pharmacy() {
       setPrescriptions((rows) => rows.filter((row) => row.id !== selected.id));
       getStock().then((data) => setStock(data.items)).catch(() => undefined);
     } catch (error) {
-      setDispenseErrors(errorText(error));
+      setDispenseErrors(errorText(error, t));
     }
   }
 
@@ -105,13 +107,13 @@ export default function Pharmacy() {
         expiry: receiptExpiry || undefined,
       });
       const name = formulary.find((item) => item.code === receiptItem)?.name ?? receiptItem;
-      setReceiptDone(`${receiptQuantity} × ${name} reçus en stock.`);
+      setReceiptDone(t("{quantity} × {name} reçus en stock.", { quantity: receiptQuantity, name }));
       setReceiptQuantity("");
       setReceiptLot("");
       setReceiptExpiry("");
       getStock().then((data) => setStock(data.items)).catch(() => undefined);
     } catch (error) {
-      setReceiptErrors(errorText(error));
+      setReceiptErrors(errorText(error, t));
     }
   }
 
@@ -123,8 +125,8 @@ export default function Pharmacy() {
     <div className="flex h-full flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-900">Pharmacie</h1>
-          <p className="mt-1 text-sm text-zinc-500">Délivrance des ordonnances, stock et réceptions</p>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("Pharmacie")}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t("Délivrance des ordonnances, stock et réceptions")}</p>
         </div>
         <button
           type="button"
@@ -132,7 +134,7 @@ export default function Pharmacy() {
           disabled={isLoading}
           className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
         >
-          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> Actualiser
+          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> {t("Actualiser")}
         </button>
       </div>
 
@@ -150,9 +152,9 @@ export default function Pharmacy() {
                 : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            {item.label}
+            {t(item.label)}
             {item.id === "prescriptions" && ` (${prescriptions.length})`}
-            {item.id === "stock" && lowCount > 0 && ` · ${lowCount} à réapprovisionner`}
+            {item.id === "stock" && lowCount > 0 && ` · ${t("{count} à réapprovisionner", { count: lowCount })}`}
           </button>
         ))}
       </div>
@@ -160,7 +162,7 @@ export default function Pharmacy() {
       {tab === "prescriptions" && (
         <div className="flex min-h-[480px] flex-1 gap-4">
           <div className="w-[40%] overflow-y-auto rounded-[18px] border border-zinc-200/70 bg-white">
-            {prescriptions.length === 0 && <p className="p-6 text-sm text-zinc-400">Aucune ordonnance en attente.</p>}
+            {prescriptions.length === 0 && <p className="p-6 text-sm text-zinc-400">{t("Aucune ordonnance en attente.")}</p>}
             {prescriptions.map((prescription) => (
               <button
                 key={prescription.id}
@@ -169,10 +171,10 @@ export default function Pharmacy() {
                   selected?.id === prescription.id ? "bg-zinc-100/50" : "hover:bg-zinc-50"
                 }`}
               >
-                <h3 className="text-sm font-medium text-zinc-900">{prescription.medication ?? "Médicament non précisé"}</h3>
-                <p className="mt-1 text-xs text-zinc-500">{prescription.dosage ?? "Posologie non précisée"}</p>
+                <h3 className="text-sm font-medium text-zinc-900">{prescription.medication ?? t("Médicament non précisé")}</h3>
+                <p className="mt-1 text-xs text-zinc-500">{prescription.dosage ?? t("Posologie non précisée")}</p>
                 <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
-                  <User className="h-3 w-3" /> {prescription.patientName || "Patient inconnu"}
+                  <User className="h-3 w-3" /> {prescription.patientName || t("Patient inconnu")}
                 </div>
               </button>
             ))}
@@ -182,17 +184,17 @@ export default function Pharmacy() {
             {!selected ? (
               <div className="flex h-full flex-col items-center justify-center text-center opacity-30">
                 <Pill className="mb-4 h-14 w-14" />
-                <p className="text-sm font-medium">Sélectionner une ordonnance</p>
+                <p className="text-sm font-medium">{t("Sélectionner une ordonnance")}</p>
               </div>
             ) : dispensed === selected.id ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <CheckCircle2 className="mb-4 h-12 w-12 text-green-600" />
-                <h3 className="text-lg font-medium text-zinc-900">Médicament délivré</h3>
+                <h3 className="text-lg font-medium text-zinc-900">{t("Médicament délivré")}</h3>
                 <button
                   onClick={() => setSelected(null)}
                   className="mt-8 rounded-full bg-[#1A6FD4] px-8 py-3 text-sm font-medium text-white hover:bg-[#155bb0]"
                 >
-                  Ordonnance suivante
+                  {t("Ordonnance suivante")}
                 </button>
               </div>
             ) : (
@@ -201,7 +203,7 @@ export default function Pharmacy() {
                   <h2 className="text-sm font-medium text-zinc-900">
                     {selected.patientName} — {selected.medication}
                   </h2>
-                  <p className="mt-1 text-xs text-zinc-500">Posologie : {selected.dosage ?? "non précisée"}</p>
+                  <p className="mt-1 text-xs text-zinc-500">{t("Posologie : {dosage}", { dosage: selected.dosage ?? t("non précisée") })}</p>
                 </div>
                 {dispenseErrors.length > 0 && (
                   <div className="space-y-1 rounded-[18px] border border-red-200 bg-red-50 p-4">
@@ -213,7 +215,7 @@ export default function Pharmacy() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Article délivré</label>
+                  <label className="text-sm font-medium text-zinc-400">{t("Article délivré")}</label>
                   <select
                     required
                     data-testid="dispense-item"
@@ -221,7 +223,7 @@ export default function Pharmacy() {
                     onChange={(event) => setItemCode(event.target.value)}
                     className={inputClass}
                   >
-                    <option value="">Choisir dans le formulaire…</option>
+                    <option value="">{t("Choisir dans le formulaire…")}</option>
                     {formulary.map((item) => (
                       <option key={item.code} value={item.code}>
                         {item.name}
@@ -230,12 +232,12 @@ export default function Pharmacy() {
                   </select>
                   {selectedItem && (
                     <p className="text-xs text-zinc-400">
-                      En stock : {available ?? 0} {selectedItem.unit}(s)
+                      {t("En stock : {quantity} {unit}(s)", { quantity: available ?? 0, unit: selectedItem.unit })}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Quantité{selectedItem ? ` (${selectedItem.unit}s)` : ""}</label>
+                  <label className="text-sm font-medium text-zinc-400">{t("Quantité")}{selectedItem ? ` (${selectedItem.unit}s)` : ""}</label>
                   <input
                     type="number"
                     min={1}
@@ -251,7 +253,7 @@ export default function Pharmacy() {
                   data-testid="dispense-submit"
                   className="rounded-full bg-[#1A6FD4] px-8 py-3 text-xs font-medium text-white hover:bg-[#155bb0]"
                 >
-                  Délivrer
+                  {t("Délivrer")}
                 </button>
               </form>
             )}
@@ -264,11 +266,11 @@ export default function Pharmacy() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-100 text-xs text-zinc-400">
               <tr>
-                <th className="px-6 py-3 font-medium">Article</th>
-                <th className="px-3 py-3 font-medium">Forme</th>
-                <th className="px-3 py-3 font-medium">En stock</th>
-                <th className="px-3 py-3 font-medium">Seuil</th>
-                <th className="px-3 py-3 font-medium">État</th>
+                <th className="px-6 py-3 font-medium">{t("Article")}</th>
+                <th className="px-3 py-3 font-medium">{t("Forme")}</th>
+                <th className="px-3 py-3 font-medium">{t("En stock")}</th>
+                <th className="px-3 py-3 font-medium">{t("Seuil")}</th>
+                <th className="px-3 py-3 font-medium">{t("État")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50">
@@ -287,20 +289,20 @@ export default function Pharmacy() {
                           data-testid={`expired-${item.code}`}
                           className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700"
                         >
-                          <AlertTriangle className="h-3 w-3" /> {item.expiredQuantity} périmé(s), à retirer
+                          <AlertTriangle className="h-3 w-3" /> {t("{count} périmé(s), à retirer", { count: item.expiredQuantity })}
                         </span>
                       )}
                       {item.expiringSoonQuantity > 0 && (
                         <span className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                          {item.expiringSoonQuantity} périment sous 90 j
+                          {t("{count} périment sous 90 j", { count: item.expiringSoonQuantity })}
                         </span>
                       )}
                       {item.low ? (
                         <span className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
-                          <AlertTriangle className="h-3 w-3" /> À réapprovisionner
+                          <AlertTriangle className="h-3 w-3" /> {t("À réapprovisionner")}
                         </span>
                       ) : (
-                        item.expiredQuantity === 0 && <span className="text-xs text-green-700">Suffisant</span>
+                        item.expiredQuantity === 0 && <span className="text-xs text-green-700">{t("Suffisant")}</span>
                       )}
                     </div>
                   </td>
@@ -313,7 +315,7 @@ export default function Pharmacy() {
 
       {tab === "reception" && (
         <form onSubmit={handleReceive} className="max-w-xl space-y-5 rounded-[18px] border border-zinc-200/70 bg-white p-8">
-          <h2 className="text-sm font-medium text-zinc-900">Réception d'une livraison</h2>
+          <h2 className="text-sm font-medium text-zinc-900">{t("Réception d'une livraison")}</h2>
           {receiptDone && <p className="text-xs font-medium text-green-700">{receiptDone}</p>}
           {receiptErrors.length > 0 && (
             <div className="space-y-1 rounded-[18px] border border-red-200 bg-red-50 p-4">
@@ -325,7 +327,7 @@ export default function Pharmacy() {
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Article</label>
+            <label className="text-sm font-medium text-zinc-400">{t("Article")}</label>
             <select
               required
               data-testid="receipt-item"
@@ -333,7 +335,7 @@ export default function Pharmacy() {
               onChange={(event) => setReceiptItem(event.target.value)}
               className={inputClass}
             >
-              <option value="">Choisir dans le formulaire…</option>
+              <option value="">{t("Choisir dans le formulaire…")}</option>
               {formulary.map((item) => (
                 <option key={item.code} value={item.code}>
                   {item.name}
@@ -343,7 +345,7 @@ export default function Pharmacy() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Quantité</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Quantité")}</label>
               <input
                 type="number"
                 min={1}
@@ -355,16 +357,16 @@ export default function Pharmacy() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">N° de lot</label>
+              <label className="text-sm font-medium text-zinc-400">{t("N° de lot")}</label>
               <input value={receiptLot} onChange={(event) => setReceiptLot(event.target.value)} className={inputClass} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Péremption</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Péremption")}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 pattern="\d{4}-\d{2}-\d{2}"
-                placeholder="AAAA-MM-JJ"
+                placeholder={t("AAAA-MM-JJ")}
                 value={receiptExpiry}
                 onChange={(event) => setReceiptExpiry(event.target.value)}
                 className={inputClass}
@@ -376,7 +378,7 @@ export default function Pharmacy() {
             data-testid="receipt-submit"
             className="rounded-full bg-[#1A6FD4] px-8 py-3 text-xs font-medium text-white hover:bg-[#155bb0]"
           >
-            Enregistrer la réception
+            {t("Enregistrer la réception")}
           </button>
         </form>
       )}

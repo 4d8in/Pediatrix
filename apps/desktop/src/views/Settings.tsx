@@ -4,6 +4,7 @@ import { CheckCircle2, KeyRound, LifeBuoy, Server, UserRound } from "lucide-reac
 import { ApiError, BACKEND_BASE_URL, changePassword } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { ROLE_LABELS } from "../lib/roles";
+import { useI18n } from "../lib/i18n";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -18,6 +19,7 @@ function Field({ label, value }: { label: string; value: string }) {
 // de connexion au serveur et aide. Aucune donnée n'est envoyée hors du LAN.
 export default function Settings() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -27,19 +29,19 @@ export default function Settings() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (newPassword !== confirmation) {
-      setMessage({ ok: false, text: "La confirmation ne correspond pas au nouveau mot de passe." });
+      setMessage({ ok: false, text: t("La confirmation ne correspond pas au nouveau mot de passe.") });
       return;
     }
     setIsSubmitting(true);
     setMessage(null);
     try {
       await changePassword(currentPassword, newPassword);
-      setMessage({ ok: true, text: "Mot de passe modifié." });
+      setMessage({ ok: true, text: t("Mot de passe modifié.") });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmation("");
     } catch (err) {
-      setMessage({ ok: false, text: err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable." });
+      setMessage({ ok: false, text: err instanceof ApiError ? err.message : t("Le serveur Pédiatrix est injoignable.") });
     } finally {
       setIsSubmitting(false);
     }
@@ -53,30 +55,30 @@ export default function Settings() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Paramètres</h1>
-        <p className="mt-1 text-sm text-zinc-500">Votre compte, votre mot de passe et l'aide</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Paramètres")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Votre compte, votre mot de passe et l'aide")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-            <UserRound className="h-5 w-5 text-[#1A6FD4]" /> Mon compte
+            <UserRound className="h-5 w-5 text-[#1A6FD4]" /> {t("Mon compte")}
           </h2>
-          <Field label="Nom" value={user.name} />
-          <Field label="Rôle" value={ROLE_LABELS[user.role]} />
-          <Field label="Référence praticien" value={user.id} />
+          <Field label={t("Nom")} value={user.name} />
+          <Field label={t("Rôle")} value={t(ROLE_LABELS[user.role])} />
+          <Field label={t("Référence praticien")} value={user.id} />
         </section>
 
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-            <KeyRound className="h-5 w-5 text-[#1A6FD4]" /> Changer mon mot de passe
+            <KeyRound className="h-5 w-5 text-[#1A6FD4]" /> {t("Changer mon mot de passe")}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="password"
               required
               autoComplete="current-password"
-              placeholder="Mot de passe actuel"
+              placeholder={t("Mot de passe actuel")}
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
               className={inputClass}
@@ -86,7 +88,7 @@ export default function Settings() {
               required
               minLength={8}
               autoComplete="new-password"
-              placeholder="Nouveau mot de passe (8 caractères minimum)"
+              placeholder={t("Nouveau mot de passe (8 caractères minimum)")}
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               className={inputClass}
@@ -95,7 +97,7 @@ export default function Settings() {
               type="password"
               required
               autoComplete="new-password"
-              placeholder="Confirmer le nouveau mot de passe"
+              placeholder={t("Confirmer le nouveau mot de passe")}
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
               className={inputClass}
@@ -110,27 +112,27 @@ export default function Settings() {
               disabled={isSubmitting}
               className="rounded-lg bg-[#1A6FD4] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#155bb0] disabled:opacity-50"
             >
-              {isSubmitting ? "Enregistrement…" : "Modifier le mot de passe"}
+              {isSubmitting ? t("Enregistrement…") : t("Modifier le mot de passe")}
             </button>
           </form>
         </section>
 
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-            <Server className="h-5 w-5 text-[#1A6FD4]" /> Poste
+            <Server className="h-5 w-5 text-[#1A6FD4]" /> {t("Poste")}
           </h2>
-          <Field label="Serveur Pédiatrix (LAN)" value={BACKEND_BASE_URL} />
-          <Field label="Mises à jour" value="Automatiques, depuis le serveur du LAN" />
+          <Field label={t("Serveur Pédiatrix (LAN)")} value={BACKEND_BASE_URL} />
+          <Field label={t("Mises à jour")} value={t("Automatiques, depuis le serveur du LAN")} />
         </section>
 
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-            <LifeBuoy className="h-5 w-5 text-[#1A6FD4]" /> Aide
+            <LifeBuoy className="h-5 w-5 text-[#1A6FD4]" /> {t("Aide")}
           </h2>
           <ul className="list-disc space-y-1.5 pl-5 text-sm text-zinc-600">
-            <li>Mot de passe oublié ou compte bloqué : contactez l'administrateur technique.</li>
-            <li>Serveur injoignable : vérifiez que le poste est bien branché au réseau de l'hôpital.</li>
-            <li>La session se ferme à la fermeture de l'application (poste partagé).</li>
+            <li>{t("Mot de passe oublié ou compte bloqué : contactez l'administrateur technique.")}</li>
+            <li>{t("Serveur injoignable : vérifiez que le poste est bien branché au réseau de l'hôpital.")}</li>
+            <li>{t("La session se ferme à la fermeture de l'application (poste partagé).")}</li>
           </ul>
         </section>
       </div>

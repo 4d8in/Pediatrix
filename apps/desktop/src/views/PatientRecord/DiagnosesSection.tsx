@@ -1,13 +1,15 @@
 import type { Diagnosis } from "../../lib/types";
+import { useI18n } from "../../lib/i18n";
 
 export default function DiagnosesSection({ diagnoses }: { diagnoses: Diagnosis[] }) {
+  const { t, formatDate } = useI18n();
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-sm font-medium">Diagnostics</h2>
+        <h2 className="text-sm font-medium">{t("Diagnostics")}</h2>
       </div>
       {diagnoses.length === 0 ? (
-        <p className="p-10 text-sm text-zinc-400">Aucun diagnostic enregistré.</p>
+        <p className="p-10 text-sm text-zinc-400">{t("Aucun diagnostic enregistré.")}</p>
       ) : (
         <ul className="divide-y divide-zinc-100">
           {diagnoses.map((diagnosis) => (
@@ -15,10 +17,10 @@ export default function DiagnosesSection({ diagnoses }: { diagnoses: Diagnosis[]
               <div>
                 <p className="text-sm font-medium text-zinc-900">
                   {diagnosis.text}
-                  {diagnosis.code && <span className="ml-2 text-xs font-normal text-zinc-400">CIM-10 {diagnosis.code}</span>}
+                  {diagnosis.code && <span className="ml-2 text-xs font-normal text-zinc-400">{t("CIM-10")} {diagnosis.code}</span>}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {diagnosis.date ? new Date(diagnosis.date).toLocaleDateString("fr-FR") : "Date inconnue"}
+                  {diagnosis.date ? formatDate(diagnosis.date) : t("Date inconnue")}
                   {diagnosis.recorder && ` · ${diagnosis.recorder}`}
                 </p>
               </div>
@@ -29,7 +31,7 @@ export default function DiagnosesSection({ diagnoses }: { diagnoses: Diagnosis[]
                     : "border-amber-200 bg-amber-50 text-amber-700"
                 }`}
               >
-                {diagnosis.certainty === "confirmed" ? "Confirmé" : "Provisoire"}
+                {diagnosis.certainty === "confirmed" ? t("Confirmé") : t("Provisoire")}
               </span>
             </li>
           ))}

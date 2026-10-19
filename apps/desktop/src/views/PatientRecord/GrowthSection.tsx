@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { ApiError, createGrowthMeasurement } from "../../lib/api";
 import type { GrowthMeasurement } from "../../lib/types";
+import { useI18n } from "../../lib/i18n";
 
 // Courbe simple, sans dépendance externe (pas de calcul de z-score) : une
 // polyligne SVG reliant les valeurs de poids dans le temps.
@@ -49,6 +50,7 @@ export default function GrowthSection({
   measurements: GrowthMeasurement[];
   onCreated: () => void;
 }) {
+  const { t, formatDate } = useI18n();
   const { user } = useAuth();
   const canWrite = user?.role === "doctor" || user?.role === "nurse";
 
@@ -83,7 +85,7 @@ export default function GrowthSection({
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'enregistrement de la mesure."]);
+        setErrors([t("Erreur inattendue lors de l'enregistrement de la mesure.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -93,7 +95,7 @@ export default function GrowthSection({
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-sm font-medium">Croissance</h2>
+        <h2 className="text-sm font-medium">{t("Croissance")}</h2>
       </div>
 
       {canWrite && (
@@ -110,14 +112,14 @@ export default function GrowthSection({
 
           <div className="grid grid-cols-5 gap-4">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Date</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Date")}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 required
                 pattern="\d{4}-\d{2}-\d{2}"
-                title="Format AAAA-MM-JJ"
-                placeholder="AAAA-MM-JJ"
+                title={t("Format AAAA-MM-JJ")}
+                placeholder={t("AAAA-MM-JJ")}
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
@@ -125,7 +127,7 @@ export default function GrowthSection({
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Poids (kg)</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Poids (kg)")}</label>
               <input
                 type="number"
                 step="0.1"
@@ -137,7 +139,7 @@ export default function GrowthSection({
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Taille (cm)</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Taille (cm)")}</label>
               <input
                 type="number"
                 step="0.1"
@@ -150,7 +152,7 @@ export default function GrowthSection({
 
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-400">
-                Périmètre crânien (cm)
+                {t("Périmètre crânien (cm)")}
               </label>
               <input
                 type="number"
@@ -163,7 +165,7 @@ export default function GrowthSection({
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Périmètre brachial (mm)</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Périmètre brachial (mm)")}</label>
               <input
                 type="number"
                 step="1"
@@ -181,14 +183,14 @@ export default function GrowthSection({
             disabled={isSubmitting}
             className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
-            {isSubmitting ? "Enregistrement..." : "Ajouter une mesure"}
+            {isSubmitting ? t("Enregistrement...") : t("Ajouter une mesure")}
           </button>
         </form>
       )}
 
       {measurements.length === 0 ? (
         <p className="p-10 text-sm text-zinc-400">
-          Aucune mesure enregistrée.
+          {t("Aucune mesure enregistrée.")}
         </p>
       ) : (
         <>
@@ -201,12 +203,12 @@ export default function GrowthSection({
                 <div className="flex flex-wrap gap-4">
                   {measurement.weight !== undefined && (
                     <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
-                      Poids: {measurement.weight} kg
+                      {t("Poids")}: {measurement.weight} kg
                     </span>
                   )}
                   {measurement.height !== undefined && (
                     <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
-                      Taille: {measurement.height} cm
+                      {t("Taille")}: {measurement.height} cm
                     </span>
                   )}
                   {measurement.muac !== undefined && (
@@ -220,19 +222,19 @@ export default function GrowthSection({
                             : "border-zinc-200 bg-zinc-50 text-zinc-500"
                       }`}
                     >
-                      PB: {measurement.muac} mm
-                      {measurement.muacStatus === "severe" && " — malnutrition aiguë sévère"}
-                      {measurement.muacStatus === "moderate" && " — malnutrition aiguë modérée"}
+                      {t("PB")}: {measurement.muac} mm
+                      {measurement.muacStatus === "severe" && ` — ${t("malnutrition aiguë sévère")}`}
+                      {measurement.muacStatus === "moderate" && ` — ${t("malnutrition aiguë modérée")}`}
                     </span>
                   )}
                   {measurement.headCircumference !== undefined && (
                     <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
-                      PC: {measurement.headCircumference} cm
+                      {t("PC")}: {measurement.headCircumference} cm
                     </span>
                   )}
                 </div>
                 <span className="text-sm text-zinc-400">
-                  {new Date(measurement.date).toLocaleDateString("fr-FR")}
+                  {formatDate(measurement.date)}
                 </span>
               </div>
             ))}

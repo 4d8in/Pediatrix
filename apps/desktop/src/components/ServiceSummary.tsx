@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 import type { RequestSummary } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
-function formatDelay(hours: number | null): string {
+function formatDelay(hours: number | null, t: (fr: string, vars?: Record<string, string | number>) => string): string {
   if (hours === null) return "—";
-  return hours < 24 ? `${hours} h` : `${Math.round((hours / 24) * 10) / 10} j`;
+  return hours < 24 ? t("{n} h", { n: hours }) : t("{n} j", { n: Math.round((hours / 24) * 10) / 10 });
 }
 
 // Compteurs du jour d'un service prestataire (Laboratoire, Radiologie).
 export default function ServiceSummary({ load, doneLabel }: { load: () => Promise<RequestSummary>; doneLabel: string }) {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<RequestSummary | null>(null);
 
   useEffect(() => {
@@ -16,13 +18,13 @@ export default function ServiceSummary({ load, doneLabel }: { load: () => Promis
   }, [load]);
 
   const tiles = [
-    { label: "En attente", value: summary ? String(summary.enAttente) : "…", icon: Hourglass, caption: "Demandes à traiter" },
-    { label: doneLabel, value: summary ? String(summary.rendusAujourdhui) : "…", icon: CheckCircle2, caption: "Envoyés aujourd'hui" },
+    { label: t("En attente"), value: summary ? String(summary.enAttente) : "…", icon: Hourglass, caption: t("Demandes à traiter") },
+    { label: doneLabel, value: summary ? String(summary.rendusAujourdhui) : "…", icon: CheckCircle2, caption: t("Envoyés aujourd'hui") },
     {
-      label: "Délai moyen",
-      value: summary ? formatDelay(summary.delaiMoyenHeures) : "…",
+      label: t("Délai moyen"),
+      value: summary ? formatDelay(summary.delaiMoyenHeures, t) : "…",
       icon: Clock,
-      caption: "Entre la demande et le résultat (30 derniers jours)",
+      caption: t("Entre la demande et le résultat (30 derniers jours)"),
     },
   ];
 

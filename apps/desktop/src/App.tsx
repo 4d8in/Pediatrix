@@ -52,6 +52,7 @@ import { LogoBadge } from "./components/Logo";
 import { useAuth } from "./lib/auth-context";
 import type { Role, UserProfile } from "./lib/types";
 import { ROLE_LABELS } from "./lib/roles";
+import { LanguageSwitch, useI18n } from "./lib/i18n";
 import "./App.css";
 
 type ViewType =
@@ -100,12 +101,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
   { id: "pharmacy", label: "Pharmacie", icon: Pill, roles: ["pharmacist"] },
   { id: "billing", label: "Facturation", icon: Banknote, roles: ["cashier", "director"] },
-  {
-    id: "record",
-    label: "Dossier patient",
-    icon: FileText,
-    roles: ["nurse", "doctor", "lab_tech", "radiologist", "director"],
-  },
+  { id: "record", label: "Dossier patient", icon: FileText, roles: ["nurse", "doctor", "lab_tech", "radiologist", "director"] },
   { id: "supervision", label: "Supervision", icon: MonitorCheck, roles: ["tech_admin"] },
   { id: "accounts", label: "Comptes", icon: UsersRound, roles: ["tech_admin"] },
   { id: "audit", label: "Journal d'audit", icon: ShieldCheck, roles: ["tech_admin", "director"] },
@@ -114,22 +110,13 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
   { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
   { id: "reporting", label: "Rapports", icon: FileSpreadsheet, roles: ["director", "tech_admin"] },
-  {
-    id: "profile",
-    label: "Mon profil",
-    icon: CircleUserRound,
-    roles: ALL_ROLES,
-  },
-  {
-    id: "settings",
-    label: "Paramètres",
-    icon: SettingsIcon,
-    roles: ALL_ROLES,
-  },
+  { id: "profile", label: "Mon profil", icon: CircleUserRound, roles: ALL_ROLES },
+  { id: "settings", label: "Paramètres", icon: SettingsIcon, roles: ALL_ROLES },
 ];
 
 function App() {
   const { user, logout, sessionExpired } = useAuth();
+  const { t } = useI18n();
   const navItems = useMemo(() => NAV_ITEMS.filter((item) => user && item.roles.includes(user.role)), [user]);
   const [currentView, setCurrentView] = useState<ViewType | null>(null);
   const [recordPatientId, setRecordPatientId] = useState<string | null>(null);
@@ -148,7 +135,7 @@ function App() {
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
   if (!user) {
-    return <Login notice={sessionExpired ? "Session expirée, veuillez vous reconnecter." : undefined} />;
+    return <Login notice={sessionExpired ? t("Session expirée, veuillez vous reconnecter.") : undefined} />;
   }
 
   const activeView = currentView && navItems.some((item) => item.id === currentView) ? currentView : navItems[0]?.id;
@@ -245,7 +232,7 @@ function App() {
       <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200/70 bg-white">
         <div className="flex h-16 items-center gap-2.5 px-5">
           <LogoBadge className="h-9 w-9" />
-          <span className="text-xl font-semibold text-[#0B2A4F]">Pédiatrix</span>
+          <span className="text-xl font-semibold text-[#0B2A4F]">{t("Pédiatrix")}</span>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => (
@@ -260,17 +247,18 @@ function App() {
               }`}
             >
               <item.icon className="h-[18px] w-[18px]" />
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </nav>
-        <div className="border-t border-zinc-100 p-3">
+        <div className="space-y-2 border-t border-zinc-100 p-3">
+          <LanguageSwitch className="w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-600" />
           <button
             onClick={logout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600 transition hover:bg-red-50 hover:text-red-600"
           >
             <LogOut className="h-[18px] w-[18px]" />
-            Déconnexion
+            {t("Déconnexion")}
           </button>
         </div>
       </aside>
@@ -283,7 +271,7 @@ function App() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <input
                 type="search"
-                placeholder="Rechercher un patient…"
+                placeholder={t("Rechercher un patient…")}
                 value={patientSearch}
                 onChange={(event) => {
                   setPatientSearch(event.target.value);
@@ -297,7 +285,7 @@ function App() {
           )}
           <button
             onClick={() => setCurrentView("profile")}
-            title="Mon profil"
+            title={t("Mon profil")}
             className="flex items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-zinc-100"
           >
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#1A6FD4] text-sm font-semibold text-white">
@@ -309,7 +297,7 @@ function App() {
             </div>
             <div className="leading-tight">
               <p className="text-sm font-medium">{profile?.displayName || user.name}</p>
-              <p className="text-xs text-zinc-500">{ROLE_LABELS[user.role]}</p>
+              <p className="text-xs text-zinc-500">{t(ROLE_LABELS[user.role])}</p>
             </div>
           </button>
         </header>

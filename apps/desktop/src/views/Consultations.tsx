@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { AlertTriangle, CheckCircle2, FlaskConical, Pill, ScanLine } from "lucide-react";
 import PatientPicker from "../components/PatientPicker";
 import VitalsFields from "./VitalsFields";
+import { useI18n } from "../lib/i18n";
 import {
   ApiError,
   createDiagnosis,
@@ -23,6 +24,7 @@ interface ConsultationsProps {
 }
 
 export default function Consultations({ initialPatientId }: ConsultationsProps) {
+  const { t } = useI18n();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [patientLoadError, setPatientLoadError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -106,7 +108,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         if (!cancelled) setPatient(data.patient);
       })
       .catch((err) => {
-        if (!cancelled) setPatientLoadError(err instanceof ApiError ? err.message : "Erreur de chargement du patient.");
+        if (!cancelled) setPatientLoadError(err instanceof ApiError ? err.message : t("Erreur de chargement du patient."));
       });
     return () => {
       cancelled = true;
@@ -128,7 +130,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'enregistrement de la consultation."]);
+        setErrors([t("Erreur inattendue lors de l'enregistrement de la consultation.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -159,7 +161,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       setRecordedDiagnoses((list) => [...list, entry ? `${entry.display} (${entry.code})` : diagnosisText.trim()]);
       setDiagnosisText("");
     } catch (error) {
-      setDiagnosisErrors(error instanceof ApiError ? (error.details ?? [error.message]) : ["Erreur inattendue."]);
+      setDiagnosisErrors(error instanceof ApiError ? (error.details ?? [error.message]) : [t("Erreur inattendue.")]);
     }
   }
 
@@ -176,7 +178,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       });
       setReferralDone(referralDestination);
     } catch (error) {
-      setReferralErrors(error instanceof ApiError ? (error.details ?? [error.message]) : ["Erreur inattendue."]);
+      setReferralErrors(error instanceof ApiError ? (error.details ?? [error.message]) : [t("Erreur inattendue.")]);
     }
   }
 
@@ -195,7 +197,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       if (error instanceof ApiError) {
         setExamErrors(error.details ?? [error.message]);
       } else {
-        setExamErrors(["Erreur inattendue lors de la demande d'examen."]);
+        setExamErrors([t("Erreur inattendue lors de la demande d'examen.")]);
       }
     } finally {
       setIsRequestingExam(false);
@@ -216,7 +218,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       if (error instanceof ApiError) {
         setImagingErrors(error.details ?? [error.message]);
       } else {
-        setImagingErrors(["Erreur inattendue lors de la demande d'imagerie."]);
+        setImagingErrors([t("Erreur inattendue lors de la demande d'imagerie.")]);
       }
     } finally {
       setIsRequestingImaging(false);
@@ -261,7 +263,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       if (error instanceof ApiError) {
         setPrescriptionErrors(error.details ?? [error.message]);
       } else {
-        setPrescriptionErrors(["Erreur inattendue lors de l'enregistrement de la prescription."]);
+        setPrescriptionErrors([t("Erreur inattendue lors de l'enregistrement de la prescription.")]);
       }
     } finally {
       setIsPrescribing(false);
@@ -285,12 +287,12 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         <div className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
           <div className="bg-green-500 p-8 flex flex-col items-center text-white space-y-4">
             <CheckCircle2 className="w-16 h-16" />
-            <h2 className="text-xl font-medium">Consultation enregistrée</h2>
+            <h2 className="text-xl font-medium">{t("Consultation enregistrée")}</h2>
           </div>
 
           <div className="p-10 space-y-8">
             <form onSubmit={handleAddDiagnosis} className="space-y-4" data-testid="diagnosis-form">
-              <h3 className="text-sm font-medium text-zinc-400">Diagnostic</h3>
+              <h3 className="text-sm font-medium text-zinc-400">{t("Diagnostic")}</h3>
               {diagnosisErrors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
                   {diagnosisErrors.map((message) => (
@@ -316,7 +318,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   value={diagnosisText}
                   onChange={(event) => setDiagnosisText(event.target.value)}
                   className="flex-1 px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                  placeholder="Ex. : Paludisme à Plasmodium falciparum"
+                  placeholder={t("Ex. : Paludisme à Plasmodium falciparum")}
                 />
                 <datalist id="diagnosis-catalog">
                   {diagnosisCatalog.map((item) => (
@@ -328,15 +330,15 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   onChange={(event) => setCertainty(event.target.value as Certainty)}
                   className="px-3 py-3 bg-zinc-50 border border-zinc-200 text-xs rounded-xl"
                 >
-                  <option value="confirmed">Confirmé</option>
-                  <option value="provisional">Provisoire</option>
+                  <option value="confirmed">{t("Confirmé")}</option>
+                  <option value="provisional">{t("Provisoire")}</option>
                 </select>
                 <button
                   type="submit"
                   data-testid="diagnosis-submit"
                   className="px-6 py-3 bg-[#1A6FD4] text-white text-xs font-medium hover:bg-[#1559ab] transition-all rounded-full"
                 >
-                  Ajouter
+                  {t("Ajouter")}
                 </button>
               </div>
             </form>
@@ -344,13 +346,12 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
             {referralDone ? (
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 rounded-[18px]">
                 <p className="text-xs font-medium text-zinc-700" data-testid="referral-done">
-                  Référence enregistrée vers {referralDone}. La fiche est imprimable depuis le dossier du patient
-                  (Consultations et prescriptions).
+                  {t("Référence enregistrée vers {destination}. La fiche est imprimable depuis le dossier du patient (Consultations et prescriptions).", { destination: referralDone })}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleReferral} className="space-y-4" data-testid="referral-form">
-                <h3 className="text-sm font-medium text-zinc-400">Référer vers une autre structure (optionnel)</h3>
+                <h3 className="text-sm font-medium text-zinc-400">{t("Référer vers une autre structure (optionnel)")}</h3>
                 {referralErrors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
                     {referralErrors.map((message) => (
@@ -365,7 +366,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   data-testid="referral-destination"
                   value={referralDestination}
                   onChange={(event) => setReferralDestination(event.target.value)}
-                  placeholder="Structure de destination (ex. Hôpital régional, CHU…)"
+                  placeholder={t("Structure de destination (ex. Hôpital régional, CHU…)")}
                   className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 />
                 <input
@@ -373,20 +374,20 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   data-testid="referral-reason"
                   value={referralReason}
                   onChange={(event) => setReferralReason(event.target.value)}
-                  placeholder="Motif de la référence"
+                  placeholder={t("Motif de la référence")}
                   className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                 />
                 <textarea
                   value={referralSummary}
                   onChange={(event) => setReferralSummary(event.target.value)}
                   rows={3}
-                  placeholder="Résumé clinique et traitements déjà donnés"
+                  placeholder={t("Résumé clinique et traitements déjà donnés")}
                   className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs resize-none rounded-xl"
                 />
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-xs text-zinc-700">
                     <input type="checkbox" checked={referralUrgent} onChange={(event) => setReferralUrgent(event.target.checked)} />
-                    Référence urgente
+                    {t("Référence urgente")}
                   </label>
                   <button
                     type="submit"
@@ -394,7 +395,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     disabled={!referralDestination.trim() || !referralReason.trim()}
                     className="px-6 py-3 bg-[#1A6FD4] text-white text-xs font-medium hover:bg-[#1559ab] transition-all rounded-full disabled:opacity-40"
                   >
-                    Enregistrer la référence
+                    {t("Enregistrer la référence")}
                   </button>
                 </div>
               </form>
@@ -404,13 +405,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 flex items-center gap-4 rounded-[18px]">
                 <FlaskConical className="w-6 h-6 text-zinc-400" />
                 <p className="text-xs font-medium text-zinc-700">
-                  Examen demandé — le laboratoire a été notifié.
+                  {t("Examen demandé — le laboratoire a été notifié.")}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleRequestExam} className="space-y-6">
                 <h3 className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <FlaskConical className="w-4 h-4" /> Demander un examen
+                  <FlaskConical className="w-4 h-4" /> {t("Demander un examen")}
                 </h3>
 
                 {examErrors.length > 0 && (
@@ -425,7 +426,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Examen demandé
+                    {t("Examen demandé")}
                   </label>
                   <input
                     type="text"
@@ -435,7 +436,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={exam}
                     onChange={(event) => setExam(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Numération formule sanguine (NFS)"
+                    placeholder={t("Ex. : Numération formule sanguine (NFS)")}
                   />
                   <datalist id="lab-exam-catalog">
                     {labTests.map((test) => (
@@ -446,7 +447,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Demandeur
+                    {t("Demandeur")}
                   </label>
                   <input
                     type="text"
@@ -455,7 +456,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={requester}
                     onChange={(event) => setRequester(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Dr. Moussa Diallo"
+                    placeholder={t("Ex. : Dr. Moussa Diallo")}
                   />
                 </div>
 
@@ -466,7 +467,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     checked={examUrgent}
                     onChange={(event) => setExamUrgent(event.target.checked)}
                   />
-                  Demande urgente (passe en tête de la file du laboratoire)
+                  {t("Demande urgente (passe en tête de la file du laboratoire)")}
                 </label>
 
                 <button
@@ -474,7 +475,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   disabled={isRequestingExam}
                   className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-sm font-medium hover:bg-[#1559ab] transition-all disabled:opacity-50 rounded-full"
                 >
-                  {isRequestingExam ? "Envoi..." : "Envoyer au laboratoire"}
+                  {isRequestingExam ? t("Envoi...") : t("Envoyer au laboratoire")}
                 </button>
               </form>
             )}
@@ -483,13 +484,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 flex items-center gap-4 rounded-[18px]">
                 <ScanLine className="w-6 h-6 text-zinc-400" />
                 <p className="text-xs font-medium text-zinc-700">
-                  Imagerie demandée — la radiologie a été notifiée.
+                  {t("Imagerie demandée — la radiologie a été notifiée.")}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleRequestImaging} className="space-y-6">
                 <h3 className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <ScanLine className="w-4 h-4" /> Demander une imagerie
+                  <ScanLine className="w-4 h-4" /> {t("Demander une imagerie")}
                 </h3>
 
                 {imagingErrors.length > 0 && (
@@ -504,7 +505,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Examen d'imagerie demandé
+                    {t("Examen d'imagerie demandé")}
                   </label>
                   <input
                     type="text"
@@ -512,13 +513,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={imagingExam}
                     onChange={(event) => setImagingExam(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Radiographie thoracique"
+                    placeholder={t("Ex. : Radiographie thoracique")}
                   />
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Demandeur
+                    {t("Demandeur")}
                   </label>
                   <input
                     type="text"
@@ -526,7 +527,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={imagingRequester}
                     onChange={(event) => setImagingRequester(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Dr. Moussa Diallo"
+                    placeholder={t("Ex. : Dr. Moussa Diallo")}
                   />
                 </div>
 
@@ -535,7 +536,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   disabled={isRequestingImaging}
                   className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-sm font-medium hover:bg-[#1559ab] transition-all disabled:opacity-50 rounded-full"
                 >
-                  {isRequestingImaging ? "Envoi..." : "Envoyer à la radiologie"}
+                  {isRequestingImaging ? t("Envoi...") : t("Envoyer à la radiologie")}
                 </button>
               </form>
             )}
@@ -544,7 +545,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 flex items-center gap-4 rounded-[18px]">
                 <Pill className="w-6 h-6 text-zinc-400" />
                 <p className="text-xs font-medium text-zinc-700">
-                  Prescription enregistrée.
+                  {t("Prescription enregistrée.")}
                 </p>
               </div>
             ) : allergyConflict ? (
@@ -552,7 +553,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                   <h3 className="text-sm font-medium text-red-700">
-                    Allergie connue
+                    {t("Allergie connue")}
                   </h3>
                 </div>
                 <p className="text-xs font-medium text-red-700">{allergyConflict.message}</p>
@@ -573,7 +574,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     onClick={() => setAllergyConflict(null)}
                     className="flex-1 bg-white border border-zinc-300 text-zinc-700 px-6 py-3 text-sm font-medium hover:bg-zinc-50 transition-all rounded-[18px]"
                   >
-                    Annuler
+                    {t("Annuler")}
                   </button>
                   <button
                     type="button"
@@ -581,14 +582,14 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     disabled={isPrescribing}
                     className="flex-1 bg-red-600 text-white px-6 py-3 text-sm font-medium hover:bg-red-700 transition-all disabled:opacity-50"
                   >
-                    {isPrescribing ? "Envoi..." : "Confirmer et prescrire quand même"}
+                    {isPrescribing ? t("Envoi...") : t("Confirmer et prescrire quand même")}
                   </button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleSubmitPrescription} className="space-y-6">
                 <h3 className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <Pill className="w-4 h-4" /> Prescrire un médicament
+                  <Pill className="w-4 h-4" /> {t("Prescrire un médicament")}
                 </h3>
 
                 {prescriptionErrors.length > 0 && (
@@ -603,7 +604,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Médicament
+                    {t("Médicament")}
                   </label>
                   <input
                     type="text"
@@ -612,7 +613,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={medication}
                     onChange={(event) => setMedication(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : Amoxicilline"
+                    placeholder={t("Ex. : Amoxicilline")}
                   />
                   <datalist id="formulary-items">
                     {formulary.map((item) => (
@@ -623,7 +624,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Posologie
+                    {t("Posologie")}
                   </label>
                   <input
                     type="text"
@@ -631,13 +632,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     value={dosage}
                     onChange={(event) => setDosage(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                    placeholder="Ex. : 5ml x 3/j pendant 7 jours"
+                    placeholder={t("Ex. : 5ml x 3/j pendant 7 jours")}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Dose par prise (mg, facultatif)
+                    {t("Dose par prise (mg, facultatif)")}
                     <input
                       type="text"
                       inputMode="decimal"
@@ -645,11 +646,11 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                       value={doseMg}
                       onChange={(event) => setDoseMg(event.target.value)}
                       className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                      placeholder="Ex. : 150"
+                      placeholder={t("Ex. : 150")}
                     />
                   </label>
                   <label className="text-sm font-medium text-zinc-400">
-                    Prises par jour
+                    {t("Prises par jour")}
                     <input
                       type="text"
                       inputMode="numeric"
@@ -657,12 +658,12 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                       value={dosesPerDay}
                       onChange={(event) => setDosesPerDay(event.target.value)}
                       className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                      placeholder="Ex. : 3"
+                      placeholder={t("Ex. : 3")}
                     />
                   </label>
                 </div>
                 <p className="text-xs text-zinc-400">
-                  Avec une dose et un médicament du formulaire, la dose quotidienne par kg est contrôlée d'après le dernier poids enregistré.
+                  {t("Avec une dose et un médicament du formulaire, la dose quotidienne par kg est contrôlée d'après le dernier poids enregistré.")}
                 </p>
 
                 <button
@@ -670,7 +671,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   disabled={isPrescribing}
                   className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-sm font-medium hover:bg-[#1559ab] transition-all disabled:opacity-50 rounded-full"
                 >
-                  {isPrescribing ? "Envoi..." : "Enregistrer la prescription"}
+                  {isPrescribing ? t("Envoi...") : t("Enregistrer la prescription")}
                 </button>
               </form>
             )}
@@ -680,7 +681,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
               onClick={resetForm}
               className="w-full bg-[#1A6FD4] text-white px-6 py-4 text-sm font-medium hover:bg-[#155bb0] transition-all rounded-full"
             >
-              Nouvelle consultation
+              {t("Nouvelle consultation")}
             </button>
           </div>
         </div>
@@ -691,9 +692,9 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   return (
     <div className="max-w-5xl space-y-6">
       <div className="pb-2">
-        <h1 className="text-[22px] font-medium text-zinc-900 mb-1">Consultation</h1>
+        <h1 className="text-[22px] font-medium text-zinc-900 mb-1">{t("Consultation")}</h1>
         <p className="text-sm text-zinc-400 font-medium">
-          Service Pédiatrie — Motif, notes cliniques et paramètres vitaux
+          {t("Service Pédiatrie — Motif, notes cliniques et paramètres vitaux")}
         </p>
       </div>
 
@@ -720,7 +721,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         <section className="bg-white border border-zinc-200/70 overflow-hidden p-10 space-y-8 rounded-[18px]">
           <div className="space-y-3">
             <label className="text-sm font-medium text-zinc-400">
-              Motif de consultation
+              {t("Motif de consultation")}
             </label>
             <input
               type="text"
@@ -728,26 +729,26 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-              placeholder="Ex. : fièvre persistante depuis 3 jours"
+              placeholder={t("Ex. : fièvre persistante depuis 3 jours")}
             />
           </div>
 
           <div className="space-y-3">
             <label className="text-sm font-medium text-zinc-400">
-              Notes cliniques
+              {t("Notes cliniques")}
             </label>
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={4}
               className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs resize-none rounded-xl"
-              placeholder="Observations, examen clinique..."
+              placeholder={t("Observations, examen clinique...")}
             />
           </div>
         </section>
 
         <section className="bg-white border border-zinc-200/70 overflow-hidden p-10 rounded-[18px]">
-          <h2 className="text-sm font-medium mb-8">Paramètres vitaux</h2>
+          <h2 className="text-sm font-medium mb-8">{t("Paramètres vitaux")}</h2>
           <VitalsFields vitals={vitals} onChange={setVitals} />
         </section>
 
@@ -757,7 +758,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
             disabled={isSubmitting || !patient}
             className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
-            {isSubmitting ? "Enregistrement..." : "Enregistrer la consultation"}
+            {isSubmitting ? t("Enregistrement...") : t("Enregistrer la consultation")}
           </button>
         </div>
       </form>

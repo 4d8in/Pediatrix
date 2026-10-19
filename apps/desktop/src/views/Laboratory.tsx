@@ -5,6 +5,7 @@ import CompletedRequests from "../components/CompletedRequests";
 import ServiceSummary from "../components/ServiceSummary";
 import { ApiError, getLabCatalog, getReferenceRanges, getLabSummary, createReport, listLabRequests } from "../lib/api";
 import type { LabRequest, LabResultInput, LabTest, ResultFlag } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 const EMPTY_ROW: LabResultInput = { label: "", value: "" };
 
@@ -48,6 +49,7 @@ function rowsForRequest(request: LabRequest, catalog: LabTest[]): LabResultInput
 const AUTO_REFRESH_INTERVAL_MS = 15_000;
 
 export default function Laboratory() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<"pending" | "done">("pending");
   const loadCompleted = useCallback(() => listLabRequests("completed"), []);
   const [requests, setRequests] = useState<LabRequest[]>([]);
@@ -67,7 +69,7 @@ export default function Laboratory() {
     setQueueError(null);
     listLabRequests()
       .then((data) => setRequests(data.requests))
-      .catch((err) => setQueueError(err instanceof ApiError ? err.message : "Erreur de chargement de la file."))
+      .catch((err) => setQueueError(err instanceof ApiError ? err.message : t("Erreur de chargement de la file.")))
       .finally(() => setIsLoadingQueue(false));
   }
 
@@ -134,7 +136,7 @@ export default function Laboratory() {
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'envoi du rapport."]);
+        setErrors([t("Erreur inattendue lors de l'envoi du rapport.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -144,10 +146,10 @@ export default function Laboratory() {
   return (
     <div className="flex h-full flex-col gap-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Laboratoire</h1>
-        <p className="mt-1 text-sm text-zinc-500">Demandes d'examens reçues et saisie des résultats</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Laboratoire")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Demandes d'examens reçues et saisie des résultats")}</p>
       </div>
-      <ServiceSummary load={getLabSummary} doneLabel="Résultats du jour" />
+      <ServiceSummary load={getLabSummary} doneLabel={t("Résultats du jour")} />
       <div className="flex gap-1 border-b border-zinc-200">
         {(["pending", "done"] as const).map((tab) => (
           <button
@@ -159,16 +161,16 @@ export default function Laboratory() {
                 : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            {tab === "pending" ? "Examens en cours" : "Résultats envoyés"}
+            {tab === "pending" ? t("Examens en cours") : t("Résultats envoyés")}
           </button>
         ))}
       </div>
-      {activeTab === "done" && <CompletedRequests load={loadCompleted} emptyLabel="Aucun résultat envoyé pour le moment." />}
+      {activeTab === "done" && <CompletedRequests load={loadCompleted} emptyLabel={t("Aucun résultat envoyé pour le moment.")} />}
       <div className={`flex flex-1 min-h-[560px] gap-4 overflow-hidden font-sans ${activeTab === "done" ? "hidden" : ""}`}>
         <div className="w-[40%] flex flex-col overflow-hidden rounded-[18px] border border-zinc-200/70 bg-white">
           <div className="p-5 border-b border-zinc-100 flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-zinc-900 flex items-center gap-3">
-              <FlaskConical className="w-4 h-4" /> Demandes en attente ({requests.length})
+              <FlaskConical className="w-4 h-4" /> {t("Demandes en attente")} ({requests.length})
             </h2>
             <button
               type="button"
@@ -176,20 +178,20 @@ export default function Laboratory() {
               disabled={isLoadingQueue}
               className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-3 h-3 ${isLoadingQueue ? "animate-spin" : ""}`} /> Actualiser
+              <RefreshCw className={`w-3 h-3 ${isLoadingQueue ? "animate-spin" : ""}`} /> {t("Actualiser")}
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {isLoadingQueue && (
-              <p className="p-6 text-sm text-zinc-400">Chargement...</p>
+              <p className="p-6 text-sm text-zinc-400">{t("Chargement...")}</p>
             )}
             {queueError && (
               <p className="p-6 text-sm text-red-600">{queueError}</p>
             )}
             {!isLoadingQueue && !queueError && requests.length === 0 && (
               <p className="p-6 text-sm text-zinc-400">
-                Aucune demande en attente.
+                {t("Aucune demande en attente.")}
               </p>
             )}
 
@@ -204,14 +206,14 @@ export default function Laboratory() {
                 <h3 className="text-sm font-medium text-zinc-900">
                   {request.urgent && (
                     <span data-testid="lab-urgent" className="mr-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
-                      Urgent
+                      {t("Urgent")}
                     </span>
                   )}
-                  {request.patientName || "Patient inconnu"} —{" "}
-                  <span className="text-xs">{request.exam ?? "Examen non précisé"}</span>
+                  {request.patientName || t("Patient inconnu")} —{" "}
+                  <span className="text-xs">{request.exam ?? t("Examen non précisé")}</span>
                 </h3>
                 <div className="flex items-center gap-2 text-sm font-medium text-zinc-400 mt-2">
-                  <User className="w-3 h-3" /> {request.requester ?? "Demandeur inconnu"}
+                  <User className="w-3 h-3" /> {request.requester ?? t("Demandeur inconnu")}
                 </div>
               </button>
             ))}
@@ -222,41 +224,41 @@ export default function Laboratory() {
           {!selected ? (
             <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-30">
               <FlaskConical className="w-16 h-16 mb-6" />
-              <p className="text-sm font-medium">Sélectionner une demande</p>
+              <p className="text-sm font-medium">{t("Sélectionner une demande")}</p>
             </div>
           ) : submitted ? (
             <div className="h-full flex flex-col items-center justify-center p-12 text-center">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-medium text-zinc-900 mb-2">Résultats envoyés</h3>
+              <h3 className="text-xl font-medium text-zinc-900 mb-2">{t("Résultats envoyés")}</h3>
               <p className="text-sm text-zinc-500">
-                {selected.requester ?? "Le médecin"} sera notifié via le dossier patient.
+                {t("{name} sera notifié via le dossier patient.", { name: selected.requester ?? t("Le médecin") })}
               </p>
               <button
                 onClick={() => setSelected(null)}
                 className="mt-10 px-8 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all rounded-full"
               >
-                Demande suivante
+                {t("Demande suivante")}
               </button>
             </div>
           ) : (
             <>
               <div className="p-8 border-b border-zinc-100">
                 <h2 className="text-sm font-medium text-zinc-900 mb-6">
-                  Saisie résultats — {selected.patientName} — {selected.exam}
+                  {t("Saisie résultats")} — {selected.patientName} — {selected.exam}
                 </h2>
                 <div className="flex items-center gap-8 bg-zinc-50 p-4 border border-zinc-200/70 rounded-[18px]">
                   <div className="flex flex-col">
                     <span className="text-xs font-medium text-zinc-400 mb-0.5">
-                      ID Patient
+                      {t("ID Patient")}
                     </span>
                     <span className="text-xs font-medium text-zinc-900">{selected.patientId}</span>
                   </div>
                   <div className="w-px h-8 bg-zinc-200"></div>
                   <div className="flex flex-col">
                     <span className="text-xs font-medium text-zinc-400 mb-0.5">
-                      Demandeur
+                      {t("Demandeur")}
                     </span>
                     <span className="text-xs font-medium text-zinc-900">{selected.requester}</span>
                   </div>
@@ -279,15 +281,15 @@ export default function Laboratory() {
                     <thead className="bg-white border-b border-zinc-100">
                       <tr>
                         <th className="px-6 py-4 text-xs font-medium text-zinc-400">
-                          Paramètre
+                          {t("Paramètre")}
                         </th>
                         <th className="px-6 py-4 text-xs font-medium text-zinc-400">
-                          Valeur
+                          {t("Valeur")}
                         </th>
-                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Unité</th>
-                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Réf. basse</th>
-                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Réf. haute</th>
-                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">Résultat</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">{t("Unité")}</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">{t("Réf. basse")}</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">{t("Réf. haute")}</th>
+                        <th className="px-3 py-4 text-xs font-medium text-zinc-400">{t("Résultat")}</th>
                         <th className="px-6 py-4 w-12"></th>
                       </tr>
                     </thead>
@@ -300,7 +302,7 @@ export default function Laboratory() {
                               data-testid="lab-result-label-input"
                               value={row.label}
                               onChange={(event) => updateResultRow(index, "label", event.target.value)}
-                              placeholder="Ex. : Hémoglobine"
+                              placeholder={t("Ex. : Hémoglobine")}
                               className="w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
                             />
                           </td>
@@ -310,7 +312,7 @@ export default function Laboratory() {
                               data-testid="lab-result-value-input"
                               value={row.value}
                               onChange={(event) => updateResultRow(index, "value", event.target.value)}
-                              placeholder="Ex. : 8.2 g/dL"
+                              placeholder={t("Ex. : 8.2 g/dL")}
                               className="w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
                             />
                           </td>
@@ -330,7 +332,7 @@ export default function Laboratory() {
                               const flag = flagFor(row);
                               return flag ? (
                                 <span className={`text-xs font-medium border px-2 py-1 rounded-xl ${FLAG_STYLE[flag].className}`}>
-                                  {FLAG_STYLE[flag].label}
+                                  {t(FLAG_STYLE[flag].label)}
                                 </span>
                               ) : null;
                             })()}
@@ -355,20 +357,20 @@ export default function Laboratory() {
                     onClick={() => setResults((rows) => [...rows, EMPTY_ROW])}
                     className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 border-t border-zinc-100 transition-all"
                   >
-                    <Plus className="w-3 h-3" /> Ajouter un paramètre
+                    <Plus className="w-3 h-3" /> {t("Ajouter un paramètre")}
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Conclusion (optionnel)
+                    {t("Conclusion (optionnel)")}
                   </label>
                   <textarea
                     value={conclusion}
                     onChange={(event) => setConclusion(event.target.value)}
                     rows={3}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs resize-none rounded-xl"
-                    placeholder="Interprétation, recommandation..."
+                    placeholder={t("Interprétation, recommandation...")}
                   />
                 </div>
 
@@ -379,7 +381,7 @@ export default function Laboratory() {
                     className="bg-[#1A6FD4] text-white px-10 py-4 text-xs font-medium hover:bg-[#1559ab] transition-all disabled:opacity-50 flex items-center gap-3 rounded-full"
                   >
                     <CheckCircle2 className="w-5 h-5" />
-                    {isSubmitting ? "Envoi..." : "Valider et envoyer"}
+                    {isSubmitting ? t("Envoi...") : t("Valider et envoyer")}
                   </button>
                 </div>
               </form>

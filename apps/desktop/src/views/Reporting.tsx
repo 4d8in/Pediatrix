@@ -5,14 +5,10 @@ import { ApiError, getDhis2Export, getDhis2Mapping, getIndicators, saveDhis2Mapp
 import { useAuth } from "../lib/auth-context";
 import { downloadFile, toCsv } from "../lib/download";
 import type { IndicatorRow } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
-}
-
-function errorText(error: unknown): string {
-  if (error instanceof ApiError) return [error.message, ...(error.details ?? [])].join(" ");
-  return "Erreur inattendue.";
 }
 
 const MAPPING_EXAMPLE = `{
@@ -27,6 +23,12 @@ const MAPPING_EXAMPLE = `{
 // Rapport mensuel d'activité (direction, administration) : indicateurs, export CSV et fichier DHIS2.
 export default function Reporting() {
   const { user } = useAuth();
+  const { t } = useI18n();
+
+  function errorText(error: unknown): string {
+    if (error instanceof ApiError) return [error.message, ...(error.details ?? [])].join(" ");
+    return t("Erreur inattendue.");
+  }
   const isAdmin = user?.role === "tech_admin";
 
   const [month, setMonth] = useState(currentMonth());
@@ -39,6 +41,13 @@ export default function Reporting() {
   const [mappingMessage, setMappingMessage] = useState<{ kind: "error" | "info"; text: string } | null>(null);
 
   const period = month.replace("-", "");
+
+  // Libellés d'indicateurs fournis par le backend (en français) : traduits à l'affichage seulement,
+  // l'export CSV garde le libellé d'origine.
+  function indicatorLabel(row: IndicatorRow): string {
+    if (row.id.startsWith("dx_")) return row.label.replace(/^Diagnostic /, `${t("Diagnostic")} `);
+    return t(row.label);
+  }
 
   const load = useCallback(() => {
     setIsLoading(true);
@@ -76,7 +85,7 @@ export default function Reporting() {
       downloadFile(`dhis2-${period}.json`, JSON.stringify(dataValueSet, null, 2), "application/json");
       setMessage({
         kind: "info",
-        text: unmapped.length > 0 ? `Fichier DHIS2 exporté. ${unmapped.length} indicateur(s) sans correspondance ont été ignorés.` : "Fichier DHIS2 exporté.",
+        text: unmapped.length > 0 ? t("Fichier DHIS2 exporté. {n} indicateur(s) sans correspondance ont été ignorés.", { n: unmapped.length }) : t("Fichier DHIS2 exporté."),
       });
     } catch (error) {
       setMessage({ kind: "error", text: errorText(error) });
@@ -90,12 +99,12 @@ export default function Reporting() {
     try {
       parsed = JSON.parse(mappingText);
     } catch {
-      setMappingMessage({ kind: "error", text: "Le texte n'est pas un JSON valide." });
+      setMappingMessage({ kind: "error", text: t("Le texte n'est pas un JSON valide.") });
       return;
     }
     try {
       await saveDhis2Mapping(parsed as never);
-      setMappingMessage({ kind: "info", text: "Correspondance enregistrée." });
+      setMappingMessage({ kind: "info", text: t("Correspondance enregistrée.") });
       load();
     } catch (error) {
       setMappingMessage({ kind: "error", text: errorText(error) });
@@ -106,8 +115,8 @@ export default function Reporting() {
     <div className="flex h-full flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-900">Rapports</h1>
-          <p className="mt-1 text-sm text-zinc-500">Indicateurs mensuels d'activité et export vers DHIS2</p>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("Rapports")}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t("Indicateurs mensuels d'activité et export vers DHIS2")}</p>
         </div>
         <button
           type="button"
@@ -115,7 +124,7 @@ export default function Reporting() {
           disabled={isLoading}
           className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
         >
-          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> Actualiser
+          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> {t("Actualiser")}
         </button>
       </div>
 
@@ -133,14 +142,14 @@ export default function Reporting() {
           data-testid="export-csv"
           className="flex items-center gap-2 rounded-full border border-zinc-200 px-5 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
         >
-          <Download className="h-4 w-4" /> Exporter en CSV
+          <Download className="h-4 w-4" /> {t("Exporter en CSV")}
         </button>
         <button
           onClick={exportDhis2}
           data-testid="export-dhis2"
           className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-5 py-2 text-xs font-medium text-white hover:bg-[#155bb0]"
         >
-          <FileJson className="h-4 w-4" /> Fichier DHIS2
+          <FileJson className="h-4 w-4" /> {t("Fichier DHIS2")}
         </button>
       </div>
 
@@ -150,18 +159,18 @@ export default function Reporting() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-100 text-xs text-zinc-400">
             <tr>
-              <th className="px-6 py-3 font-medium">Indicateur</th>
-              <th className="px-3 py-3 font-medium">Valeur</th>
+              <th className="px-6 py-3 font-medium">{t("Indicateur")}</th>
+              <th className="px-3 py-3 font-medium">{t("Valeur")}</th>
               <th className="px-3 py-3 font-medium">DHIS2</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-50">
             {indicators.map((row) => (
               <tr key={row.id}>
-                <td className="px-6 py-3 text-zinc-900">{row.label}</td>
+                <td className="px-6 py-3 text-zinc-900">{indicatorLabel(row)}</td>
                 <td className="px-3 py-3 font-medium text-zinc-900">{row.value}</td>
                 <td className="px-3 py-3 text-xs">
-                  {row.mapped ? <span className="text-green-700">Relié</span> : <span className="text-zinc-400">Non relié</span>}
+                  {row.mapped ? <span className="text-green-700">{t("Relié")}</span> : <span className="text-zinc-400">{t("Non relié")}</span>}
                 </td>
               </tr>
             ))}
@@ -170,16 +179,15 @@ export default function Reporting() {
       </div>
       {!mappingConfigured && (
         <p className="text-xs text-zinc-500">
-          Aucune correspondance DHIS2 : l'administrateur technique doit renseigner l'unité d'organisation et les éléments de données.
+          {t("Aucune correspondance DHIS2 : l'administrateur technique doit renseigner l'unité d'organisation et les éléments de données.")}
         </p>
       )}
 
       {isAdmin && (
         <form onSubmit={handleSaveMapping} className="max-w-2xl space-y-3 rounded-[18px] border border-zinc-200/70 bg-white p-6">
-          <h2 className="text-sm font-medium text-zinc-900">Correspondance DHIS2</h2>
+          <h2 className="text-sm font-medium text-zinc-900">{t("Correspondance DHIS2")}</h2>
           <p className="text-xs text-zinc-500">
-            Associez chaque indicateur (clé) à l'identifiant de l'élément de données DHIS2 de votre pays (11 caractères). Les diagnostics
-            s'écrivent « dx_ » suivi du code CIM-10, par exemple dx_B50.9.
+            {t("Associez chaque indicateur (clé) à l'identifiant de l'élément de données DHIS2 de votre pays (11 caractères). Les diagnostics s'écrivent « dx_ » suivi du code CIM-10, par exemple dx_B50.9.")}
           </p>
           <textarea
             value={mappingText}
@@ -193,7 +201,7 @@ export default function Reporting() {
             <p className={`text-xs ${mappingMessage.kind === "error" ? "text-red-600" : "text-green-700"}`}>{mappingMessage.text}</p>
           )}
           <button type="submit" className="rounded-full bg-[#1A6FD4] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#155bb0]">
-            Enregistrer
+            {t("Enregistrer")}
           </button>
         </form>
       )}

@@ -16,11 +16,12 @@ export async function listPatientsRoute(app: FastifyInstance) {
     const { search } = request.query as { search?: string };
     // Un numéro de dossier (PX-001401) retrouve directement le patient.
     const mrnId = search ? idFromMrn(search) : undefined;
+    // Résultats limités explicitement (la recherche affine ; la liste complète n'a pas de sens ici).
     const query = mrnId
       ? `?_id=${mrnId}`
       : search
-        ? `?name=${encodeURIComponent(search)}&_sort=-_lastUpdated`
-        : "?_sort=-_lastUpdated";
+        ? `?name=${encodeURIComponent(search)}&_sort=-_lastUpdated&_count=50`
+        : "?_sort=-_lastUpdated&_count=50";
 
     try {
       const bundle = await hapiClient.get<FhirBundle>(`/Patient${query}`);

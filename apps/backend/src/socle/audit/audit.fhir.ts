@@ -38,7 +38,8 @@ export function shouldAudit(method: string, routeUrl: string | undefined, status
   if (!authenticated) return false;
   if (statusCode === 403) return true;
   if (method.toUpperCase() !== "GET") return true;
-  return routeUrl.includes(":id");
+  // Les recherches de patients (noms d'enfants) sont tracées aussi : qui, quand (jamais le terme cherché).
+  return routeUrl.includes(":id") || routeUrl === "/api/patients";
 }
 
 export function patientIdFor(routeUrl: string | undefined, params: unknown, body: unknown): string | undefined {

@@ -37,6 +37,7 @@ test("un succès efface le compteur, et un autre identifiant n'est pas touché",
 
 test("on journalise les écritures, les lectures de dossier et les refus, pas les rafraîchissements", () => {
   assert.equal(shouldAudit("POST", "/api/patients", 201, true), true);
+  assert.equal(shouldAudit("GET", "/api/patients", 200, true), true);
   assert.equal(shouldAudit("GET", "/api/patients/:id", 200, true), true);
   assert.equal(shouldAudit("GET", "/api/lab/requests", 200, true), false); // rafraîchissement automatique
   assert.equal(shouldAudit("GET", "/api/lab/requests", 403, true), true); // refus de droits
@@ -121,4 +122,10 @@ test("plafond par adresse : verrouille après le nombre d'échecs configuré", (
 test("pagination HAPI : un lien vers un autre serveur est refusé", () => {
   assert.throws(() => assertHapiOrigin("http://evil.example/fhir?_getpages=1"));
   assert.equal(assertHapiOrigin("http://localhost:8080/fhir?_getpages=1"), "http://localhost:8080/fhir?_getpages=1");
+});
+
+import { accountsWithSeedPassword } from "../src/lib/seed-accounts-check.js";
+
+test("comptes de démonstration : sans SEED_USER_PASSWORD, rien à signaler", async () => {
+  assert.deepEqual(await accountsWithSeedPassword(undefined), []);
 });

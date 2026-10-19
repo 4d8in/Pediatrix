@@ -365,11 +365,14 @@ export function getActiveQueue(): Promise<{ queue: QueueEntry[] }> {
   return request<{ queue: QueueEntry[] }>("/api/queue");
 }
 
-export function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: true }> {
-  return request<{ ok: true }>("/api/auth/password", {
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: true }> {
+  const result = await request<{ ok: true; token?: string }>("/api/auth/password", {
     method: "POST",
     body: JSON.stringify({ currentPassword, newPassword }),
   });
+  // Le serveur renvoie un jeton neuf : les anciens jetons ne sont plus valables.
+  if (result.token) setAuthToken(result.token);
+  return { ok: true };
 }
 
 export const BACKEND_BASE_URL = BACKEND_URL;
@@ -528,7 +531,7 @@ export function listPendingPrescriptions(
 
 export function dispensePrescription(
   prescriptionId: string,
-  input: { itemCode: string; quantity: number },
+  input: { itemCode: string; quantity: number; confirmMismatch?: boolean },
 ): Promise<{ dispenseId: string }> {
   return request<{ dispenseId: string }>(`/api/pharmacy/prescriptions/${prescriptionId}/dispense`, {
     method: "POST",

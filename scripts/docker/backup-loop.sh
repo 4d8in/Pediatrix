@@ -14,7 +14,12 @@ umask 077
 chmod 700 "$DEST" 2>/dev/null || true
 
 if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
-  echo "ATTENTION : BACKUP_PASSPHRASE est vide, les sauvegardes seront EN CLAIR." >&2
+  # Les sauvegardes contiennent tous les dossiers patients : pas de sauvegarde en clair sans choix explicite.
+  if [ "${BACKUP_ALLOW_PLAINTEXT:-0}" != "1" ]; then
+    echo "ÉCHEC : BACKUP_PASSPHRASE est vide. Définissez-la, ou BACKUP_ALLOW_PLAINTEXT=1 pour accepter des sauvegardes EN CLAIR (déconseillé)." >&2
+    exit 1
+  fi
+  echo "ATTENTION : BACKUP_PASSPHRASE est vide, les sauvegardes seront EN CLAIR (BACKUP_ALLOW_PLAINTEXT=1)." >&2
 fi
 
 # Chiffrement demandé mais impossible : on s'arrête plutôt que de laisser une sauvegarde en clair.

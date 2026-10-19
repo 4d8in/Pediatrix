@@ -93,7 +93,10 @@ echo "OK : délivrance de 2 flacons (stock ${BEFORE} -> ${AFTER})."
 [ "$(status "$(api POST "$PHARM" "/api/pharmacy/prescriptions/${RX}/dispense" '{"itemCode":"PARA-SIR","quantity":1}')")" = "409" ] || fail "une 2e délivrance devrait donner 409."
 RX2=$(body "$(api POST "$DOCTOR" "/api/encounters/${ENCOUNTER_ID}/prescriptions" '{"medication":"Zinc 20 mg dispersible","dosage":"1 cp par jour"}')" | jq -r '.prescriptionId // empty')
 sleep 2
-CODE=$(status "$(api POST "$PHARM" "/api/pharmacy/prescriptions/${RX2}/dispense" '{"itemCode":"CEFTRI-1G","quantity":999999}')")
+MISMATCH=$(api POST "$PHARM" "/api/pharmacy/prescriptions/${RX2}/dispense" '{"itemCode":"CEFTRI-1G","quantity":1}')
+[ "$(status "$MISMATCH")" = "409" ] && [ "$(body "$MISMATCH" | jq -r '.kind')" = "mismatch" ] || fail "article différent du médicament prescrit : confirmation non exigée."
+echo "OK : article différent du médicament prescrit refusé sans confirmation."
+CODE=$(status "$(api POST "$PHARM" "/api/pharmacy/prescriptions/${RX2}/dispense" '{"itemCode":"CEFTRI-1G","quantity":999999,"confirmMismatch":true}')")
 [ "$CODE" = "409" ] || fail "une quantité supérieure au stock devrait donner 409 (reçu ${CODE})."
 echo "OK : 2e délivrance et quantité supérieure au stock refusées (409)."
 

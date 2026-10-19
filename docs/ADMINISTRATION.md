@@ -111,7 +111,8 @@ La caisse liste les consultations des `BILLING_WINDOW_DAYS` derniers jours (déf
 
 - **Réseau en clair par défaut** : sans le profil `tls` (Caddy), les mots de passe et jetons circulent en HTTP sur le réseau local. Activer le profil `tls` pour tout usage réel et définir `TRUST_PROXY` (adresse du conteneur Caddy) pour que la limitation des essais de connexion et le journal d'audit voient l'adresse des postes.
 - **Mises à jour automatiques non signées** : les installeurs ne sont pas signés (pas de certificat de signature) et `/updates` est servi sans authentification. Sur un réseau non maîtrisé, un poste malveillant pourrait servir un faux installeur. Signer les installeurs et passer par HTTPS avant tout déploiement ; restreindre l'écriture du dossier `UPDATES_DIR`.
-- **Comptes de démonstration** : `seed-users.ts` crée des comptes aux identifiants prévisibles (`admin1`, `medecin1`…) avec un mot de passe commun. Les désactiver ou changer leurs mots de passe avant la mise en service.
-- **Jetons** : la réinitialisation d'un mot de passe par l'administrateur invalide les jetons déjà émis pour ce compte ; un changement fait par l'utilisateur lui-même ne les invalide pas encore.
+- **Comptes de démonstration** : `seed-users.ts` crée des comptes aux identifiants prévisibles (`admin1`, `medecin1`…) avec un mot de passe commun. En production (`NODE_ENV=production`), le serveur **refuse de démarrer** tant que des comptes actifs ont encore ce mot de passe (`SEED_USER_PASSWORD`) ; hors production, il le signale dans les journaux.
+- **Jetons** : tout changement ou réinitialisation de mot de passe invalide les jetons déjà émis pour ce compte (l'utilisateur qui change son propre mot de passe reçoit un jeton neuf).
 - **Journaux** : les journaux du serveur ne contiennent plus la query des requêtes, mais pensez à la rotation des journaux Docker.
-- **Sauvegardes** : définir `BACKUP_PASSPHRASE` ; les copier hors de la machine.
+- **Sauvegardes** : `BACKUP_PASSPHRASE` est obligatoire (le service de sauvegarde refuse de démarrer sans, sauf `BACKUP_ALLOW_PLAINTEXT=1`) ; les copier hors de la machine.
+- **Délivrance** : délivrer un article différent du médicament prescrit demande une confirmation explicite du pharmacien.

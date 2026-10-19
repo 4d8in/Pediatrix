@@ -3,8 +3,8 @@ import { type FhirAllergyIntolerance, findMatchingAllergy } from "./allergy.fhir
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
-import { checkDailyDose } from "../../lib/dose-rules.js";
-import { findFormularyItem } from "../../lib/formulary.js";
+import { checkDailyDose, hasDoseRule } from "../../lib/dose-rules.js";
+import { FORMULARY, findFormularyItem } from "../../lib/formulary.js";
 import { VITAL_LOINC_CODES } from "../../lib/vitals-codes.js";
 import { type FhirMedicationRequest, toFhirMedicationRequest } from "./prescription.fhir.js";
 import type { CreatePrescriptionInput } from "./prescription.types.js";
@@ -26,6 +26,7 @@ function validate(body: unknown): { input: CreatePrescriptionInput } | { errors:
   const medication = typeof b.medication === "string" ? b.medication.trim() : "";
   const dosage = typeof b.dosage === "string" ? b.dosage.trim() : "";
   const confirmed = b.confirmed === true;
+  const doseConfirmed = b.doseConfirmed === true;
 
   if (!medication) errors.push("Le médicament est requis.");
   if (!dosage) errors.push("La posologie est requise.");
@@ -42,7 +43,7 @@ function validate(body: unknown): { input: CreatePrescriptionInput } | { errors:
 
   if (errors.length > 0) return { errors };
 
-  return { input: { medication, dosage, confirmed, formularyCode, doseMg, dosesPerDay } };
+  return { input: { medication, dosage, confirmed, doseConfirmed, formularyCode, doseMg, dosesPerDay } };
 }
 
 export async function createPrescriptionRoute(app: FastifyInstance) {
@@ -93,14 +94,20 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
         return reply.code(409).send({
           requiresConfirmation: true,
           allergy: matchedAllergy.code?.text ?? "allergie connue",
+          kind: "allergy",
           message: `Le patient a une allergie connue à "${matchedAllergy.code?.text ?? "cette substance"}". Confirmez pour prescrire quand même.`,
         });
       }
 
       // Contrôle de la dose quotidienne par kg, si une dose structurée est fournie.
       let doseAlert: string | undefined;
-      const { formularyCode, doseMg, dosesPerDay } = result.input;
-      if (formularyCode && doseMg !== undefined && dosesPerDay !== undefined) {
+      const { doseMg, dosesPerDay } = result.input;
+      // Code du formulaire : fourni, ou déduit du nom du médicament saisi.
+      const formularyCode =
+        result.input.formularyCode ?? FORMULARY.find((item) => item.name === result.input.medication)?.code;
+      if (formularyCode && hasDoseRule(formularyCode) && (doseMg === undefined || dosesPerDay === undefined)) {
+        doseAlert = "Dose non vérifiée : renseignez la dose par prise et le nombre de prises par jour pour contrôler la dose par kg.";
+      } else if (formularyCode && doseMg !== undefined && dosesPerDay !== undefined) {
         try {
           const weightBundle = await hapiClient.get<{ entry?: { resource: { valueQuantity?: { value?: number } } }[] }>(
             `/Observation?patient=${patientId}&code=${VITAL_LOINC_CODES.weight.code}&_sort=-date&_count=1`,
@@ -114,9 +121,10 @@ export async function createPrescriptionRoute(app: FastifyInstance) {
           }
           throw error;
         }
-        if (doseAlert && !result.input.confirmed) {
-          return reply.code(409).send({ requiresConfirmation: true, allergy: "", message: doseAlert });
-        }
+      }
+      // Une confirmation d'allergie ne vaut pas confirmation de dose : deux alertes, deux accords.
+      if (doseAlert && !result.input.doseConfirmed) {
+        return reply.code(409).send({ requiresConfirmation: true, kind: "dose", allergy: "", message: doseAlert });
       }
 
       try {

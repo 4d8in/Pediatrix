@@ -202,6 +202,11 @@ export default function Laboratory() {
                 }`}
               >
                 <h3 className="text-sm font-medium text-zinc-900">
+                  {request.urgent && (
+                    <span data-testid="lab-urgent" className="mr-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                      Urgent
+                    </span>
+                  )}
                   {request.patientName || "Patient inconnu"} —{" "}
                   <span className="text-xs">{request.exam ?? "Examen non précisé"}</span>
                 </h3>

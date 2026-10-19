@@ -28,7 +28,7 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
 2. Saisir le motif, les constantes (température, poids, taille, fréquences), les notes. *Enregistrer*.
 3. Ensuite, sur la même page :
    - **Diagnostic** : choisir dans la liste CIM-10 ou saisir un diagnostic libre, *confirmé* ou *provisoire*. On peut en ajouter plusieurs.
-   - **Demander un examen** : choisir dans le catalogue (NFS, hémoglobine, CRP, glycémie…) ou saisir librement. Le laboratoire le reçoit aussitôt.
+   - **Demander un examen** : choisir dans le catalogue (NFS, hémoglobine, CRP, glycémie…) ou saisir librement. Le laboratoire le reçoit aussitôt. Cocher *Demande urgente* pour la placer en tête de la file du laboratoire.
    - **Demander une imagerie**.
    - **Référer vers une autre structure** (hôpital régional, CHU…) : destination, motif, résumé clinique, case *urgente*. La **fiche de référence** s'imprime ensuite depuis le dossier du patient (onglet *Consultations et prescriptions*), avec les diagnostics de la consultation.
    - **Prescrire** : choisir dans le formulaire de la pharmacie. Le logiciel avertit si l'enfant a une allergie connue au médicament ; il faut confirmer pour prescrire quand même. En renseignant la dose par prise (mg) et le nombre de prises par jour pour un médicament du formulaire, la dose quotidienne par kg est contrôlée d'après le dernier poids ; si elle dépasse le maximum usuel, ou si le poids est inconnu, une confirmation est demandée et tracée. Les maxima sont à faire valider par le pharmacien responsable.
@@ -46,7 +46,7 @@ Onglets : Informations, Consultations et prescriptions, Hospitalisations, Examen
 
 ## Laboratoire (technicien)
 
-1. *Laboratoire* → choisir une demande dans la liste.
+1. *Laboratoire* → choisir une demande dans la liste (les demandes marquées *Urgent* sont en tête).
 2. Si l'examen est dans le catalogue, les analyses (ex. hémoglobine, leucocytes, plaquettes, hématocrite pour une NFS) sont déjà listées avec leur unité. Saisir la **valeur**, et si besoin les **bornes de référence** : un badge *Élevé / Bas / Normal* s'affiche tout de suite. Les bornes sont **proposées d'après l'âge et le sexe** de l'enfant (modifiables) ; une valeur franchement anormale s'affiche en *Critique* (rouge plein) et reste marquée ainsi dans le dossier. Ces valeurs sont à faire valider par le biologiste responsable, et à remplacer par les intervalles de votre laboratoire. Les analyses laissées vides sont ignorées.
 3. *Valider et envoyer* : le médecin voit le résultat dans le dossier.
 
@@ -59,8 +59,8 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 ## Pharmacie
 
 - **Ordonnances à délivrer** : choisir l'ordonnance, l'article du formulaire délivré et la quantité. Le logiciel refuse une quantité supérieure au stock.
-- **Stock** : quantités en stock ; les articles sous leur seuil sont signalés *À réapprovisionner*.
-- **Réception** : enregistrer une livraison (article, quantité, numéro de lot, péremption).
+- **Stock** : quantités utilisables ; les articles sous leur seuil sont signalés *À réapprovisionner*. Les lots les plus proches de leur péremption sortent en premier. Un lot périmé n'est plus compté dans le stock utilisable et s'affiche *périmé, à retirer* ; les lots qui périment sous 90 jours sont signalés.
+- **Réception** : enregistrer une livraison (article, quantité, numéro de lot, péremption). Un lot déjà périmé est refusé.
 
 ## Caisse
 

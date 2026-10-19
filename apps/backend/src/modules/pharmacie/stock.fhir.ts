@@ -14,10 +14,9 @@ export interface ReceiptInput {
 }
 
 export function toSupplyDelivery(item: FormularyItem, input: ReceiptInput, receivedBy: string) {
-  const extension = [
-    input.lot ? { url: LOT_EXTENSION_URL, valueString: input.lot } : undefined,
-    input.expiry ? { url: EXPIRY_EXTENSION_URL, valueDate: input.expiry } : undefined,
-  ].filter(Boolean);
+  const extension: { url: string; valueString?: string; valueDate?: string }[] = [];
+  if (input.lot) extension.push({ url: LOT_EXTENSION_URL, valueString: input.lot });
+  if (input.expiry) extension.push({ url: EXPIRY_EXTENSION_URL, valueDate: input.expiry });
 
   return {
     resourceType: "SupplyDelivery",
@@ -72,33 +71,111 @@ export interface StockLevel {
   name: string;
   form: string;
   unit: string;
+  // Quantité utilisable : le stock en main moins les lots périmés.
   quantity: number;
   reorderLevel: number;
-  // Vrai quand le stock est sous le seuil de réapprovisionnement.
+  // Vrai quand la quantité utilisable est sous le seuil de réapprovisionnement.
   low: boolean;
+  // Quantité restante dans des lots dont la péremption est dépassée (à retirer).
+  expiredQuantity: number;
+  // Quantité restante dans des lots qui périment dans EXPIRY_WARNING_DAYS jours ou moins.
+  expiringSoonQuantity: number;
 }
 
-export function computeStock(receipts: QuantityResource[], dispenses: QuantityResource[]): StockLevel[] {
-  const balance = new Map<string, number>();
+export const EXPIRY_WARNING_DAYS = 90;
+
+interface TimedQuantityResource extends QuantityResource {
+  whenHandedOver?: string;
+}
+
+interface ReceiptResource extends QuantityResource {
+  occurrenceDateTime?: string;
+  extension?: { url: string; valueDate?: string; valueString?: string }[];
+}
+
+function expiryOf(receipt: ReceiptResource): string | undefined {
+  return receipt.extension?.find((e) => e.url === EXPIRY_EXTENSION_URL)?.valueDate;
+}
+
+// Stock par article avec gestion des péremptions, calculé en rejouant les mouvements
+// dans l'ordre chronologique : à chaque délivrance, on prélève d'abord dans les lots déjà
+// reçus à cette date, non périmés à cette date, qui périment le plus tôt (FEFO). Ce qui
+// reste à `now` dans un lot périmé n'est plus utilisable. Un lot sans date de péremption
+// n'expire jamais (et est consommé en dernier). Une délivrance sans lot disponible creuse
+// un stock négatif, comme avant.
+export function computeStock(
+  receipts: ReceiptResource[],
+  dispenses: TimedQuantityResource[],
+  now: Date = new Date(),
+): StockLevel[] {
+  const today = now.toISOString().slice(0, 10);
+  const warning = new Date(now.getTime() + EXPIRY_WARNING_DAYS * 86_400_000).toISOString().slice(0, 10);
+
+  type Lot = { expiry?: string; remaining: number };
+  type Event =
+    | { at: string; kind: "receipt"; lot: Lot }
+    | { at: string; kind: "dispense"; quantity: number };
+  const eventsByItem = new Map<string, Event[]>();
+  const push = (code: string, event: Event) => {
+    const list = eventsByItem.get(code) ?? [];
+    list.push(event);
+    eventsByItem.set(code, list);
+  };
   for (const receipt of receipts) {
     const code = itemCodeOf(receipt);
-    if (code) balance.set(code, (balance.get(code) ?? 0) + quantityOf(receipt));
+    if (code) push(code, { at: receipt.occurrenceDateTime ?? "", kind: "receipt", lot: { expiry: expiryOf(receipt), remaining: quantityOf(receipt) } });
   }
   for (const dispense of dispenses) {
     const code = itemCodeOf(dispense);
-    if (code) balance.set(code, (balance.get(code) ?? 0) - quantityOf(dispense));
+    if (code) push(code, { at: dispense.whenHandedOver ?? "", kind: "dispense", quantity: quantityOf(dispense) });
   }
 
   return FORMULARY.map((item) => {
-    const quantity = balance.get(item.code) ?? 0;
+    // À date égale, les réceptions passent avant les délivrances.
+    const events = (eventsByItem.get(item.code) ?? []).sort(
+      (x, y) => x.at.localeCompare(y.at) || (x.kind === y.kind ? 0 : x.kind === "receipt" ? -1 : 1),
+    );
+    const lots: Lot[] = [];
+    let overdraw = 0;
+    for (const event of events) {
+      if (event.kind === "receipt") {
+        lots.push(event.lot);
+        continue;
+      }
+      const day = event.at.slice(0, 10);
+      const candidates = lots
+        .filter((lot) => lot.remaining > 0 && (lot.expiry === undefined || lot.expiry >= day))
+        .sort((x, y) => (x.expiry === y.expiry ? 0 : x.expiry === undefined ? 1 : y.expiry === undefined ? -1 : x.expiry.localeCompare(y.expiry)));
+      let toTake = event.quantity;
+      for (const lot of candidates) {
+        const taken = Math.min(lot.remaining, toTake);
+        lot.remaining -= taken;
+        toTake -= taken;
+        if (toTake === 0) break;
+      }
+      overdraw += toTake;
+    }
+
+    let usable = 0 - overdraw;
+    let expired = 0;
+    let expiringSoon = 0;
+    for (const lot of lots) {
+      if (lot.expiry !== undefined && lot.expiry < today) expired += lot.remaining;
+      else {
+        usable += lot.remaining;
+        if (lot.expiry !== undefined && lot.expiry <= warning) expiringSoon += lot.remaining;
+      }
+    }
     return {
       code: item.code,
       name: item.name,
       form: item.form,
       unit: item.unit,
-      quantity,
+      quantity: usable === 0 ? 0 : usable,
       reorderLevel: item.reorderLevel,
-      low: quantity < item.reorderLevel,
+      low: usable < item.reorderLevel,
+      expiredQuantity: expired,
+      expiringSoonQuantity: expiringSoon,
     };
   });
 }

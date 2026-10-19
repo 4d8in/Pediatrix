@@ -22,6 +22,7 @@ export function toFhirServiceRequest(
     resourceType: "ServiceRequest",
     status: "active",
     intent: "order",
+    priority: input.urgent ? "urgent" : "routine",
     code: {
       coding: examCoding(input.examCode),
       text: input.exam,

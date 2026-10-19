@@ -71,7 +71,7 @@ echo "OK : réception de 20 flacons (stock ${BEFORE} -> ${AFTER})."
 PATIENT_ID=$(body "$(api POST "$DOCTOR" /api/patients '{"firstName":"Ibrahima","lastName":"Verify-Pharmacy","birthDate":"2021-05-20","gender":"male","guardian":{"name":"Awa Ndiaye","relationship":"Mère","phone":"+221701112233"}}')" | jq -r '.id // empty')
 ENCOUNTER_ID=$(body "$(api POST "$DOCTOR" "/api/patients/${PATIENT_ID}/encounters" '{"reason":"Fièvre","vitals":{"temperature":38.9,"weight":11.4}}')" | jq -r '.encounterId // empty')
 [ -n "$PATIENT_ID" ] && [ -n "$ENCOUNTER_ID" ] || fail "création du patient ou de la consultation."
-RX=$(body "$(api POST "$DOCTOR" "/api/encounters/${ENCOUNTER_ID}/prescriptions" '{"medication":"Paracétamol sirop 120 mg/5 mL","dosage":"5 mL toutes les 6 h"}')" | jq -r '.prescriptionId // empty')
+RX=$(body "$(api POST "$DOCTOR" "/api/encounters/${ENCOUNTER_ID}/prescriptions" '{"medication":"Paracétamol sirop 120 mg/5 mL","dosage":"5 mL toutes les 6 h","formularyCode":"PARA-SIR","doseMg":120,"dosesPerDay":4,"doseConfirmed":true}')" | jq -r '.prescriptionId // empty')
 [ -n "$RX" ] || fail "création de l'ordonnance."
 
 FOUND=""

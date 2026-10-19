@@ -48,6 +48,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [referralDone, setReferralDone] = useState<string | null>(null);
 
   const [exam, setExam] = useState("");
+  const [examUrgent, setExamUrgent] = useState(false);
   const [requester, setRequester] = useState("");
   const [isRequestingExam, setIsRequestingExam] = useState(false);
   const [examErrors, setExamErrors] = useState<string[]>([]);
@@ -75,6 +76,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setVitals({});
     setEncounterId(null);
     setExam("");
+    setExamUrgent(false);
     setRequester("");
     setExamErrors([]);
     setExamRequested(false);
@@ -86,6 +88,8 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setDosage("");
     setDoseMg("");
     setDosesPerDay("");
+    setConfirmedAllergy(false);
+    setConfirmedDose(false);
     setPrescriptionErrors([]);
     setAllergyConflict(null);
     setPrescriptionCreated(false);
@@ -185,7 +189,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
     try {
       const examCode = labTests.find((test) => test.display === exam.trim())?.code;
-      await createServiceRequest(encounterId, { exam, requester, examCode });
+      await createServiceRequest(encounterId, { exam, requester, examCode, urgent: examUrgent });
       setExamRequested(true);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -219,7 +223,10 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     }
   }
 
-  async function submitPrescription(confirmed: boolean) {
+  const [confirmedAllergy, setConfirmedAllergy] = useState(false);
+  const [confirmedDose, setConfirmedDose] = useState(false);
+
+  async function submitPrescription(accept?: "allergy" | "dose") {
     if (!encounterId) return;
 
     setPrescriptionErrors([]);
@@ -231,7 +238,11 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         doseMg.trim() && dosesPerDay.trim()
           ? { formularyCode, doseMg: Number(doseMg.replace(",", ".")), dosesPerDay: Number(dosesPerDay) }
           : {};
-      await createPrescription(encounterId, { medication, dosage, confirmed, ...structured });
+      const allergyOk = confirmedAllergy || accept === "allergy";
+      const doseOk = confirmedDose || accept === "dose";
+      if (accept === "allergy") setConfirmedAllergy(true);
+      if (accept === "dose") setConfirmedDose(true);
+      await createPrescription(encounterId, { medication, dosage, confirmed: allergyOk, doseConfirmed: doseOk, ...structured });
       setAllergyConflict(null);
       setPrescriptionCreated(true);
     } catch (error) {
@@ -240,6 +251,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         if (body?.requiresConfirmation) {
           setAllergyConflict({
             requiresConfirmation: true,
+            kind: body.kind,
             allergy: body.allergy ?? "",
             message: body.message ?? error.message,
           });
@@ -258,11 +270,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
   async function handleSubmitPrescription(event: FormEvent) {
     event.preventDefault();
-    await submitPrescription(false);
+    setConfirmedAllergy(false);
+    setConfirmedDose(false);
+    await submitPrescription();
   }
 
   async function handleConfirmDespiteAllergy() {
-    await submitPrescription(true);
+    await submitPrescription(allergyConflict?.kind === "dose" ? "dose" : "allergy");
   }
 
   if (encounterId) {
@@ -444,6 +458,16 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     placeholder="Ex. : Dr. Moussa Diallo"
                   />
                 </div>
+
+                <label className="flex items-center gap-2 text-sm text-zinc-500">
+                  <input
+                    type="checkbox"
+                    data-testid="exam-request-urgent"
+                    checked={examUrgent}
+                    onChange={(event) => setExamUrgent(event.target.checked)}
+                  />
+                  Demande urgente (passe en tête de la file du laboratoire)
+                </label>
 
                 <button
                   type="submit"

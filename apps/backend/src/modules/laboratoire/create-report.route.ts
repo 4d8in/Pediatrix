@@ -105,7 +105,11 @@ export async function createReportRoute(app: FastifyInstance) {
           const patient = await hapiClient.get<{ birthDate?: string; gender?: string }>(`/Patient/${patientId}`);
           const months = patient.birthDate ? ageInMonths(patient.birthDate, new Date().toISOString()) : null;
           result.input.results = result.input.results.map((row) => {
-            const ref = row.code ? referenceFor(row.code, months, patient.gender ?? "unknown") : undefined;
+            // Les références du catalogue valent pour l'unité du catalogue : unité saisie différente
+            // (ex. mmol/L), aucune borne ni seuil critique automatique.
+            const catalogUnit = row.code ? findCatalogEntry(row.code)?.unit : undefined;
+            const sameUnit = !row.unit || !catalogUnit || row.unit === catalogUnit;
+            const ref = row.code && sameUnit ? referenceFor(row.code, months, patient.gender ?? "unknown") : undefined;
             if (!ref) return row;
             const manual = row.referenceLow !== undefined || row.referenceHigh !== undefined;
             return {

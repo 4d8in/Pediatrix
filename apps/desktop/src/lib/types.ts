@@ -74,6 +74,7 @@ export interface CreateServiceRequestInput {
   requester: string;
   // Code LOINC de l'examen quand il vient du catalogue du laboratoire.
   examCode?: string;
+  urgent?: boolean;
 }
 
 // Entrée du catalogue d'examens (GET /api/lab/catalog). Un panel (ex. NFS) liste ses analyses.
@@ -85,6 +86,7 @@ export interface LabTest {
 }
 
 export interface LabRequest {
+  urgent?: boolean;
   id: string;
   patientId: string;
   patientName: string;
@@ -212,6 +214,7 @@ export interface CreatePrescriptionInput {
   medication: string;
   dosage: string;
   confirmed?: boolean;
+  doseConfirmed?: boolean;
   formularyCode?: string;
   doseMg?: number;
   dosesPerDay?: number;
@@ -227,6 +230,8 @@ export interface Prescription {
 
 export interface AllergyConflict {
   requiresConfirmation: true;
+  // « allergy » ou « dose » : chaque alerte demande son propre accord.
+  kind?: "allergy" | "dose";
   allergy: string;
   message: string;
 }
@@ -360,6 +365,7 @@ export interface RecentResult {
   issued: string | null;
   conclusion: string | null;
   read: boolean;
+  critical: boolean;
 }
 
 export interface RequestSummary {
@@ -384,8 +390,11 @@ export interface FormularyItem {
 }
 
 export interface StockLevel extends FormularyItem {
+  // Quantité utilisable (hors lots périmés).
   quantity: number;
   low: boolean;
+  expiredQuantity: number;
+  expiringSoonQuantity: number;
 }
 
 export interface PendingPrescription {

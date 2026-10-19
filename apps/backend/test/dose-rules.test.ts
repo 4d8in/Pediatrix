@@ -29,3 +29,9 @@ test("la dose structurée et la confirmation sont écrites dans la prescription"
   assert.equal(r.dosageInstruction[0].timing.repeat.frequency, 3);
   assert.equal(r.extension.length, 1);
 });
+
+test("hasDoseRule distingue les médicaments contrôlés", async () => {
+  const { hasDoseRule } = await import("../src/lib/dose-rules.js");
+  assert.equal(hasDoseRule("PARA-SIR"), true);
+  assert.equal(hasDoseRule("SRO"), false);
+});

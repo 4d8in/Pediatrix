@@ -20,6 +20,8 @@ interface FhirResource {
   issued?: string;
   conclusion?: string;
   category?: { coding?: { code?: string }[] }[];
+  result?: { reference?: string }[];
+  interpretation?: { coding?: { code?: string }[] }[];
   name?: { family?: string; given?: string[] }[];
 }
 
@@ -31,7 +33,7 @@ export async function recentResultsRoute(app: FastifyInstance) {
       const since = new Date(Date.now() - 7 * DAY_MS).toISOString();
       const [bundle, readIds] = await Promise.all([
         hapiClient.get<FhirBundle>(
-          `/DiagnosticReport?issued=ge${since}&_sort=-issued&_include=DiagnosticReport:subject&_count=50`,
+          `/DiagnosticReport?issued=ge${since}&_sort=-issued&_include=DiagnosticReport:subject&_include=DiagnosticReport:result&_count=100`,
           { "Cache-Control": "no-cache" },
         ),
         getReadReportIds(request.user.sub),
@@ -45,6 +47,14 @@ export async function recentResultsRoute(app: FastifyInstance) {
             const name = patient.name?.[0];
             return [patient.id, [name?.given?.[0], name?.family].filter(Boolean).join(" ") || "Patient"];
           }),
+      );
+
+      // Observations porteuses d'une valeur critique (HH / LL), pour signaler les rapports concernés.
+      const criticalObservations = new Set(
+        resources
+          .filter((r) => r.resourceType === "Observation")
+          .filter((r) => r.interpretation?.some((i) => i.coding?.some((c) => c.code === "HH" || c.code === "LL")))
+          .map((r) => r.id),
       );
 
       const results = resources
@@ -61,8 +71,11 @@ export async function recentResultsRoute(app: FastifyInstance) {
             issued: report.issued ?? null,
             conclusion: report.conclusion ?? null,
             read: readIds.has(report.id),
+            critical: (report.result ?? []).some((ref) => criticalObservations.has(ref.reference?.split("/")[1] ?? "")),
           };
-        });
+        })
+        // Les résultats critiques non lus d'abord.
+        .sort((a, b) => Number(b.critical && !b.read) - Number(a.critical && !a.read));
 
       return reply.send({ results });
     } catch (error) {

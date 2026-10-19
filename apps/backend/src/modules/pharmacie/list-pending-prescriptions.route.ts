@@ -61,8 +61,11 @@ export async function listPendingPrescriptionsRoute(app: FastifyInstance) {
       const { status } = request.query as { status?: string };
       const requestStatus = status === "completed" ? "completed" : "active";
       try {
+        // À délivrer : les plus anciennes d'abord, pour que celles qui attendent depuis le plus
+        // longtemps ne soient jamais écartées par la limite de page ; historique : les plus récentes.
+        const sort = requestStatus === "active" ? "authoredon" : "-authoredon";
         const bundle = await hapiClient.get<FhirBundle>(
-          `/MedicationRequest?status=${requestStatus}&_include=MedicationRequest:subject&_count=200&_sort=-authoredon`,
+          `/MedicationRequest?status=${requestStatus}&_include=MedicationRequest:subject&_count=200&_sort=${sort}`,
           { "Cache-Control": "no-cache" },
         );
         return reply.send({ prescriptions: parsePendingPrescriptions(bundle) });

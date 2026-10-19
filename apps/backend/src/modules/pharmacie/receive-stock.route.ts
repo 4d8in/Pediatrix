@@ -19,6 +19,8 @@ function validate(body: unknown): { input: ReceiptInput } | { errors: string[] }
   if (!Number.isInteger(quantity) || quantity <= 0) errors.push("La quantité doit être un entier positif.");
   if (expiry && (!DATE_PATTERN.test(expiry) || Number.isNaN(Date.parse(expiry)))) {
     errors.push("Date de péremption invalide (format AAAA-MM-JJ).");
+  } else if (expiry && expiry < new Date().toISOString().slice(0, 10)) {
+    errors.push("Ce lot est déjà périmé : il ne peut pas être réceptionné.");
   }
   if (errors.length > 0) return { errors };
   return { input: { itemCode, quantity, lot, expiry } };

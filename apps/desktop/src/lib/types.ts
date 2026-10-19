@@ -1,4 +1,13 @@
-export type Role = "nurse" | "doctor" | "lab_tech" | "radiologist" | "director" | "tech_admin";
+export type Role =
+  | "nurse"
+  | "doctor"
+  | "lab_tech"
+  | "radiologist"
+  | "pharmacist"
+  | "cashier"
+  | "receptionist"
+  | "director"
+  | "tech_admin";
 
 export interface User {
   id: string;
@@ -332,4 +341,33 @@ export interface UserProfile {
   phone: string | null;
   email: string | null;
   photo: { contentType: string; data: string } | null;
+}
+
+export interface FormularyItem {
+  code: string;
+  name: string;
+  form: string;
+  unit: string;
+  reorderLevel: number;
+}
+
+export interface StockLevel extends FormularyItem {
+  quantity: number;
+  low: boolean;
+}
+
+export interface PendingPrescription {
+  id: string;
+  patientId: string;
+  patientName: string;
+  medication: string | null;
+  dosage: string | null;
+  authoredOn: string | null;
+}
+
+export interface ReceiptInput {
+  itemCode: string;
+  quantity: number;
+  lot?: string;
+  expiry?: string;
 }

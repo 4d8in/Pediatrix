@@ -36,6 +36,11 @@ import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-statu
 import { listPatientStaysRoute } from "./modules/hospitalisation/list-patient-stays.route.js";
 import { labSummaryRoute } from "./modules/laboratoire/lab-summary.route.js";
 import { labCatalogRoute } from "./modules/laboratoire/lab-catalog.route.js";
+import { listFormularyRoute } from "./modules/pharmacie/list-formulary.route.js";
+import { stockLevelsRoute } from "./modules/pharmacie/stock-levels.route.js";
+import { receiveStockRoute } from "./modules/pharmacie/receive-stock.route.js";
+import { listPendingPrescriptionsRoute } from "./modules/pharmacie/list-pending-prescriptions.route.js";
+import { dispensePrescriptionRoute } from "./modules/pharmacie/dispense-prescription.route.js";
 import { imagingSummaryRoute } from "./modules/radiologie/imaging-summary.route.js";
 import { createImagingRequestRoute } from "./modules/radiologie/create-imaging-request.route.js";
 import { listImagingRequestsRoute } from "./modules/radiologie/list-imaging-requests.route.js";
@@ -131,6 +136,11 @@ await app.register(activeQueueRoute);
 await app.register(recentResultsRoute);
 await app.register(labSummaryRoute);
 await app.register(labCatalogRoute);
+await app.register(listFormularyRoute);
+await app.register(stockLevelsRoute);
+await app.register(receiveStockRoute);
+await app.register(listPendingPrescriptionsRoute);
+await app.register(dispensePrescriptionRoute);
 await app.register(imagingSummaryRoute);
 await app.register(markResultReadRoute);
 

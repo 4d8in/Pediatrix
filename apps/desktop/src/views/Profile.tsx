@@ -3,16 +3,8 @@ import type { ChangeEvent, FormEvent } from "react";
 import { Camera, CheckCircle2, Trash2 } from "lucide-react";
 import { ApiError, getMyProfile, updateMyProfile } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import type { Role, UserProfile } from "../lib/types";
-
-const ROLE_LABELS: Record<Role, string> = {
-  nurse: "Infirmière",
-  doctor: "Médecin",
-  lab_tech: "Technicien labo",
-  radiologist: "Radiologue",
-  director: "Directeur",
-  tech_admin: "Administrateur technique",
-};
+import type { UserProfile } from "../lib/types";
+import { ROLE_LABELS } from "../lib/roles";
 
 const PHOTO_SIZE = 256;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;

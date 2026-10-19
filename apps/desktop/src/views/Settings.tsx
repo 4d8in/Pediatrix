@@ -3,16 +3,7 @@ import type { FormEvent } from "react";
 import { CheckCircle2, KeyRound, LifeBuoy, Server, UserRound } from "lucide-react";
 import { ApiError, BACKEND_BASE_URL, changePassword } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import type { Role } from "../lib/types";
-
-const ROLE_LABELS: Record<Role, string> = {
-  nurse: "Infirmière",
-  doctor: "Médecin",
-  lab_tech: "Technicien labo",
-  radiologist: "Radiologue",
-  director: "Directeur",
-  tech_admin: "Administrateur technique",
-};
+import { ROLE_LABELS } from "../lib/roles";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (

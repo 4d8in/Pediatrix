@@ -28,7 +28,11 @@ import type {
   ImagingReport,
   ImagingRequest,
   Immunization,
+  FormularyItem,
   LabRequest,
+  PendingPrescription,
+  ReceiptInput,
+  StockLevel,
   LabTest,
   Patient,
   PatientRecord,
@@ -371,4 +375,35 @@ export function getMyProfile(): Promise<UserProfile> {
 
 export function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
   return request<UserProfile>("/api/me/profile", { method: "PUT", body: JSON.stringify(profile) });
+}
+
+export function getFormulary(): Promise<{ items: FormularyItem[] }> {
+  return request<{ items: FormularyItem[] }>("/api/pharmacy/formulary");
+}
+
+export function getStock(): Promise<{ items: StockLevel[] }> {
+  return request<{ items: StockLevel[] }>("/api/pharmacy/stock");
+}
+
+export function receiveStock(input: ReceiptInput): Promise<{ receiptId: string }> {
+  return request<{ receiptId: string }>("/api/pharmacy/stock/receipts", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listPendingPrescriptions(
+  status: "active" | "completed" = "active",
+): Promise<{ prescriptions: PendingPrescription[] }> {
+  return request<{ prescriptions: PendingPrescription[] }>(`/api/pharmacy/prescriptions?status=${status}`);
+}
+
+export function dispensePrescription(
+  prescriptionId: string,
+  input: { itemCode: string; quantity: number },
+): Promise<{ dispenseId: string }> {
+  return request<{ dispenseId: string }>(`/api/pharmacy/prescriptions/${prescriptionId}/dispense`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

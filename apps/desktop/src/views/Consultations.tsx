@@ -9,10 +9,11 @@ import {
   createImagingRequest,
   createPrescription,
   createServiceRequest,
+  getFormulary,
   getLabCatalog,
   getPatient,
 } from "../lib/api";
-import type { AllergyConflict, LabTest, Patient, Vitals } from "../lib/types";
+import type { AllergyConflict, FormularyItem, LabTest, Patient, Vitals } from "../lib/types";
 
 interface ConsultationsProps {
   initialPatientId?: string | null;
@@ -29,6 +30,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [encounterId, setEncounterId] = useState<string | null>(null);
 
   const [labTests, setLabTests] = useState<LabTest[]>([]);
+  const [formulary, setFormulary] = useState<FormularyItem[]>([]);
   const [exam, setExam] = useState("");
   const [requester, setRequester] = useState("");
   const [isRequestingExam, setIsRequestingExam] = useState(false);
@@ -114,6 +116,9 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     getLabCatalog()
       .then((data) => setLabTests(data.tests))
       .catch(() => setLabTests([]));
+    getFormulary()
+      .then((data) => setFormulary(data.items))
+      .catch(() => setFormulary([]));
   }, []);
 
   async function handleRequestExam(event: FormEvent) {
@@ -408,11 +413,17 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                   <input
                     type="text"
                     required
+                    list="formulary-items"
                     value={medication}
                     onChange={(event) => setMedication(event.target.value)}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                     placeholder="Ex. : Amoxicilline"
                   />
+                  <datalist id="formulary-items">
+                    {formulary.map((item) => (
+                      <option key={item.code} value={item.name} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="space-y-3">

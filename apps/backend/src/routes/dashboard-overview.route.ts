@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { HapiError, hapiClient } from "../lib/hapi-client.js";
+import { HapiError, hapiClient, assertHapiOrigin } from "../lib/hapi-client.js";
 import { IMAGING_CATEGORY_SEARCH_TOKEN } from "../lib/service-category.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
@@ -39,7 +39,7 @@ async function fetchAll(path: string): Promise<FhirResource[]> {
     const nextUrl = bundle.link?.find((link) => link.relation === "next")?.url;
     if (!nextUrl) break;
 
-    const response = await fetch(nextUrl, {
+    const response = await fetch(assertHapiOrigin(nextUrl), {
       headers: { Accept: "application/fhir+json", "Cache-Control": "no-cache" },
     });
     if (!response.ok) {

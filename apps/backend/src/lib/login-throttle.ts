@@ -13,6 +13,8 @@ interface Entry {
 export class LoginThrottle {
   private readonly entries = new Map<string, Entry>();
 
+  constructor(private readonly maxFailures: number = MAX_FAILURES) {}
+
   // Secondes à attendre avant de pouvoir réessayer (0 = autorisé).
   retryAfterSeconds(key: string, now: number = Date.now()): number {
     const entry = this.entries.get(key);
@@ -28,7 +30,7 @@ export class LoginThrottle {
     const previous = this.entries.get(key);
     // Un verrou expiré repart de zéro.
     const failures = previous && previous.lockedUntil > 0 && previous.lockedUntil <= now ? 1 : (previous?.failures ?? 0) + 1;
-    this.entries.set(key, { failures, lockedUntil: failures >= MAX_FAILURES ? now + LOCK_MS : 0 });
+    this.entries.set(key, { failures, lockedUntil: failures >= this.maxFailures ? now + LOCK_MS : 0 });
   }
 
   recordSuccess(key: string): void {
@@ -37,3 +39,5 @@ export class LoginThrottle {
 }
 
 export const loginThrottle = new LoginThrottle();
+// Plafond par adresse, quel que soit l'identifiant : freine le « password spraying » sur de nombreux comptes.
+export const ipThrottle = new LoginThrottle(40);

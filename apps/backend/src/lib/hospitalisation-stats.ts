@@ -1,4 +1,4 @@
-import { HapiError, hapiClient } from "./hapi-client.js";
+import { HapiError, hapiClient, assertHapiOrigin } from "./hapi-client.js";
 import { DISCHARGE_OUTCOME_URL } from "./discharge.js";
 
 // Indicateurs de lits et de séjours, calculés à partir des ressources FHIR du
@@ -28,7 +28,7 @@ async function fetchAll(path: string): Promise<FhirResource[]> {
     resources.push(...(bundle.entry ?? []).map((entry) => entry.resource));
     const nextUrl = bundle.link?.find((link) => link.relation === "next")?.url;
     if (!nextUrl) break;
-    const response = await fetch(nextUrl, { headers: { Accept: "application/fhir+json", "Cache-Control": "no-cache" } });
+    const response = await fetch(assertHapiOrigin(nextUrl), { headers: { Accept: "application/fhir+json", "Cache-Control": "no-cache" } });
     if (!response.ok) throw new HapiError(response.status, `HAPI a répondu ${response.status} lors de la pagination.`);
     bundle = (await response.json()) as FhirBundlePage;
   }

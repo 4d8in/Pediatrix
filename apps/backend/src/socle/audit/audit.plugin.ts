@@ -28,7 +28,9 @@ export const auditPlugin = fp(async function auditPlugin(app: FastifyInstance) {
       agent: { id: user?.sub, name: user?.name, role: user?.role },
       ip: request.ip,
       entity: patientId ? `Patient/${patientId}` : undefined,
-      description: `${request.method} ${confidential ? "/api/patients/:id/[confidentiel]" : routeUrl} → ${reply.statusCode}`,
+      description: `${request.method} ${confidential ? "/api/patients/:id/[confidentiel]" : routeUrl}${
+        !confidential && request.params && Object.keys(request.params as object).length > 0 ? ` ${JSON.stringify(request.params)}` : ""
+      } → ${reply.statusCode}`,
     });
   });
 });

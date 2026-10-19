@@ -97,7 +97,29 @@ import { listPrescriptionsRoute } from "./modules/prescription/list-prescription
 
 const PORT = Number(process.env.PORT ?? 3001);
 
-const app = Fastify({ logger: true });
+// Journaux sans query string (elle peut contenir un nom d'enfant) ni en-tête d'autorisation.
+const app = Fastify({
+  logger: {
+    serializers: {
+      req(request) {
+        return { method: request.method, url: String(request.url).split("?")[0], remoteAddress: request.ip };
+      },
+    },
+    redact: ["req.headers.authorization"],
+  },
+  // Derrière un proxy de confiance (Caddy), l'adresse client vient de X-Forwarded-For.
+  trustProxy: process.env.TRUST_PROXY ? process.env.TRUST_PROXY.split(",").map((s) => s.trim()) : false,
+});
+
+// Les erreurs inattendues ne renvoient jamais de détail technique au client (il reste dans les journaux).
+app.setErrorHandler((error, request, reply) => {
+  const status = (error as { statusCode?: number }).statusCode ?? 500;
+  if (status >= 500) {
+    request.log.error({ err: error }, "Erreur interne.");
+    return reply.code(status).send({ error: "Erreur interne du serveur." });
+  }
+  return reply.code(status).send({ error: error instanceof Error ? error.message : "Requête invalide." });
+});
 
 // Le frontend (serveur de dev Vite, ou fenêtre Electron en production via le
 // protocole app://pediatrix, voir apps/desktop/electron/main.ts) est la

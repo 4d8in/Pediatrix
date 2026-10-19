@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { HapiError, hapiClient } from "../lib/hapi-client.js";
+import { HapiError, hapiClient, assertHapiOrigin } from "../lib/hapi-client.js";
 import { VITAL_LOINC_CODES } from "../lib/vitals-codes.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
@@ -28,7 +28,7 @@ async function fetchAllEntries<T>(path: string): Promise<T[]> {
     const nextUrl = bundle.link?.find((link) => link.relation === "next")?.url;
     if (!nextUrl) break;
 
-    const response = await fetch(nextUrl, {
+    const response = await fetch(assertHapiOrigin(nextUrl), {
       headers: { Accept: "application/fhir+json", "Cache-Control": "no-cache" },
     });
     if (!response.ok) {

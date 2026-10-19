@@ -1,5 +1,12 @@
 const HAPI_FHIR_URL = process.env.HAPI_FHIR_URL ?? "http://localhost:8080/fhir";
 
+// Les liens « next » viennent de HAPI : ils ne sont suivis que s'ils pointent vers le même serveur.
+export function assertHapiOrigin(url: string): string {
+  const expected = new URL(HAPI_FHIR_URL).origin;
+  if (new URL(url).origin !== expected) throw new HapiError(502, "Lien de pagination HAPI inattendu.");
+  return url;
+}
+
 // Erreur porteuse du statut HTTP renvoyé par HAPI, pour que les routes
 // puissent la traduire en réponse propre sans jamais laisser fuir un 500 brut.
 export class HapiError extends Error {

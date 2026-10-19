@@ -15,4 +15,9 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   if (!account || account.user.disabled) {
     return reply.code(401).send({ error: "Compte désactivé ou supprimé." });
   }
+  // Jeton émis avant une réinitialisation du mot de passe par un administrateur : refusé.
+  const issuedAt = (request.user as { iat?: number }).iat;
+  if (account.user.tokensValidFrom && (issuedAt === undefined || issuedAt < Math.floor(Date.parse(account.user.tokensValidFrom) / 1000))) {
+    return reply.code(401).send({ error: "Session expirée : reconnectez-vous." });
+  }
 }

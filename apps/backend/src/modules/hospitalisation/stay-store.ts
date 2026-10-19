@@ -28,15 +28,25 @@ export async function runTransaction(entries: unknown[]): Promise<void> {
   await hapiClient.post("", { resourceType: "Bundle", type: "transaction", entry: entries });
 }
 
+// Les écritures portent la version lue (If-Match) : si une autre infirmière a modifié le lit ou le séjour
+// entre-temps, HAPI refuse (412) au lieu d'écraser en silence.
+function putRequest(url: string, resource: { meta?: { versionId?: string } }) {
+  const versionId = resource.meta?.versionId;
+  return { method: "PUT", url, ...(versionId ? { ifMatch: `W/"${versionId}"` } : {}) };
+}
+
 export function putBedEntry(bed: FhirLocation, status: BedStatus) {
-  return { resource: withBedStatus(bed, status), request: { method: "PUT", url: `Location/${bed.id}` } };
+  return { resource: withBedStatus(bed, status), request: putRequest(`Location/${bed.id}`, bed as { meta?: { versionId?: string } }) };
 }
 
 export function putStayEntry(stay: FhirStay) {
-  return { resource: stay, request: { method: "PUT", url: `Encounter/${stay.id}` } };
+  return { resource: stay, request: putRequest(`Encounter/${stay.id}`, stay as { meta?: { versionId?: string } }) };
 }
 
 export function hapiErrorReply(error: unknown): { code: number; error: string } | null {
+  if (error instanceof HapiError && error.statusCode === 412) {
+    return { code: 409, error: "Le lit ou le séjour vient d'être modifié par quelqu'un d'autre : actualisez et réessayez." };
+  }
   if (error instanceof HapiError) {
     return { code: error.statusCode >= 500 ? 502 : error.statusCode, error: error.message };
   }

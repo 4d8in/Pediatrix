@@ -14,6 +14,7 @@ const READ_ROLES = ["nurse", "doctor", "lab_tech", "radiologist", "receptionist"
 export async function listPatientsRoute(app: FastifyInstance) {
   app.get("/api/patients", { preHandler: [authenticate, authorize(...READ_ROLES)] }, async (request, reply) => {
     const { search } = request.query as { search?: string };
+    if (search !== undefined && typeof search !== "string") return reply.code(400).send({ error: "Paramètre de recherche invalide." });
     // Un numéro de dossier (PX-001401) retrouve directement le patient.
     const mrnId = search ? idFromMrn(search) : undefined;
     // Résultats limités explicitement (la recherche affine ; la liste complète n'a pas de sens ici).

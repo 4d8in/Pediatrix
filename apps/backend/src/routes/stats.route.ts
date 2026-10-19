@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { HapiError, hapiClient } from "../lib/hapi-client.js";
+import { HapiError, hapiClient, assertHapiOrigin } from "../lib/hapi-client.js";
 import { authenticate } from "../socle/auth/authenticate.js";
 import { authorize } from "../socle/auth/authorize.js";
 import { fetchAll } from "../lib/fhir-search.js";
@@ -56,7 +56,7 @@ async function countExamensParType(): Promise<Record<string, number>> {
 
     // fetch brut (pas hapiClient) car nextUrl est une URL absolue fournie par
     // HAPI ; même en-tête no-cache que ci-dessus, même raison.
-    const response = await fetch(nextUrl, {
+    const response = await fetch(assertHapiOrigin(nextUrl), {
       headers: { Accept: "application/fhir+json", "Cache-Control": "no-cache" },
     });
     if (!response.ok) {

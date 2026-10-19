@@ -105,3 +105,13 @@ Les boutons « Imprimer » ouvrent la boîte de dialogue d'impression du systèm
 ## Fenêtre de la liste « à facturer »
 
 La caisse liste les consultations des `BILLING_WINDOW_DAYS` derniers jours (défaut 30, maximum 365) qui n'ont pas été facturées ou qui ont reçu des examens ou médicaments après la facture. À régler dans `apps/backend/.env`.
+
+
+## Sécurité : points d'attention (revue du produit)
+
+- **Réseau en clair par défaut** : sans le profil `tls` (Caddy), les mots de passe et jetons circulent en HTTP sur le réseau local. Activer le profil `tls` pour tout usage réel et définir `TRUST_PROXY` (adresse du conteneur Caddy) pour que la limitation des essais de connexion et le journal d'audit voient l'adresse des postes.
+- **Mises à jour automatiques non signées** : les installeurs ne sont pas signés (pas de certificat de signature) et `/updates` est servi sans authentification. Sur un réseau non maîtrisé, un poste malveillant pourrait servir un faux installeur. Signer les installeurs et passer par HTTPS avant tout déploiement ; restreindre l'écriture du dossier `UPDATES_DIR`.
+- **Comptes de démonstration** : `seed-users.ts` crée des comptes aux identifiants prévisibles (`admin1`, `medecin1`…) avec un mot de passe commun. Les désactiver ou changer leurs mots de passe avant la mise en service.
+- **Jetons** : la réinitialisation d'un mot de passe par l'administrateur invalide les jetons déjà émis pour ce compte ; un changement fait par l'utilisateur lui-même ne les invalide pas encore.
+- **Journaux** : les journaux du serveur ne contiennent plus la query des requêtes, mais pensez à la rotation des journaux Docker.
+- **Sauvegardes** : définir `BACKUP_PASSPHRASE` ; les copier hors de la machine.

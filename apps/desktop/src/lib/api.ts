@@ -14,6 +14,7 @@ import type {
   DashboardOverview,
   DischargeOutcome,
   QueueEntry,
+  SurveillanceReport,
   ReferenceRange,
   TriageVitals,
   HealthStatus,
@@ -389,6 +390,10 @@ export function transferStay(stayId: string, bedId: string): Promise<{ ok: true 
     method: "POST",
     body: JSON.stringify({ bedId }),
   });
+}
+
+export function getWeeklySurveillance(week: string): Promise<SurveillanceReport> {
+  return request<SurveillanceReport>(`/api/surveillance/weekly?week=${encodeURIComponent(week)}`);
 }
 
 export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcome; summary?: string } = {}): Promise<{ ok: true }> {

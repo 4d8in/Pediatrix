@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { surveillanceRoute } from "./routes/surveillance.route.js";
 import { facilityRoute } from "./routes/facility.route.js";
 import { reportingIndicatorsRoute } from "./routes/reporting-indicators.route.js";
 import { dhis2ExportRoute } from "./routes/dhis2-export.route.js";
@@ -124,6 +125,7 @@ await app.register(idempotencyPlugin);
 await app.register(auditPlugin);
 await app.register(listAuditRoute);
 await app.register(facilityRoute);
+await app.register(surveillanceRoute);
 await app.register(reportingIndicatorsRoute);
 await app.register(dhis2ExportRoute);
 await app.register(loginRoute);

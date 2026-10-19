@@ -83,6 +83,12 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 - **À facturer** : consultations récentes pas encore facturées. Indiquer au besoin l'assureur et le taux de prise en charge, puis *Facturer* : la facture reprend la consultation, les examens et les médicaments délivrés. Si des examens ou des médicaments s'ajoutent *après* la facture, la consultation revient dans la liste avec la mention *Complément* : *Facturer le complément* crée une seconde facture avec les seuls éléments non facturés. Une facture entièrement prise en charge par l'assureur (100 %) est soldée d'emblée.
 - **Factures** : choisir une facture, saisir le montant et le mode de paiement (espèces, mobile money, carte), *Encaisser*. Un paiement partiel est possible ; la facture est *soldée* quand tout est payé. *Imprimer la facture* ou *le reçu*.
 
+## Surveillance épidémiologique
+
+*Surveillance* (médecin, direction, administration technique) : cas des maladies prioritaires par semaine ISO (lundi au dimanche), d'après les diagnostics CIM-10 saisis en consultation. Pour chaque maladie : cas, cas confirmés, moins de 5 ans, et moyenne des 4 semaines précédentes. Une **alerte immédiate** s'affiche dès un cas d'une maladie à déclaration immédiate (choléra, rougeole, poliomyélite, méningite…), avec l'âge et le sexe du cas (jamais l'identité). Une **alerte de seuil** s'affiche pour une maladie hebdomadaire avec au moins 5 cas et au moins le double de la moyenne précédente. *Exporter en CSV* pour le rapport au district.
+
+Cette liste de maladies et ces seuils sont une base de départ : ils doivent être adaptés à la liste nationale de surveillance (IDSR) de votre pays avant usage.
+
 ## Direction
 
 *Tableau de bord*, *Statistiques* (activité, occupation des lits, charge par praticien), *Rapports* (indicateurs mensuels, export CSV et fichier DHIS2), *Facturation* (chiffres du jour, tarifs), *Journal d'audit*.

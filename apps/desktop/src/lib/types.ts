@@ -340,6 +340,25 @@ export interface Ward {
   beds: Bed[];
 }
 
+export interface SurveillanceRow {
+  key: string;
+  label: string;
+  tier: "immediate" | "weekly";
+  cases: number;
+  confirmed: number;
+  underFive: number;
+  previousAverage: number;
+  alert: "immediate" | "threshold" | null;
+}
+
+export interface SurveillanceReport {
+  week: string;
+  from: string;
+  to: string;
+  rows: SurveillanceRow[];
+  immediateCases: { disease: string; code: string; date: string; ageMonths: number | null; sex: string }[];
+}
+
 export type DischargeOutcome = "healed" | "improved" | "referred" | "against_advice" | "deceased";
 export const DISCHARGE_OUTCOMES: { value: DischargeOutcome; label: string }[] = [
   { value: "healed", label: "Guéri" },

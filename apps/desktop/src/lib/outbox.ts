@@ -18,6 +18,8 @@ export interface OutboxItem {
   // Libellé lisible pour l'utilisateur (en français, traduit à l'affichage).
   label: string;
   createdAt: string;
+  // Échecs serveur déjà essuyés (voir MAX_ATTEMPTS).
+  attempts: number;
 }
 
 export interface FailedItem extends OutboxItem {
@@ -46,7 +48,6 @@ declare global {
 let state: OutboxState = { items: [], failed: [], persistent: false };
 const listeners = new Set<() => void>();
 let currentUserId: string | null = null;
-let loaded = false;
 let isReplaying = false;
 
 function emit(next: OutboxState): void {
@@ -54,83 +55,114 @@ function emit(next: OutboxState): void {
   listeners.forEach((listener) => listener());
 }
 
-async function persist(): Promise<void> {
+// Sauvegardes sérialisées, la plus récente gagne : jamais deux écritures concurrentes du fichier.
+let saveChain: Promise<void> = Promise.resolve();
+
+function persist(): Promise<void> {
   const bridge = window.pediatrixOutbox;
-  if (!bridge) return;
-  try {
-    const ok = await bridge.save(JSON.stringify({ items: state.items, failed: state.failed }));
-    if (ok !== state.persistent) emit({ ...state, persistent: ok });
-  } catch {
-    emit({ ...state, persistent: false });
-  }
+  if (!bridge) return Promise.resolve();
+  saveChain = saveChain.then(async () => {
+    try {
+      const ok = await bridge.save(JSON.stringify({ items: state.items, failed: state.failed }));
+      if (ok !== state.persistent) emit({ ...state, persistent: ok });
+    } catch {
+      emit({ ...state, persistent: false });
+    }
+  });
+  return saveChain;
 }
 
-export async function loadOutbox(): Promise<void> {
-  if (loaded) return;
-  loaded = true;
-  const bridge = window.pediatrixOutbox;
-  if (!bridge) return;
-  try {
-    const raw = await bridge.load();
-    if (raw) {
+let loading: Promise<void> | null = null;
+
+// Chargement unique et partagé ; ce qui a été saisi pendant le chargement est conservé (fusion).
+export function loadOutbox(): Promise<void> {
+  loading ??= (async () => {
+    const bridge = window.pediatrixOutbox;
+    if (!bridge) return;
+    try {
+      const raw = await bridge.load();
+      if (!raw) {
+        emit({ ...state, persistent: true });
+        return;
+      }
       const parsed = JSON.parse(raw) as { items?: OutboxItem[]; failed?: FailedItem[] };
-      emit({ items: parsed.items ?? [], failed: parsed.failed ?? [], persistent: true });
-    } else {
-      emit({ ...state, persistent: true });
+      const known = new Set(state.items.map((item) => item.id));
+      emit({
+        items: [...(parsed.items ?? []).filter((item) => !known.has(item.id)), ...state.items],
+        failed: [...(parsed.failed ?? []), ...state.failed],
+        persistent: true,
+      });
+    } catch {
+      // Contenu illisible (profil changé, clé perdue) : on garde la file en mémoire sans écraser le fichier.
+      emit({ ...state, persistent: false });
+      loadFailed = true;
     }
-  } catch {
-    // contenu illisible : on repart d'une file vide plutôt que de bloquer l'application
-  }
+  })();
+  return loading;
 }
+
+let loadFailed = false;
 
 export function setOutboxUser(userId: string | null): void {
   currentUserId = userId;
   if (userId) void loadOutbox();
 }
 
-export async function enqueue(item: Omit<OutboxItem, "createdAt" | "userId">): Promise<void> {
+export async function enqueue(item: Omit<OutboxItem, "createdAt" | "userId" | "attempts">): Promise<void> {
   if (!currentUserId) throw new Error("Aucun utilisateur connecté.");
   await loadOutbox();
-  emit({ ...state, items: [...state.items, { ...item, userId: currentUserId, createdAt: new Date().toISOString() }] });
-  await persist();
+  emit({ ...state, items: [...state.items, { ...item, userId: currentUserId, createdAt: new Date().toISOString(), attempts: 0 }] });
+  if (!loadFailed) await persist();
 }
 
 export function dismissFailed(id: string): void {
   emit({ ...state, failed: state.failed.filter((item) => item.id !== id) });
-  void persist();
+  if (!loadFailed) void persist();
 }
 
 export type ReplaySender = (item: OutboxItem) => Promise<void>;
 export type ReplayClassifier = (error: unknown) => "network" | "unauthorized" | "duplicate" | "rejected" | "retry";
 
-// Renvoie dans l'ordre les éléments de l'utilisateur connecté. S'arrête au premier échec
-// réseau ou serveur (on réessaiera) ; un refus définitif (donnée invalide, patient disparu)
-// passe dans « à vérifier » avec le message du serveur, il n'est jamais perdu en silence.
+// Après ce nombre d'échecs serveur répétés, l'élément passe dans « à vérifier » au lieu de bloquer la file.
+const MAX_ATTEMPTS = 5;
+
+// Renvoie dans l'ordre les éléments de l'utilisateur connecté. Réseau coupé ou session expirée : on
+// s'arrête (on réessaiera). Erreur serveur : l'élément est retenté, puis écarté vers « à vérifier »
+// après MAX_ATTEMPTS, sans bloquer les suivants. Refus définitif (donnée invalide, patient disparu) :
+// « à vérifier » avec le message du serveur, jamais perdu en silence.
 export async function replayOutbox(send: ReplaySender, classify: ReplayClassifier): Promise<{ sent: number }> {
   if (isReplaying || !currentUserId) return { sent: 0 };
   isReplaying = true;
+  const owner = currentUserId;
   let sent = 0;
   try {
-    for (const item of state.items.filter((i) => i.userId === currentUserId)) {
+    for (const item of state.items.filter((i) => i.userId === owner)) {
+      // Un autre utilisateur s'est connecté pendant le renvoi : on s'arrête, rien ne part sous son nom.
+      if (currentUserId !== owner) break;
       try {
         await send(item);
         sent += 1;
         emit({ ...state, items: state.items.filter((i) => i.id !== item.id) });
-        await persist();
+        if (!loadFailed) await persist();
       } catch (error) {
         const kind = classify(error);
         if (kind === "duplicate") {
           emit({ ...state, items: state.items.filter((i) => i.id !== item.id) });
-          await persist();
+          if (!loadFailed) await persist();
           continue;
         }
-        if (kind === "rejected") {
-          const message = error instanceof Error ? error.message : "Refusé par le serveur.";
+        const message = error instanceof Error ? error.message : "Refusé par le serveur.";
+        const exhausted = kind === "retry" && item.attempts + 1 >= MAX_ATTEMPTS;
+        if (kind === "rejected" || exhausted) {
           emit({ ...state, items: state.items.filter((i) => i.id !== item.id), failed: [...state.failed, { ...item, error: message }] });
-          await persist();
+          if (!loadFailed) await persist();
           continue;
         }
-        break; // réseau, session expirée ou erreur serveur : on s'arrête, on réessaiera
+        if (kind === "retry") {
+          emit({ ...state, items: state.items.map((i) => (i.id === item.id ? { ...i, attempts: i.attempts + 1 } : i)) });
+          continue; // les autres saisies (autres patients) ne sont pas bloquées par celle-ci
+        }
+        break; // réseau coupé ou session expirée : on réessaiera plus tard
       }
     }
   } finally {
@@ -146,13 +178,19 @@ function subscribe(listener: () => void): () => void {
 
 export function useOutbox(): OutboxState & { mine: OutboxItem[] } {
   const snapshot = useSyncExternalStore(subscribe, () => state);
-  return { ...snapshot, mine: snapshot.items.filter((item) => item.userId === currentUserId) };
+  // Un utilisateur ne voit que ses propres saisies en attente et ses propres refus.
+  return {
+    ...snapshot,
+    failed: snapshot.failed.filter((item) => item.userId === currentUserId),
+    mine: snapshot.items.filter((item) => item.userId === currentUserId),
+  };
 }
 
 // Réservé aux tests.
 export function __resetOutboxForTests(): void {
   state = { items: [], failed: [], persistent: false };
   currentUserId = null;
-  loaded = false;
+  loading = null;
+  loadFailed = false;
   isReplaying = false;
 }

@@ -117,20 +117,37 @@ async function postOrQueue<T>(
   options: { stampTime?: boolean } = {},
 ): Promise<T> {
   const key = crypto.randomUUID();
-  const body = options.stampTime ? { ...payload, occurredAt: new Date().toISOString() } : payload;
+  const typedAt = new Date().toISOString();
+  // Délai maximal : un serveur qui ne répond plus est traité comme injoignable (mise en file).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await request<T>(path, { method: "POST", body: JSON.stringify(body), headers: { "Idempotency-Key": key } });
+    return await request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Idempotency-Key": key },
+      signal: controller.signal,
+    });
   } catch (error) {
     if (error instanceof ApiError && error.status === undefined) {
+      // L'heure de saisie réelle n'est jointe que si l'envoi est différé (pas d'écart d'horloge en ligne).
+      const body = options.stampTime ? { ...payload, occurredAt: typedAt } : payload;
       await enqueue({ id: key, path, body, label });
       return queuedResult;
     }
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-// Renvoi d'un élément de la file (même clé d'idempotence que l'envoi d'origine).
+const REQUEST_TIMEOUT_MS = 15_000;
+const QUEUEABLE_PATH = /^\/api\/patients\/[A-Za-z0-9._-]{1,64}\/(arrival|triage|growth|immunizations|allergies)$/;
+
+// Renvoi d'un élément de la file (même clé d'idempotence que l'envoi d'origine). Seuls les chemins
+// prévus pour le différé sont acceptés : le contenu relu du disque n'est jamais exécuté tel quel.
 export async function sendQueued(item: OutboxItem): Promise<void> {
+  if (!QUEUEABLE_PATH.test(item.path)) throw new ApiError("Élément de file d'attente invalide.", 400);
   await request(item.path, { method: "POST", body: JSON.stringify(item.body), headers: { "Idempotency-Key": item.id } });
 }
 
@@ -138,9 +155,12 @@ export function classifyReplayError(error: unknown): "network" | "unauthorized" 
   if (!(error instanceof ApiError)) return "retry";
   if (error.status === undefined) return "network";
   if (error.status === 401) return "unauthorized";
+  const code = (error.body as { code?: string } | undefined)?.code;
+  // Le premier envoi est encore en cours côté serveur : on réessaiera, ce n'est pas un doublon.
+  if (error.status === 409 && code === "in_progress") return "retry";
   // Déjà fait entre-temps (ex. patient déjà dans la file du jour) : rien à renvoyer.
   if (error.status === 409) return "duplicate";
-  if (error.status >= 500) return "retry";
+  if (error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500) return "retry";
   return "rejected";
 }
 

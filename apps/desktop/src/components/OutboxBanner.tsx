@@ -9,6 +9,9 @@ const RETRY_INTERVAL_MS = 15_000;
 // Saisies gardées sur le poste faute de connexion au serveur : on les montre tant qu'elles ne sont
 // pas parties, on les renvoie automatiquement (et sur « Envoyer maintenant »), et on affiche à part
 // celles que le serveur a refusées pour que rien ne se perde en silence.
+// « /api/patients/123/triage » -> « 123 » : le bandeau indique de quel dossier il s'agit.
+const patientOf = (path: string) => /\/api\/patients\/([^/]+)\//.exec(path)?.[1] ?? "?";
+
 export default function OutboxBanner({ onSent }: { onSent: () => void }) {
   const { t, formatDateTime } = useI18n();
   const { mine, failed, persistent } = useOutbox();
@@ -57,7 +60,7 @@ export default function OutboxBanner({ onSent }: { onSent: () => void }) {
         <ul className="mt-1 list-disc pl-10 text-xs text-amber-800">
           {mine.map((item) => (
             <li key={item.id}>
-              {t(item.label)} — {formatDateTime(item.createdAt)}
+              {t(item.label)} — {t("dossier n° {id}", { id: patientOf(item.path) })} — {formatDateTime(item.createdAt)}
             </li>
           ))}
         </ul>
@@ -65,7 +68,7 @@ export default function OutboxBanner({ onSent }: { onSent: () => void }) {
       {failed.map((item) => (
         <div key={item.id} data-testid="outbox-failed" className="mt-1 flex items-center gap-3 text-red-800">
           <p className="flex-1">
-            {t("Refusé par le serveur, à vérifier :")} {t(item.label)} ({formatDateTime(item.createdAt)}) — {item.error}
+            {t("Refusé par le serveur, à vérifier :")} {t(item.label)} ({t("dossier n° {id}", { id: patientOf(item.path) })}, {formatDateTime(item.createdAt)}) — {item.error}
           </p>
           <button onClick={() => dismissFailed(item.id)} aria-label={t("Ignorer")} className="rounded p-1 hover:bg-red-100">
             <X className="h-3.5 w-3.5" />

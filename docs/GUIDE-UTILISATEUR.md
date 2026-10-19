@@ -2,6 +2,16 @@
 
 Une section par métier. Chaque personne voit uniquement les écrans de son rôle.
 
+## Coupure du réseau (saisie hors ligne)
+
+Si le serveur devient injoignable, certaines saisies sont **gardées sur le poste** puis renvoyées automatiquement au retour de la connexion : arrivée à l'accueil, tri et constantes, mesure de croissance, vaccination, allergie. Un bandeau jaune indique le nombre de saisies en attente (bouton *Envoyer maintenant*). L'heure réelle de saisie est conservée dans le dossier.
+
+À savoir :
+- Les saisies en attente ne partent que sous le compte de la personne qui les a saisies : elle doit être connectée.
+- Le contenu en attente est chiffré sur le disque du poste. Si le poste n'a pas de coffre sécurisé (certains Linux), il reste en mémoire seulement : **ne fermez pas l'application** tant que le bandeau est affiché.
+- Si le serveur refuse une saisie (donnée invalide, dossier disparu), elle apparaît dans « Refusé par le serveur, à vérifier » avec le numéro de dossier : il faut la ressaisir.
+- **Non disponibles hors ligne** : création de dossier, consultation, prescription, délivrance, facturation et encaissement (risque de conflit, de stock ou d'argent), et la **lecture** de dossiers (rien n'est mis en cache sur le poste).
+
 ## Langue
 
 L'interface existe en français et en anglais. Le sélecteur de langue est sur l'écran de connexion et dans la barre latérale ; le choix est mémorisé sur le poste. Les messages renvoyés par le serveur (erreurs de validation) et les données saisies (noms, motifs, notes) restent dans leur langue d'origine.

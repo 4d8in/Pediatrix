@@ -1,4 +1,5 @@
 const dictionary: Record<string, string> = {
+  "dossier n° {id}": "record no. {id}",
   "{n} saisie(s) enregistrée(s) sur ce poste, en attente d'envoi au serveur.": "{n} entry(ies) saved on this workstation, waiting to be sent to the server.",
   "Attention : elles ne sont conservées qu'en mémoire, ne fermez pas l'application.": "Warning: they are only kept in memory, do not close the application.",
   "Envoyer maintenant": "Send now",

@@ -137,11 +137,11 @@ export async function activeQueueRoute(app: FastifyInstance) {
           ),
           hapiClient.get<FhirBundle>(`/Patient?_lastUpdated=ge${since}&_sort=_lastUpdated&_count=200`, noCache),
           hapiClient.get<FhirBundle>(
-            `/Observation?code=${encodeURIComponent(`${TRIAGE_SYSTEM}|triage-category`)}&date=ge${since}&_count=200`,
+            `/Observation?code=${encodeURIComponent(`${TRIAGE_SYSTEM}|triage-category`)}&_lastUpdated=ge${since}&_count=200`,
             noCache,
           ),
           hapiClient.get<FhirBundle>(
-            `/Observation?code=${encodeURIComponent(TRIAGE_VITAL_CODES.map((c) => `http://loinc.org|${c}`).join(","))}&date=ge${since}&_count=200`,
+            `/Observation?code=${encodeURIComponent(TRIAGE_VITAL_CODES.map((c) => `http://loinc.org|${c}`).join(","))}&_lastUpdated=ge${since}&_count=200`,
             noCache,
           ),
         ]);

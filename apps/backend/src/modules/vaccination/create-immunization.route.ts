@@ -37,7 +37,7 @@ function validate(body: unknown): { input: CreateImmunizationInput } | { errors:
 export async function createImmunizationRoute(app: FastifyInstance) {
   app.post(
     "/api/patients/:id/immunizations",
-    { preHandler: [authenticate, authorize("doctor", "nurse")] },
+    { config: { idempotent: true }, preHandler: [authenticate, authorize("doctor", "nurse")] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 

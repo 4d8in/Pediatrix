@@ -12,12 +12,14 @@ import GrowthSection from "./GrowthSection";
 import AllergiesSection from "./AllergiesSection";
 import PrescriptionsHistory from "./PrescriptionsHistory";
 import StaysSection from "./StaysSection";
+import BirthSection from "./BirthSection";
 import DiagnosesSection from "./DiagnosesSection";
 import ReferralsSection from "./ReferralsSection";
 import {
   ApiError,
   getPatient,
   getPatientAllergies,
+  getPatientBirth,
   getPatientDiagnoses,
   getPatientReferrals,
   getPatientGrowth,
@@ -32,6 +34,7 @@ import type {
   Referral,
   PatientStay,
   Allergy,
+  BirthRecord,
   GrowthMeasurement,
   ImagingReport,
   Immunization,
@@ -59,6 +62,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   const [stays, setStays] = useState<PatientStay[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [birth, setBirth] = useState<BirthRecord | null>(null);
   const [activeTab, setActiveTab] = useState<RecordTab>("info");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
       getPatientStays(patientId).catch(() => ({ stays: [] as PatientStay[] })),
       getPatientDiagnoses(patientId).catch(() => ({ diagnoses: [] as Diagnosis[] })),
       getPatientReferrals(patientId).catch(() => ({ referrals: [] as Referral[] })),
+      getPatientBirth(patientId).catch(() => ({ birth: null as BirthRecord | null })),
     ])
       .then(
         ([
@@ -115,6 +120,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           staysData,
           diagnosesData,
           referralsData,
+          birthData,
         ]) => {
           setRecord(recordData);
           setPatient(recordData.patient);
@@ -127,6 +133,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           setStays(staysData.stays);
           setDiagnoses(diagnosesData.diagnoses);
           setReferrals(referralsData.referrals);
+          setBirth(birthData.birth);
         },
       )
       .catch((err) => setError(err instanceof ApiError ? err.message : t("Erreur de chargement du dossier.")))
@@ -162,6 +169,11 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 {record.patient.firstName} {record.patient.lastName}
               </p>
               <p className="text-sm text-zinc-500">
+                {record.patient.deceasedAt && (
+                  <span className="mr-2 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-white" data-testid="deceased-badge">
+                    {t("Décédé")}
+                  </span>
+                )}
                 {ageLabel(record.patient.birthDate, t)} • {t(SEX_LABELS[record.patient.gender])} • {t("N° de dossier : {mrn}", { mrn: record.patient.mrn })}
               </p>
             </div>
@@ -196,6 +208,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
             {activeTab === "stays" && (
               <StaysSection
                 stays={stays}
+                prescriptions={prescriptions}
                 onPrintSummary={(stay) => {
                   // Éléments du dossier rattachés au séjour : ceux datés du jour d'admission au jour de
                   // sortie inclus (pas de marge au-delà). Sans date de début ou de fin fiable, aucun
@@ -224,6 +237,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 }}
               />
             )}
+            {activeTab === "birth" && <BirthSection patientId={record.patient.id} birth={birth} onCreated={loadRecord} />}
             {activeTab === "exams" && (
               <>
                 <ReportsHistory reports={reports} patient={record.patient} />
@@ -246,12 +260,13 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   );
 }
 
-type RecordTab = "info" | "consultations" | "stays" | "exams" | "vaccinations" | "growth" | "allergies";
+type RecordTab = "info" | "consultations" | "stays" | "birth" | "exams" | "vaccinations" | "growth" | "allergies";
 
 const TABS: { id: RecordTab; label: string }[] = [
   { id: "info", label: "Informations" },
   { id: "consultations", label: "Consultations et prescriptions" },
   { id: "stays", label: "Hospitalisations" },
+  { id: "birth", label: "Naissance" },
   { id: "exams", label: "Examens" },
   { id: "vaccinations", label: "Vaccinations" },
   { id: "growth", label: "Croissance" },

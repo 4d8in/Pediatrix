@@ -163,6 +163,13 @@ export async function statsRoute(app: FastifyInstance) {
             hospitalisation.dureeMoyenneJours !== null
               ? available(`${hospitalisation.dureeMoyenneJours} j`, "Moyenne des séjours terminés")
               : unavailable("Aucun séjour terminé pour le moment."),
+          mortaliteHospitaliere:
+            hospitalisation.sorties > 0
+              ? available(
+                  `${Math.round((hospitalisation.deces / hospitalisation.sorties) * 1000) / 10} %`,
+                  `${hospitalisation.deces} décès pour ${hospitalisation.sorties} sortie(s) d'hospitalisation`,
+                )
+              : unavailable("Aucune sortie d'hospitalisation pour le moment."),
           litsOccupes:
             hospitalisation.litsTotal > 0
               ? available(

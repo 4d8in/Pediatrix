@@ -59,6 +59,21 @@ test("lits : hospitaliser, faire sortir, puis remettre le lit en service", async
   await expect(bedTile).toContainText("Libre");
 });
 
+test("naissance : l'infirmière saisit le registre, les alertes s'affichent, la saisie ne se refait pas", async ({ page }) => {
+  const lastName = `Naiss${Date.now()}`;
+  await login(page, "infirmiere1", e2ePassword());
+  await admitPatient(page, lastName);
+
+  await page.getByTestId("nav-record").click();
+  await page.getByTestId("patient-picker-search").fill(lastName);
+  await page.getByRole("button", { name: new RegExp(lastName) }).click();
+  await page.getByRole("button", { name: "Naissance", exact: true }).click();
+  await page.getByTestId("birth-weight").fill("2300");
+  await page.getByTestId("birth-save").click();
+  await expect(page.getByTestId("birth-record")).toContainText("Faible poids de naissance");
+  await expect(page.getByTestId("birth-form")).toHaveCount(0);
+});
+
 test("comptes : un compte désactivé par l'admin ne peut plus se connecter", async ({ page }) => {
   const username = `e2e${Date.now()}`;
   const password = "motdepasse-e2e";

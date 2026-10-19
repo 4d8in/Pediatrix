@@ -36,6 +36,9 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
 - **Constantes au tri** (*File active*, bouton « Constantes ») : saisir température, fréquences cardiaque et respiratoire, saturation en oxygène, puis choisir la catégorie de tri. Les valeurs sont résumées dans la file ; la saturation sous 90 % et une température à 39,5 °C ou plus (ou sous 35,5 °C) s'affichent en rouge. Ces seuils sont prudents et indépendants de l'âge : à faire valider par un pédiatre.
 - **Patient parti sans consultation** (*File active*, bouton « Parti ») : retire le patient de la file sans le compter comme consultation. Le temps d'attente s'affiche pour chaque patient en attente.
 - **Lits** : hospitaliser, transférer, faire sortir un enfant. À la sortie, indiquer l'**issue du séjour** (guéri, amélioré, référé, contre avis médical, décédé) et un résumé avec les consignes. Le **résumé de sortie** s'imprime ensuite depuis le dossier du patient (onglet *Hospitalisations*).
+- **Administration des médicaments** (dossier patient, onglet *Hospitalisations*, séjour en cours — infirmière) : pour chaque ordonnance, *Donné* ou *Non donné* (le motif est obligatoire). L'heure et la personne sont tracées ; un double clic est refusé pendant 2 minutes. Le médecin consulte l'historique.
+- **Décès** : choisir l'issue « Décédé » à la sortie marque le dossier *Décédé* (l'enfant ne peut plus être ajouté à la file) et alimente la *Mortalité hospitalière* des statistiques. Ce choix est définitif et demande une confirmation.
+- **Naissance** (dossier patient, onglet *Naissance*, infirmière ou médecin) : poids de naissance (g), âge gestationnel, Apgar à 1 et 5 minutes, mode d'accouchement. Une seule saisie par enfant. Des alertes signalent un faible poids (< 2500 g, < 1500 g), la prématurité (< 37 semaines) et un Apgar à 5 minutes < 7 (repères usuels, à faire valider par un pédiatre).
 - **Vaccinations et croissance** : voir ci-dessous (dossier patient).
 
 ## Pour le médecin
@@ -86,6 +89,8 @@ Un résultat qualitatif (« Positif ») se saisit simplement en texte.
 ## Surveillance épidémiologique
 
 *Surveillance* (médecin, direction, administration technique) : cas des maladies prioritaires par semaine ISO (lundi au dimanche), d'après les diagnostics CIM-10 saisis en consultation. Pour chaque maladie : cas, cas confirmés, moins de 5 ans, et moyenne des 4 semaines précédentes. Une **alerte immédiate** s'affiche dès un cas d'une maladie à déclaration immédiate (choléra, rougeole, poliomyélite, méningite…), avec l'âge et le sexe du cas (jamais l'identité). Une **alerte de seuil** s'affiche pour une maladie hebdomadaire avec au moins 5 cas et au moins le double de la moyenne précédente. *Exporter en CSV* pour le rapport au district.
+
+Un même enfant n'est compté qu'une fois par maladie et par semaine. Les semaines suivent l'heure de l'établissement (`FACILITY_UTC_OFFSET_MINUTES`). Les diagnostics sans code CIM-10 ne sont pas comptés : leur nombre est signalé à l'écran.
 
 Cette liste de maladies et ces seuils sont une base de départ : ils doivent être adaptés à la liste nationale de surveillance (IDSR) de votre pays avant usage.
 

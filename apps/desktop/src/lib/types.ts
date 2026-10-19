@@ -31,6 +31,7 @@ export interface Patient {
   lastName: string;
   birthDate: string;
   gender: Gender;
+  deceasedAt?: string;
   guardian: Guardian | null;
 }
 
@@ -270,6 +271,7 @@ export interface Stats {
   occupationParService: { service: string; total: number; occupes: number }[];
   tauxHospitalisation: UnavailableIndicator | AvailableIndicator;
   dureeMoyenneSejour: UnavailableIndicator | AvailableIndicator;
+  mortaliteHospitaliere: UnavailableIndicator | AvailableIndicator;
   litsOccupes: UnavailableIndicator | AvailableIndicator;
   chargeParPraticien: UnavailableIndicator | (AvailableIndicator & { parPraticien: { nom: string; consultations: number }[] });
 }
@@ -357,6 +359,8 @@ export interface SurveillanceReport {
   to: string;
   rows: SurveillanceRow[];
   immediateCases: { disease: string; code: string; date: string; ageMonths: number | null; sex: string }[];
+  uncoded: number;
+  utcOffsetMinutes: number;
 }
 
 export type DischargeOutcome = "healed" | "improved" | "referred" | "against_advice" | "deceased";
@@ -587,4 +591,25 @@ export interface Referral {
   summary: string | null;
   urgent: boolean;
   sender: string | null;
+}
+
+export type BirthAlert = "very_low_birth_weight" | "low_birth_weight" | "preterm" | "low_apgar";
+
+export interface BirthRecord {
+  birthWeightG: number;
+  gestationalAgeWeeks?: number;
+  apgar1?: number;
+  apgar5?: number;
+  deliveryMode?: "vaginal" | "caesarean" | "assisted";
+  alerts: BirthAlert[];
+}
+
+export interface Administration {
+  id: string;
+  prescriptionId: string | null;
+  medication: string | null;
+  given: boolean;
+  at: string | null;
+  by: string | null;
+  note: string | null;
 }

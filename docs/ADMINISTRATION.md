@@ -83,6 +83,8 @@ Les identifiants DHIS2 (11 caractères) sont propres à chaque pays ; **ils ne s
 
 ## Identité de l'établissement
 
+`FACILITY_UTC_OFFSET_MINUTES` (ex. `60` pour UTC+1) fixe les semaines de surveillance épidémiologique à l'heure locale.
+
 `FACILITY_NAME`, `FACILITY_ADDRESS`, `FACILITY_PHONE` dans `apps/backend/.env` : en-tête des ordonnances, comptes rendus, carnets de vaccination et factures imprimés.
 
 ## Impression

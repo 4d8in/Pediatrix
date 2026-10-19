@@ -23,6 +23,7 @@ export interface FhirPatient {
   name?: { family?: string; given?: string[] }[];
   gender?: string;
   birthDate?: string;
+  deceasedDateTime?: string;
   contact?: {
     relationship?: { text?: string }[];
     name?: { text?: string };
@@ -58,6 +59,7 @@ export function fromFhirPatient(resource: FhirPatient): PatientSummary {
     lastName: name?.family ?? "",
     birthDate: resource.birthDate ?? "",
     gender: (resource.gender as Gender | undefined) ?? "unknown",
+    ...(resource.deceasedDateTime ? { deceasedAt: resource.deceasedDateTime } : {}),
     guardian: contact
       ? {
           name: contact.name?.text ?? "",

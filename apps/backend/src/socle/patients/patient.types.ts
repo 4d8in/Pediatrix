@@ -22,5 +22,7 @@ export interface PatientSummary {
   lastName: string;
   birthDate: string;
   gender: Gender;
+  // Date du décès, renseignée à la sortie d'hospitalisation avec l'issue « décédé ».
+  deceasedAt?: string;
   guardian: GuardianInput | null;
 }

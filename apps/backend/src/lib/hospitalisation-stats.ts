@@ -1,4 +1,5 @@
 import { HapiError, hapiClient } from "./hapi-client.js";
+import { DISCHARGE_OUTCOME_URL } from "./discharge.js";
 
 // Indicateurs de lits et de séjours, calculés à partir des ressources FHIR du
 // module Hospitalisation (lits = Location "bd", séjours = Encounter classe IMP).
@@ -15,6 +16,7 @@ interface FhirResource {
   partOf?: { reference?: string };
   status?: string;
   period?: { start?: string; end?: string };
+  extension?: { url?: string; valueCode?: string }[];
   operationalStatus?: { code?: string };
   physicalType?: { coding?: { code?: string }[] };
 }
@@ -40,6 +42,9 @@ export interface HospitalisationStats {
   sejoursTotal: number;
   // Durée moyenne des séjours terminés, en jours (null s'il n'y en a aucun).
   dureeMoyenneJours: number | null;
+  // Séjours terminés et, parmi eux, ceux dont l'issue saisie est « décédé » (mortalité hospitalière).
+  sorties: number;
+  deces: number;
   // Occupation des lits service par service.
   parService: { service: string; total: number; occupes: number }[];
 }
@@ -49,7 +54,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function computeHospitalisationStats(): Promise<HospitalisationStats> {
   const [locations, stays] = await Promise.all([
     fetchAll("/Location?_elements=name,partOf,operationalStatus,physicalType&_count=200"),
-    fetchAll("/Encounter?class=IMP&_elements=status,period&_count=200"),
+    fetchAll("/Encounter?class=IMP&_elements=status,period,extension&_count=200"),
   ]);
 
   const isType = (location: FhirResource, code: string) =>
@@ -76,6 +81,10 @@ export async function computeHospitalisationStats(): Promise<HospitalisationStat
     litsOccupes: beds.filter((bed) => bed.operationalStatus?.code === "O").length,
     sejoursEnCours: stays.filter((stay) => stay.status === "in-progress").length,
     sejoursTotal: stays.length,
+    sorties: stays.filter((stay) => stay.status === "finished").length,
+    deces: stays.filter(
+      (stay) => stay.status === "finished" && stay.extension?.some((e) => e.url === DISCHARGE_OUTCOME_URL && e.valueCode === "deceased"),
+    ).length,
     dureeMoyenneJours: finished.length > 0 ? Math.round((totalDays / finished.length) * 10) / 10 : null,
     parService,
   };

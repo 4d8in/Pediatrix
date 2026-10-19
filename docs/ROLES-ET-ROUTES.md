@@ -3,7 +3,7 @@
 Tableau généré automatiquement depuis le code (`scripts/docs/access-matrix.ts`) : il ne peut pas diverger des contrôles réellement appliqués.
 Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authorize`) ; le masquage des écrans côté interface n'est qu'un confort.
 
-83 routes.
+87 routes.
 
 ## croissance
 
@@ -31,6 +31,8 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | GET | `/api/beds` | Infirmière, Médecin, Directeur, Admin technique |
 | POST | `/api/beds/:id/status` | Infirmière, Admin technique |
 | POST | `/api/hospitalisations` | Infirmière, Médecin |
+| GET | `/api/hospitalisations/:id/administrations` | Infirmière, Médecin |
+| POST | `/api/hospitalisations/:id/administrations` | Infirmière |
 | POST | `/api/hospitalisations/:id/discharge` | Infirmière, Médecin |
 | POST | `/api/hospitalisations/:id/transfer` | Infirmière, Médecin |
 | GET | `/api/patients/:id/stays` | Infirmière, Médecin |
@@ -44,6 +46,13 @@ Chaque route de l'API vérifie le jeton (`authenticate`) puis le rôle (`authori
 | GET | `/api/lab/requests/:id/reference-ranges` | Technicien labo |
 | POST | `/api/lab/requests/:id/report` | Technicien labo |
 | GET | `/api/lab/summary` | Technicien labo |
+
+## naissance
+
+| Méthode | Route | Rôles autorisés |
+| --- | --- | --- |
+| GET | `/api/patients/:id/birth` | Infirmière, Médecin |
+| POST | `/api/patients/:id/birth` | Infirmière, Médecin |
 
 ## pediatrie
 

@@ -2,10 +2,11 @@ import { randomUUID } from "node:crypto";
 import { LOINC_SYSTEM, UCUM_SYSTEM, findCatalogEntry } from "../../lib/lab-catalog.js";
 import type { CreateReportInput, LabResultInput } from "./report.types.js";
 
-export type ResultFlag = "H" | "L" | "N";
+// HH / LL : valeur critique, action immédiate (codes HL7 ObservationInterpretation).
+export type ResultFlag = "H" | "L" | "N" | "HH" | "LL";
 
 const INTERPRETATION_SYSTEM = "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation";
-const FLAG_DISPLAY: Record<ResultFlag, string> = { H: "Élevé", L: "Bas", N: "Normal" };
+const FLAG_DISPLAY: Record<ResultFlag, string> = { H: "Élevé", L: "Bas", N: "Normal", HH: "Critique élevé", LL: "Critique bas" };
 
 // Lit une valeur saisie comme un nombre ("8.2", "8,2"). Une valeur avec son unité
 // collée ("8.2 g/dL") ou un résultat qualitatif ("Positif") n'est pas numérique.
@@ -15,7 +16,15 @@ export function parseNumericValue(raw: string): number | undefined {
 }
 
 // Sans borne de référence, on ne juge pas : pas de drapeau plutôt qu'un faux "normal".
-export function interpretValue(value: number, low?: number, high?: number): ResultFlag | undefined {
+export function interpretValue(
+  value: number,
+  low?: number,
+  high?: number,
+  criticalLow?: number,
+  criticalHigh?: number,
+): ResultFlag | undefined {
+  if (criticalLow !== undefined && value < criticalLow) return "LL";
+  if (criticalHigh !== undefined && value > criticalHigh) return "HH";
   if (low === undefined && high === undefined) return undefined;
   if (low !== undefined && value < low) return "L";
   if (high !== undefined && value > high) return "H";
@@ -59,7 +68,7 @@ export function toResultObservation(
   const entry = result.code ? findCatalogEntry(result.code) : undefined;
   const numeric = parseNumericValue(result.value);
   const unit = result.unit ?? entry?.unit;
-  const flag = numeric === undefined ? undefined : interpretValue(numeric, result.referenceLow, result.referenceHigh);
+  const flag = numeric === undefined ? undefined : interpretValue(numeric, result.referenceLow, result.referenceHigh, result.criticalLow, result.criticalHigh);
   const hasRange = result.referenceLow !== undefined || result.referenceHigh !== undefined;
 
   return {

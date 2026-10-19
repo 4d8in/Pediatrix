@@ -8,6 +8,8 @@ import {
   toReportTransactionBundle,
 } from "./report.fhir.js";
 import { findCatalogEntry } from "../../lib/lab-catalog.js";
+import { referenceFor } from "../../lib/lab-reference-ranges.js";
+import { ageInMonths } from "../../lib/nutrition.js";
 import type { CreateReportInput, LabResultInput } from "./report.types.js";
 
 interface TransactionResponseBundle {
@@ -96,6 +98,25 @@ export async function createReportRoute(app: FastifyInstance) {
       }
 
       try {
+        // Valeurs de référence par âge et sexe : bornes laissées vides par le technicien
+        // remplies d'après le patient ; seuils critiques toujours ajoutés (drapeaux HH / LL).
+        const patientId = serviceRequest.subject?.reference?.split("/")[1];
+        if (patientId) {
+          const patient = await hapiClient.get<{ birthDate?: string; gender?: string }>(`/Patient/${patientId}`);
+          const months = patient.birthDate ? ageInMonths(patient.birthDate, new Date().toISOString()) : null;
+          result.input.results = result.input.results.map((row) => {
+            const ref = row.code ? referenceFor(row.code, months, patient.gender ?? "unknown") : undefined;
+            if (!ref) return row;
+            const manual = row.referenceLow !== undefined || row.referenceHigh !== undefined;
+            return {
+              ...row,
+              referenceLow: manual ? row.referenceLow : ref.low,
+              referenceHigh: manual ? row.referenceHigh : ref.high,
+              criticalLow: ref.criticalLow,
+              criticalHigh: ref.criticalHigh,
+            };
+          });
+        }
         const responseBundle = await hapiClient.post<TransactionResponseBundle>(
           "",
           toReportTransactionBundle(serviceRequest, result.input),

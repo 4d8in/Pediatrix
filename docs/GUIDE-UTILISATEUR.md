@@ -47,7 +47,7 @@ Onglets : Informations, Consultations et prescriptions, Hospitalisations, Examen
 ## Laboratoire (technicien)
 
 1. *Laboratoire* → choisir une demande dans la liste.
-2. Si l'examen est dans le catalogue, les analyses (ex. hémoglobine, leucocytes, plaquettes, hématocrite pour une NFS) sont déjà listées avec leur unité. Saisir la **valeur**, et si besoin les **bornes de référence** : un badge *Élevé / Bas / Normal* s'affiche tout de suite. Les analyses laissées vides sont ignorées.
+2. Si l'examen est dans le catalogue, les analyses (ex. hémoglobine, leucocytes, plaquettes, hématocrite pour une NFS) sont déjà listées avec leur unité. Saisir la **valeur**, et si besoin les **bornes de référence** : un badge *Élevé / Bas / Normal* s'affiche tout de suite. Les bornes sont **proposées d'après l'âge et le sexe** de l'enfant (modifiables) ; une valeur franchement anormale s'affiche en *Critique* (rouge plein) et reste marquée ainsi dans le dossier. Ces valeurs sont à faire valider par le biologiste responsable, et à remplacer par les intervalles de votre laboratoire. Les analyses laissées vides sont ignorées.
 3. *Valider et envoyer* : le médecin voit le résultat dans le dossier.
 
 Un résultat qualitatif (« Positif ») se saisit simplement en texte.

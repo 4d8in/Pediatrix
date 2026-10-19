@@ -3,12 +3,14 @@ import type { FormEvent } from "react";
 import { CheckCircle2, FlaskConical, Plus, RefreshCw, Trash2, User } from "lucide-react";
 import CompletedRequests from "../components/CompletedRequests";
 import ServiceSummary from "../components/ServiceSummary";
-import { ApiError, getLabCatalog, getLabSummary, createReport, listLabRequests } from "../lib/api";
+import { ApiError, getLabCatalog, getReferenceRanges, getLabSummary, createReport, listLabRequests } from "../lib/api";
 import type { LabRequest, LabResultInput, LabTest, ResultFlag } from "../lib/types";
 
 const EMPTY_ROW: LabResultInput = { label: "", value: "" };
 
 const FLAG_STYLE: Record<ResultFlag, { label: string; className: string }> = {
+  HH: { label: "Critique élevé", className: "bg-red-600 text-white border-red-700" },
+  LL: { label: "Critique bas", className: "bg-red-600 text-white border-red-700" },
   H: { label: "Élevé", className: "bg-red-50 text-red-700 border-red-200" },
   L: { label: "Bas", className: "bg-amber-50 text-amber-700 border-amber-200" },
   N: { label: "Normal", className: "bg-green-50 text-green-700 border-green-200" },
@@ -21,6 +23,8 @@ function flagFor(row: LabResultInput): ResultFlag | null {
   const low = row.referenceLow?.trim() ? Number(row.referenceLow.replace(",", ".")) : undefined;
   const high = row.referenceHigh?.trim() ? Number(row.referenceHigh.replace(",", ".")) : undefined;
   if ((low === undefined || Number.isNaN(low)) && (high === undefined || Number.isNaN(high))) return null;
+  if (row.criticalLow !== undefined && value < row.criticalLow) return "LL";
+  if (row.criticalHigh !== undefined && value > row.criticalHigh) return "HH";
   if (low !== undefined && !Number.isNaN(low) && value < low) return "L";
   if (high !== undefined && !Number.isNaN(high) && value > high) return "H";
   return "N";
@@ -82,7 +86,26 @@ export default function Laboratory() {
 
   function selectRequest(request: LabRequest) {
     setSelected(request);
-    setResults(rowsForRequest(request, catalog));
+    const rows = rowsForRequest(request, catalog);
+    setResults(rows);
+    // Valeurs de référence proposées d'après l'âge et le sexe (modifiables) ; sans réponse, saisie manuelle.
+    getReferenceRanges(request.id)
+      .then(({ ranges }) =>
+        setResults((current) =>
+          current.map((row) => {
+            const ref = row.code ? ranges[row.code] : undefined;
+            if (!ref) return row;
+            return {
+              ...row,
+              referenceLow: row.referenceLow || (ref.low !== undefined ? String(ref.low) : ""),
+              referenceHigh: row.referenceHigh || (ref.high !== undefined ? String(ref.high) : ""),
+              criticalLow: ref.criticalLow,
+              criticalHigh: ref.criticalHigh,
+            };
+          }),
+        ),
+      )
+      .catch(() => undefined);
     setConclusion("");
     setErrors([]);
     setSubmitted(false);

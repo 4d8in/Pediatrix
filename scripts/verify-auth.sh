@@ -243,6 +243,12 @@ check "POST /api/patients/:id/ptme/tests (technicien labo, interdit)" "403" "$RE
 req POST "/api/patients/inconnu/ptme/tests/pcr_6w/revoke" "$TOKEN_NURSE" '{"reason":"test de blocage"}'
 check "POST /api/patients/:id/ptme/tests/:milestone/revoke (infirmière, interdit)" "403" "$REQ_CODE"
 
+req GET "/api/audit/verify" "$TOKEN_ADMIN"
+check "GET /api/audit/verify (admin technique, autorisé)" "200" "$REQ_CODE"
+
+req GET "/api/audit/verify" "$TOKEN_DIRECTOR"
+check "GET /api/audit/verify (directeur, interdit)" "403" "$REQ_CODE"
+
 req POST "/api/hospitalisations" "$TOKEN_DIRECTOR" '{}'
 check "POST /api/hospitalisations (directeur, interdit)" "403" "$REQ_CODE"
 

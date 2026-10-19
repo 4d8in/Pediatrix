@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { RefreshCw, ShieldCheck } from "lucide-react";
-import { ApiError, listAudit } from "../lib/api";
+import { ApiError, listAudit, verifyAuditChain } from "../lib/api";
+import type { AuditChainReport } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 import type { AuditEntry } from "../lib/types";
 import { useI18n } from "../lib/i18n";
 
@@ -21,6 +23,9 @@ export default function AuditLog() {
   const [filter, setFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const [chain, setChain] = useState<AuditChainReport | null>(null);
+  const [chainError, setChainError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setIsLoading(true);
@@ -56,6 +61,30 @@ export default function AuditLog() {
           <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> {t("Actualiser")}
         </button>
       </div>
+
+      {user?.role === "tech_admin" && (
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <button
+            type="button"
+            data-testid="audit-verify"
+            onClick={() => {
+              setChainError(null);
+              verifyAuditChain().then(setChain).catch((err) => setChainError(err instanceof ApiError ? err.message : t("Vérification impossible.")));
+            }}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
+          >
+            {t("Vérifier l'intégrité du journal")}
+          </button>
+          {chainError && <span className="text-red-600">{chainError}</span>}
+          {chain && (
+            <span data-testid="audit-verify-result" className={chain.ok ? "text-green-700" : "font-medium text-red-700"}>
+              {chain.ok
+                ? t("Journal intact : {n} événements vérifiés. Dernière empreinte : {hash}", { n: chain.verified, hash: chain.lastHash.slice(0, 16) })
+                : t("JOURNAL ALTÉRÉ : {reason}", { reason: chain.reason ?? "" })}
+            </span>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleFilter} className="flex items-center gap-3">
         <input

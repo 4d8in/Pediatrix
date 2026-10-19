@@ -4,11 +4,11 @@ import { e2ePassword, login, logout } from "./fixtures";
 // Pré-requis en plus de ceux de parcours-clinique.spec.ts : les lits doivent
 // exister (apps/backend : npx tsx src/scripts/seed-beds.ts).
 
-async function admitPatient(page: Page, lastName: string): Promise<void> {
+async function admitPatient(page: Page, lastName: string, birthDate = "2019-02-03"): Promise<void> {
   await page.getByTestId("nav-admission").click();
   await page.getByTestId("admission-first-name").fill("E2E");
   await page.getByTestId("admission-last-name").fill(lastName);
-  await page.getByTestId("admission-birth-date").fill("2019-02-03");
+  await page.getByTestId("admission-birth-date").fill(birthDate);
   await page.getByTestId("admission-guardian-name").fill("Tuteur E2E");
   await page.getByTestId("admission-guardian-relationship").selectOption("Mère");
   await page.getByTestId("admission-guardian-phone").fill("+221701234567");
@@ -72,6 +72,31 @@ test("naissance : l'infirmière saisit le registre, les alertes s'affichent, la 
   await page.getByTestId("birth-save").click();
   await expect(page.getByTestId("birth-record")).toContainText("Faible poids de naissance");
   await expect(page.getByTestId("birth-form")).toHaveCount(0);
+});
+
+test("PTME : inscription d'un nourrisson exposé puis résultat de dépistage", async ({ page }) => {
+  const lastName = `Ptme${Date.now()}`;
+  await login(page, "infirmiere1", e2ePassword());
+  await admitPatient(page, lastName, new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10));
+
+  await page.getByTestId("nav-record").click();
+  await page.getByTestId("patient-picker-search").fill(lastName);
+  await page.getByRole("button", { name: new RegExp(lastName) }).click();
+  await page.getByRole("button", { name: "PTME", exact: true }).click();
+  await page.getByTestId("pmtct-mother").selectOption("on_art");
+  await page.getByTestId("pmtct-enrol").click();
+  await expect(page.getByTestId("pmtct-record")).toContainText("Test virologique (PCR) à 6 semaines");
+  await page.getByTestId("pmtct-negative-pcr_6w").click();
+  await expect(page.getByTestId("pmtct-record")).toContainText("Négatif");
+  await logout(page);
+
+  // Le laboratoire ouvre le dossier mais ne voit pas l'onglet PTME (donnée très sensible).
+  await login(page, "labo1", e2ePassword());
+  await page.getByTestId("nav-record").click();
+  await page.getByTestId("patient-picker-search").fill(lastName);
+  await page.getByRole("button", { name: new RegExp(lastName) }).click();
+  await expect(page.getByRole("button", { name: "Informations", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "PTME", exact: true })).toHaveCount(0);
 });
 
 test("comptes : un compte désactivé par l'admin ne peut plus se connecter", async ({ page }) => {

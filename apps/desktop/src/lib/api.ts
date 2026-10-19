@@ -31,6 +31,7 @@ import type {
   BirthRecord,
   Administration,
   DoseSchedule,
+  PmtctFollowUp,
   Stats,
   ImagingReport,
   ImagingRequest,
@@ -405,6 +406,18 @@ export function dischargeStay(stayId: string, input: { outcome?: DischargeOutcom
 
 export function revokeDeath(patientId: string, reason: string): Promise<{ ok: true }> {
   return request<{ ok: true }>(`/api/patients/${patientId}/deceased/revoke`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+export function getPatientPmtct(patientId: string): Promise<{ ptme: PmtctFollowUp | null }> {
+  return request<{ ptme: PmtctFollowUp | null }>(`/api/patients/${patientId}/ptme`);
+}
+
+export function enrolPmtct(patientId: string, input: { motherStatus: string; infantProphylaxis: boolean }): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/patients/${patientId}/ptme`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function recordPmtctTest(patientId: string, input: { milestone: string; result: "negative" | "positive" }): Promise<{ ok: true }> {
+  return request<{ ok: true }>(`/api/patients/${patientId}/ptme/tests`, { method: "POST", body: JSON.stringify(input) });
 }
 
 export function getPatientBirth(patientId: string): Promise<{ birth: BirthRecord | null }> {

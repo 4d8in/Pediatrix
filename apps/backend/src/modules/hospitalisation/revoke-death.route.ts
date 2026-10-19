@@ -38,8 +38,10 @@ export async function revokeDeathRoute(app: FastifyInstance) {
           );
           const note = `Décès annulé par ${request.user.name} le ${new Date().toISOString()} : ${reason}`;
           const { deceasedDateTime: _a, deceasedBoolean: _b, ...living } = patient;
+          // La correction est aussi tracée sur le dossier du patient (même sans séjour concerné).
+          const patientExtensions = [...((living as Json).extension ?? []), { url: "http://pediatrix.local/fhir/death-correction", valueString: note }];
           await runTransaction([
-            putEntry("Patient", living as Json),
+            putEntry("Patient", { ...(living as Json), extension: patientExtensions } as Json),
             ...stays.map((stay) => putEntry("Encounter", withoutDeath(stay, note) as Json)),
           ]);
           return reply.send({ ok: true, staysCorrected: stays.length });

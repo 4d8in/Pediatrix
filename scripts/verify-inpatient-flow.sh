@@ -51,6 +51,19 @@ ALERTS=$(body "$(api GET "$NURSE" "/api/patients/${PATIENT}/birth")" | jq -c '.b
 [ "$ALERTS" = '["low_birth_weight","preterm"]' ] || fail "alertes inattendues : $ALERTS"
 echo "OK : registre de naissance (alertes $ALERTS)."
 
+# --- PTME (nourrisson exposé au VIH) ---
+[ "$(status "$(api GET "$LAB" "/api/patients/${PATIENT}/ptme")")" = "403" ] || fail "le laboratoire ne devrait pas lire le suivi PTME (403)."
+[ "$(status "$(api POST "$LAB" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "403" ] || fail "le laboratoire ne devrait pas inscrire (403)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "409" ] || fail "test avant inscription non refusé (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"x"}')")" = "400" ] || fail "inscription invalide non refusée."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "201" ] || fail "inscription PTME refusée."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme" '{"motherStatus":"on_art","infantProphylaxis":true}')")" = "409" ] || fail "2e inscription non refusée (409)."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"negative"}')")" = "201" ] || fail "résultat PCR refusé."
+[ "$(status "$(api POST "$NURSE" "/api/patients/${PATIENT}/ptme/tests" '{"milestone":"pcr_6w","result":"positive"}')")" = "409" ] || fail "résultat en double non refusé (409)."
+PT=$(body "$(api GET "$DOCTOR" "/api/patients/${PATIENT}/ptme")" | jq -r '"\(.ptme.status) \(.ptme.milestones[0].state) \(.ptme.milestones[1].state)"')
+[ "$PT" = "in_follow_up done upcoming" ] || fail "état PTME inattendu : $PT"
+echo "OK : suivi PTME ($PT)."
+
 # --- Administration pendant un séjour ---
 BED=$(body "$(api GET "$NURSE" /api/beds)" | jq -r '[.wards[].beds[] | select(.status=="U")][0].id // empty')
 [ -n "$BED" ] || fail "aucun lit libre pour le test."

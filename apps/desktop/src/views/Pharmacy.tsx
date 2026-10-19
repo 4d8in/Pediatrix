@@ -281,13 +281,28 @@ export default function Pharmacy() {
                   </td>
                   <td className="px-3 py-3 text-zinc-500">{item.reorderLevel}</td>
                   <td className="px-3 py-3">
-                    {item.low ? (
-                      <span className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
-                        <AlertTriangle className="h-3 w-3" /> À réapprovisionner
-                      </span>
-                    ) : (
-                      <span className="text-xs text-green-700">Suffisant</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {item.expiredQuantity > 0 && (
+                        <span
+                          data-testid={`expired-${item.code}`}
+                          className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700"
+                        >
+                          <AlertTriangle className="h-3 w-3" /> {item.expiredQuantity} périmé(s), à retirer
+                        </span>
+                      )}
+                      {item.expiringSoonQuantity > 0 && (
+                        <span className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                          {item.expiringSoonQuantity} périment sous 90 j
+                        </span>
+                      )}
+                      {item.low ? (
+                        <span className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                          <AlertTriangle className="h-3 w-3" /> À réapprovisionner
+                        </span>
+                      ) : (
+                        item.expiredQuantity === 0 && <span className="text-xs text-green-700">Suffisant</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

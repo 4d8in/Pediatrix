@@ -384,8 +384,11 @@ export interface FormularyItem {
 }
 
 export interface StockLevel extends FormularyItem {
+  // Quantité utilisable (hors lots périmés).
   quantity: number;
   low: boolean;
+  expiredQuantity: number;
+  expiringSoonQuantity: number;
 }
 
 export interface PendingPrescription {

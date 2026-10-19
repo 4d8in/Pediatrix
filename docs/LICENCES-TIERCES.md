@@ -30,6 +30,8 @@ Application : contrôle de la dose quotidienne par kg (`lib/dose-rules.ts`, maxi
 - HL7 ObservationInterpretation (norme ouverte) : codes H, L, N, et HH / LL pour les valeurs critiques.
 Application : table de références pédiatriques par âge et sexe (`lib/lab-reference-ranges.ts`, valeurs « à valider » par le biologiste responsable), proposition à la saisie, drapeaux HH / LL.
 
+- Pharmacie : principes de gestion de stock par lots et péremption (premier périmé, premier sorti, FEFO), pratique générale connue ; aucune source logicielle consultée ni reprise.
+
 Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.

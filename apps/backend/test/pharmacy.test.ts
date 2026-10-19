@@ -51,3 +51,24 @@ test("les ordonnances à délivrer sont triées de la plus ancienne à la plus r
   assert.deepEqual(list.map((p) => p.id), ["a", "b"]);
   assert.equal(list[0].patientName, "Moussa Diallo");
 });
+
+test("un lot périmé n'est plus utilisable et la délivrance consomme d'abord le lot qui périme le plus tôt", () => {
+  const now = new Date("2026-10-19T08:00:00Z");
+  const old = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 20, lot: "A", expiry: "2026-10-01" }, "P");
+  const soon = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 30, lot: "B", expiry: "2026-12-15" }, "P");
+  const later = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 40, lot: "C", expiry: "2028-01-01" }, "P");
+  const dispense = toMedicationDispense(paracetamol, 10, "mr1", "Patient/p1", undefined, "P");
+
+  const level = computeStock([old, soon, later], [dispense], now).find((l) => l.code === "PARA-SIR")!;
+  // FEFO : les 10 délivrés sortent du lot A (périmé, 20 -> 10 restant, non utilisable).
+  assert.equal(level.expiredQuantity, 10);
+  assert.equal(level.quantity, 70);
+  assert.equal(level.expiringSoonQuantity, 30);
+});
+
+test("sans péremption renseignée, le lot n'expire pas", () => {
+  const receipt = toSupplyDelivery(paracetamol, { itemCode: "PARA-SIR", quantity: 50 }, "P");
+  const level = computeStock([receipt], [], new Date("2030-01-01")).find((l) => l.code === "PARA-SIR")!;
+  assert.equal(level.quantity, 50);
+  assert.equal(level.expiredQuantity, 0);
+});

@@ -65,9 +65,15 @@ export function buildQueue(
 
   // Une seule ligne par patient : l'arrivée en attente prime, sinon la dernière consultation.
   const byPatient = new Map<string, FhirResource>();
+  const left = new Set<string>();
   for (const encounter of encounters) {
     const patientId = encounter.subject?.reference?.replace("Patient/", "");
     if (!patientId) continue;
+    // Parti sans consultation : hors de la file (ne pas le retomber dans « patients du jour »).
+    if (encounter.status === "cancelled") {
+      left.add(patientId);
+      continue;
+    }
     const current = byPatient.get(patientId);
     const better =
       !current ||
@@ -87,7 +93,7 @@ export function buildQueue(
   }));
 
   for (const patient of legacyPatients) {
-    if (byPatient.has(patient.id)) continue;
+    if (byPatient.has(patient.id) || left.has(patient.id)) continue;
     queue.push({
       patientId: patient.id,
       encounterId: null,

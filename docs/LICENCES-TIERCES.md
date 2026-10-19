@@ -18,6 +18,10 @@ dépendances installées (octobre 2026) ; aucune n'est GPL, AGPL ni SSPL.
 Aucun code repris. Documentation publique consultée (octobre 2026), idées seulement :
 - OpenMRS (MPL-2.0), « Controlling User Access (Roles and Privileges) » : droits découpés par type de donnée et par action (voir, ajouter, modifier), regroupés en rôles par métier.
 - Bahmni (AGPL-3.0), « Security Roles and Privileges » : rôles additifs, rôle de lecture clinique seule, rôle dédié aux commandes.
-Application : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
+- OpenMRS, « Emergency Department Triage Application » (spécification) et [file d'attente](https://openmrs.atlassian.net/wiki/spaces/projects/pages/27009138/Queueing+Especially+Patient+Queues) : file triée par gravité puis temps d'attente, sortie « consultation commencée » ou « parti sans être vu ».
+- Bahmni, [Patient Queues & Observation Forms Configuration](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/2941681665) : files configurables par service.
+Applications : temps d'attente et sortie « parti sans consultation » dans la file active (`leave-without-consultation.route.ts`).
+
+Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.

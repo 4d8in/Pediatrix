@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCcw, Search, UserCheck } from "lucide-react";
 import PatientPicker from "../components/PatientPicker";
-import { ApiError, checkInPatient, getActiveQueue, setTriage } from "../lib/api";
+import { ApiError, checkInPatient, getActiveQueue, markLeftWithoutConsultation, setTriage } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import type { Patient, QueueEntry, TriageCategory } from "../lib/types";
 import { cn } from "../lib/utils";
@@ -32,6 +32,14 @@ function ageOf(birthDate: string | null): string {
   let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
   if (now.getDate() < birth.getDate()) months -= 1;
   return months < 12 ? `${Math.max(months, 0)} mois` : `${Math.floor(months / 12)} ans`;
+}
+
+// Temps d'attente depuis l'arrivée, en minutes (rouge au-delà d'une heure).
+function waitOf(date: string | null): { label: string; late: boolean } | null {
+  if (!date) return null;
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+  const label = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+  return { label, late: minutes >= 60 };
 }
 
 function timeOf(date: string | null): string {
@@ -71,6 +79,17 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
     try {
       await checkInPatient(arrivalPatient.id);
       setArrivalPatient(null);
+      load();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
+    }
+  }
+
+  async function handleLeft(entry: QueueEntry) {
+    if (!window.confirm(`Retirer ${entry.name} de la file (parti sans consultation) ?`)) return;
+    setActionError(null);
+    try {
+      await markLeftWithoutConsultation(entry.patientId);
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
@@ -176,6 +195,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
               <th className="py-3 font-normal">Tri</th>
               <th className="py-3 font-normal">Motif</th>
               <th className="py-3 font-normal">Heure d'arrivée</th>
+              <th className="py-3 font-normal">Attente</th>
               <th className="py-3 font-normal">Statut</th>
               <th className="py-3 text-right font-normal">Action</th>
             </tr>
@@ -183,14 +203,14 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
           <tbody className="divide-y divide-zinc-100">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-zinc-400">
+                <td colSpan={9} className="py-10 text-center text-zinc-400">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-zinc-400">
+                <td colSpan={9} className="py-10 text-center text-zinc-400">
                   Aucun patient dans cette liste aujourd'hui.
                 </td>
               </tr>
@@ -232,6 +252,15 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                 <td className="py-3 text-zinc-700">{entry.reason ?? "—"}</td>
                 <td className="py-3 text-zinc-700">{timeOf(entry.admittedAt)}</td>
                 <td className="py-3">
+                  {entry.status === "en_attente" && waitOf(entry.admittedAt) ? (
+                    <span className={cn("text-xs", waitOf(entry.admittedAt)?.late ? "font-medium text-red-600" : "text-zinc-600")}>
+                      {waitOf(entry.admittedAt)?.label}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+                <td className="py-3">
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-1 text-xs",
@@ -249,6 +278,15 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                         className="rounded-lg bg-[#1A6FD4] px-3 py-1.5 text-xs text-white transition hover:bg-[#155bb0]"
                       >
                         Consulter
+                      </button>
+                    )}
+                    {entry.status === "en_attente" && (
+                      <button
+                        data-testid="queue-left"
+                        onClick={() => handleLeft(entry)}
+                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-500 transition hover:border-red-300 hover:text-red-600"
+                      >
+                        Parti
                       </button>
                     )}
                     <button

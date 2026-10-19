@@ -94,3 +94,8 @@ test("la consultation reprend l'arrivée du jour (PUT) et garde son heure d'arri
   const fresh = toEncounterTransactionBundle("p1", { reason: "Fièvre", vitals: {} }, undefined, undefined);
   assert.equal((fresh.entry[0] as { request: { method: string } }).request.method, "POST");
 });
+
+test("un patient parti sans consultation (statut cancelled) sort de la file", () => {
+  const queue = buildQueue([encounter("e5", "gone", "cancelled", "2026-10-19T09:00:00Z")], [patient("gone", "Parti")] as never, [patient("gone", "Parti")] as never, []);
+  assert.equal(queue.length, 0);
+});

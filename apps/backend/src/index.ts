@@ -34,6 +34,7 @@ import { createEncounterRoute } from "./modules/pediatrie/create-encounter.route
 import { createServiceRequestRoute } from "./modules/pediatrie/create-service-request.route.js";
 import { checkInRoute } from "./modules/pediatrie/check-in.route.js";
 import { triageRoute } from "./modules/pediatrie/triage.route.js";
+import { leaveWithoutConsultationRoute } from "./modules/pediatrie/leave-without-consultation.route.js";
 import { listDiagnosisCatalogRoute } from "./modules/pediatrie/list-diagnosis-catalog.route.js";
 import { createDiagnosisRoute } from "./modules/pediatrie/create-diagnosis.route.js";
 import { listPatientDiagnosesRoute } from "./modules/pediatrie/list-patient-diagnoses.route.js";
@@ -143,6 +144,7 @@ await app.register(createEncounterRoute);
 await app.register(createServiceRequestRoute);
 await app.register(checkInRoute);
 await app.register(triageRoute);
+await app.register(leaveWithoutConsultationRoute);
 await app.register(listDiagnosisCatalogRoute);
 await app.register(createDiagnosisRoute);
 await app.register(listPatientDiagnosesRoute);

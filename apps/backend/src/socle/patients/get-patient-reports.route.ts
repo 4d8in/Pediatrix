@@ -41,7 +41,7 @@ interface ReportResult {
   label: string;
   value: string;
   // H élevé, L bas, N normal ; absent quand aucune plage de référence n'a été saisie.
-  flag?: "H" | "L" | "N";
+  flag?: "H" | "L" | "N" | "HH" | "LL";
   reference?: string;
 }
 
@@ -65,7 +65,7 @@ function readReference(obs: FhirObservation): string | undefined {
 
 function readFlag(obs: FhirObservation): ReportResult["flag"] {
   const code = obs.interpretation?.[0]?.coding?.[0]?.code;
-  return code === "H" || code === "L" || code === "N" ? code : undefined;
+  return code === "H" || code === "L" || code === "N" || code === "HH" || code === "LL" ? code : undefined;
 }
 
 function parseReports(bundle: FhirBundle): ReportSummary[] {

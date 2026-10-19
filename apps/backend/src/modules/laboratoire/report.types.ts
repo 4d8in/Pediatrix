@@ -7,6 +7,9 @@ export interface LabResultInput {
   unit?: string;
   referenceLow?: number;
   referenceHigh?: number;
+  // Seuils critiques (drapeaux HH / LL), remplis par le serveur d'après l'âge et le sexe.
+  criticalLow?: number;
+  criticalHigh?: number;
 }
 
 export interface CreateReportInput {

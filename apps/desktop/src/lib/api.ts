@@ -13,6 +13,7 @@ import type {
   DashboardCounters,
   DashboardOverview,
   QueueEntry,
+  ReferenceRange,
   TriageVitals,
   HealthStatus,
   BedStatus,
@@ -172,6 +173,10 @@ export function createServiceRequest(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getReferenceRanges(requestId: string): Promise<{ ranges: Record<string, ReferenceRange> }> {
+  return request<{ ranges: Record<string, ReferenceRange> }>(`/api/lab/requests/${requestId}/reference-ranges`);
 }
 
 export function getLabCatalog(): Promise<{ tests: LabTest[] }> {

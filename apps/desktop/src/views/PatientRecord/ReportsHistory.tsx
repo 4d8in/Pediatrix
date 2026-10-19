@@ -44,13 +44,15 @@ export default function ReportsHistory({ reports, patient }: { reports: Report[]
                     <span
                       key={result.label}
                       className={`text-sm font-medium border px-3 py-1 rounded-xl ${
-                        result.flag === "H" || result.flag === "L"
+                        result.flag === "H" || result.flag === "L" || result.flag === "HH" || result.flag === "LL"
                           ? "text-red-700 bg-red-50 border-red-200"
                           : "text-zinc-500 bg-zinc-50 border-zinc-200"
                       }`}
                     >
                       {result.label}: {result.value}
                       {result.flag === "H" && " ↑"}
+                      {result.flag === "HH" && " ↑↑ CRITIQUE"}
+                      {result.flag === "LL" && " ↓↓ CRITIQUE"}
                       {result.flag === "L" && " ↓"}
                       {result.reference && (
                         <span className="ml-2 text-xs font-normal text-zinc-400">(réf. {result.reference})</span>

@@ -26,6 +26,10 @@ Applications : temps d'attente et sortie « parti sans consultation » dans la f
 - HL7 EHR-S Functional Model (norme ouverte), exigence d'alertes sur dosage propre au patient, interactions et allergies, avec traçabilité du passage outre.
 Application : contrôle de la dose quotidienne par kg (`lib/dose-rules.ts`, maxima « à valider » par le pharmacien responsable), confirmation tracée par extension FHIR.
 
+- OpenELIS / Bahmni Lab ([guide des limites de résultat](https://bahmni.atlassian.net/wiki/x/GQBhx)) : limites par sexe et par âge configurées par test, anomalies repérées automatiquement et affichées en rouge, texte libre « informations de référence ».
+- HL7 ObservationInterpretation (norme ouverte) : codes H, L, N, et HH / LL pour les valeurs critiques.
+Application : table de références pédiatriques par âge et sexe (`lib/lab-reference-ranges.ts`, valeurs « à valider » par le biologiste responsable), proposition à la saisie, drapeaux HH / LL.
+
 Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.

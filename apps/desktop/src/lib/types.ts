@@ -102,9 +102,19 @@ export interface LabResultInput {
   unit?: string;
   referenceLow?: string;
   referenceHigh?: string;
+  // Seuils critiques proposés par le serveur (drapeaux HH / LL à l'écran).
+  criticalLow?: number;
+  criticalHigh?: number;
 }
 
-export type ResultFlag = "H" | "L" | "N";
+export type ResultFlag = "H" | "L" | "N" | "HH" | "LL";
+
+export interface ReferenceRange {
+  low?: number;
+  high?: number;
+  criticalLow?: number;
+  criticalHigh?: number;
+}
 
 export interface ReportResult {
   label: string;

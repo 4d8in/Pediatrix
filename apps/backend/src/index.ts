@@ -49,6 +49,7 @@ import { dischargeStayRoute } from "./modules/hospitalisation/discharge-stay.rou
 import { updateBedStatusRoute } from "./modules/hospitalisation/update-bed-status.route.js";
 import { listPatientStaysRoute } from "./modules/hospitalisation/list-patient-stays.route.js";
 import { labSummaryRoute } from "./modules/laboratoire/lab-summary.route.js";
+import { getReferenceRangesRoute } from "./modules/laboratoire/get-reference-ranges.route.js";
 import { labCatalogRoute } from "./modules/laboratoire/lab-catalog.route.js";
 import { listFormularyRoute } from "./modules/pharmacie/list-formulary.route.js";
 import { stockLevelsRoute } from "./modules/pharmacie/stock-levels.route.js";
@@ -195,6 +196,7 @@ await app.register(activeQueueRoute);
 await app.register(recentResultsRoute);
 await app.register(labSummaryRoute);
 await app.register(labCatalogRoute);
+await app.register(getReferenceRangesRoute);
 await app.register(listFormularyRoute);
 await app.register(stockLevelsRoute);
 await app.register(receiveStockRoute);

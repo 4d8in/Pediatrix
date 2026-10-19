@@ -28,7 +28,12 @@ import type {
   ImagingReport,
   ImagingRequest,
   Immunization,
+  BillableEncounter,
+  BillingSummary,
   FormularyItem,
+  Invoice,
+  PaymentMethod,
+  TariffTable,
   LabRequest,
   PendingPrescription,
   ReceiptInput,
@@ -406,4 +411,41 @@ export function dispensePrescription(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getTariffs(): Promise<{ tariffs: TariffTable; items: { code: string; name: string; unit: string }[] }> {
+  return request("/api/billing/tariffs");
+}
+
+export function saveTariffs(tariffs: TariffTable): Promise<{ tariffs: TariffTable }> {
+  return request<{ tariffs: TariffTable }>("/api/billing/tariffs", { method: "PUT", body: JSON.stringify(tariffs) });
+}
+
+export function listBillableEncounters(): Promise<{ encounters: BillableEncounter[] }> {
+  return request<{ encounters: BillableEncounter[] }>("/api/billing/encounters");
+}
+
+export function createInvoice(
+  encounterId: string,
+  input: { insurer?: string; coveragePercent?: number },
+): Promise<{ invoice: Invoice }> {
+  return request<{ invoice: Invoice }>(`/api/billing/encounters/${encounterId}/invoice`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listInvoices(): Promise<{ invoices: Invoice[] }> {
+  return request<{ invoices: Invoice[] }>("/api/billing/invoices");
+}
+
+export function addPayment(invoiceId: string, input: { amount: number; method: PaymentMethod }): Promise<{ invoice: Invoice }> {
+  return request<{ invoice: Invoice }>(`/api/billing/invoices/${invoiceId}/payments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getBillingSummary(): Promise<BillingSummary> {
+  return request<BillingSummary>("/api/billing/summary");
 }

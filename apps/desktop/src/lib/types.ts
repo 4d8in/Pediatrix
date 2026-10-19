@@ -371,3 +371,50 @@ export interface ReceiptInput {
   lot?: string;
   expiry?: string;
 }
+
+export interface TariffTable {
+  currency: string;
+  consultation: number;
+  labDefault: number;
+  labByCode: Record<string, number>;
+  imagingDefault: number;
+  drugs: Record<string, number>;
+  customized: boolean;
+}
+
+export interface BillableEncounter {
+  encounterId: string;
+  patientId: string;
+  patientName: string;
+  reason: string | null;
+  date: string | null;
+}
+
+export type PaymentMethod = "cash" | "mobile_money" | "card";
+
+export interface Invoice {
+  id: string;
+  encounterId: string | null;
+  patientId: string;
+  patientName: string;
+  date: string | null;
+  status: "issued" | "balanced";
+  currency: string;
+  total: number;
+  insurer: string | null;
+  coveragePercent: number;
+  insurerShare: number;
+  patientShare: number;
+  paid: number;
+  balance: number;
+  lines: { description: string; amount: number }[];
+  payments: { amount: number; method: string; date: string | null }[];
+}
+
+export interface BillingSummary {
+  currency: string;
+  invoices: number;
+  collectedToday: number;
+  outstanding: number;
+  insurerReceivable: number;
+}

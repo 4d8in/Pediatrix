@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BedDouble,
+  Banknote,
   CircleUserRound,
   FileText,
   FlaskConical,
@@ -26,6 +27,7 @@ import PatientRecord from "./views/PatientRecord/PatientRecord";
 import Laboratory from "./views/Laboratory";
 import Radiology from "./views/Radiology";
 import Pharmacy from "./views/Pharmacy";
+import Billing from "./views/Billing";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -54,6 +56,7 @@ type ViewType =
   | "laboratory"
   | "radiology"
   | "pharmacy"
+  | "billing"
   | "fhirLog"
   | "vaccinations"
   | "stats"
@@ -86,6 +89,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "laboratory", label: "Laboratoire", icon: FlaskConical, roles: ["lab_tech"] },
   { id: "radiology", label: "Radiologie", icon: ScanLine, roles: ["radiologist"] },
   { id: "pharmacy", label: "Pharmacie", icon: Pill, roles: ["pharmacist"] },
+  { id: "billing", label: "Facturation", icon: Banknote, roles: ["cashier", "director"] },
   {
     id: "record",
     label: "Dossier patient",
@@ -177,6 +181,8 @@ function App() {
         return <Radiology />;
       case "pharmacy":
         return <Pharmacy />;
+      case "billing":
+        return <Billing />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":

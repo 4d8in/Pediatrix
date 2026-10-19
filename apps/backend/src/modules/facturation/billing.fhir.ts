@@ -1,0 +1,204 @@
+import { randomUUID } from "node:crypto";
+import type { TariffTable } from "../../lib/tariffs.js";
+
+// Facturation = ressources FHIR Invoice (une par consultation) + PaymentNotice
+// (un par encaissement). Le solde se déduit des encaissements, comme le stock.
+export const INVOICE_ENCOUNTER_SYSTEM = "http://pediatrix.local/fhir/invoice-encounter";
+export const INSURER_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-insurer";
+export const COVERAGE_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-coverage-percent";
+export const PATIENT_SHARE_EXTENSION_URL = "http://pediatrix.local/fhir/invoice-patient-share";
+
+export const PAYMENT_METHODS = ["cash", "mobile_money", "card"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: "Espèces",
+  mobile_money: "Mobile money",
+  card: "Carte bancaire",
+};
+
+export interface InvoiceLine {
+  kind: "consultation" | "lab" | "imaging" | "drug";
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
+interface ServiceRequestLike {
+  code?: { text?: string; coding?: { code?: string }[] };
+  category?: { coding?: { code?: string }[] }[];
+}
+
+interface DispenseLike {
+  medicationCodeableConcept?: { text?: string; coding?: { code?: string }[] };
+  quantity?: { value?: number };
+}
+
+export function buildInvoiceLines(
+  serviceRequests: ServiceRequestLike[],
+  dispenses: DispenseLike[],
+  tariffs: TariffTable,
+): InvoiceLine[] {
+  const lines: InvoiceLine[] = [
+    { kind: "consultation", description: "Consultation pédiatrique", quantity: 1, unitPrice: tariffs.consultation, amount: tariffs.consultation },
+  ];
+
+  for (const sr of serviceRequests) {
+    const isImaging = sr.category?.some((c) => c.coding?.some((coding) => coding.code === "imaging"));
+    const code = sr.code?.coding?.[0]?.code;
+    const unitPrice = isImaging ? tariffs.imagingDefault : (code && tariffs.labByCode[code]) || tariffs.labDefault;
+    lines.push({
+      kind: isImaging ? "imaging" : "lab",
+      description: sr.code?.text ?? (isImaging ? "Examen d'imagerie" : "Examen de laboratoire"),
+      quantity: 1,
+      unitPrice,
+      amount: unitPrice,
+    });
+  }
+
+  for (const dispense of dispenses) {
+    const code = dispense.medicationCodeableConcept?.coding?.[0]?.code;
+    const quantity = dispense.quantity?.value ?? 1;
+    const unitPrice = (code && tariffs.drugs[code]) || 0;
+    lines.push({
+      kind: "drug",
+      description: dispense.medicationCodeableConcept?.text ?? "Médicament",
+      quantity,
+      unitPrice,
+      amount: Math.round(unitPrice * quantity),
+    });
+  }
+
+  return lines;
+}
+
+export interface InvoiceTotals {
+  total: number;
+  insurerShare: number;
+  patientShare: number;
+}
+
+// Part prise en charge par l'assureur = pourcentage du total, arrondie ; le patient paie le reste.
+export function computeTotals(lines: InvoiceLine[], coveragePercent: number): InvoiceTotals {
+  const total = lines.reduce((sum, line) => sum + line.amount, 0);
+  const insurerShare = Math.round((total * coveragePercent) / 100);
+  return { total, insurerShare, patientShare: total - insurerShare };
+}
+
+export function toFhirInvoice(
+  patientId: string,
+  patientName: string,
+  encounterId: string,
+  lines: InvoiceLine[],
+  totals: InvoiceTotals,
+  currency: string,
+  insurance: { insurer?: string; coveragePercent: number },
+  issuedBy: string,
+) {
+  const money = (value: number) => ({ value, currency });
+  return {
+    resourceType: "Invoice",
+    status: "issued",
+    identifier: [{ system: INVOICE_ENCOUNTER_SYSTEM, value: encounterId }],
+    subject: { reference: `Patient/${patientId}`, display: patientName },
+    date: new Date().toISOString(),
+    participant: [{ actor: { display: issuedBy } }],
+    lineItem: lines.map((line, index) => ({
+      sequence: index + 1,
+      chargeItemCodeableConcept: { text: line.quantity > 1 ? `${line.description} × ${line.quantity}` : line.description },
+      priceComponent: [{ type: "base", code: { text: line.kind }, amount: money(line.amount) }],
+    })),
+    totalNet: money(totals.total),
+    totalGross: money(totals.total),
+    extension: [
+      insurance.insurer ? { url: INSURER_EXTENSION_URL, valueString: insurance.insurer } : undefined,
+      { url: COVERAGE_EXTENSION_URL, valueInteger: insurance.coveragePercent },
+      { url: PATIENT_SHARE_EXTENSION_URL, valueInteger: totals.patientShare },
+    ].filter(Boolean),
+  };
+}
+
+export function toPaymentNotice(invoiceId: string, amount: number, method: PaymentMethod, currency: string, receivedBy: string) {
+  return {
+    resourceType: "PaymentNotice",
+    status: "active",
+    request: { reference: `Invoice/${invoiceId}` },
+    created: new Date().toISOString(),
+    // R4 exige un lien vers un PaymentReconciliation ; on met un identifiant de reçu.
+    payment: { identifier: { value: randomUUID() } },
+    paymentDate: new Date().toISOString().slice(0, 10),
+    recipient: { display: receivedBy },
+    amount: { value: amount, currency },
+    paymentStatus: { text: PAYMENT_METHOD_LABELS[method], coding: [{ system: "http://pediatrix.local/fhir/payment-method", code: method }] },
+  };
+}
+
+interface FhirInvoice {
+  id?: string;
+  status?: string;
+  date?: string;
+  subject?: { reference?: string; display?: string };
+  identifier?: { system?: string; value?: string }[];
+  lineItem?: { chargeItemCodeableConcept?: { text?: string }; priceComponent?: { amount?: { value?: number } }[] }[];
+  totalNet?: { value?: number; currency?: string };
+  extension?: { url: string; valueString?: string; valueInteger?: number }[];
+}
+
+interface FhirPaymentNotice {
+  request?: { reference?: string };
+  amount?: { value?: number };
+  created?: string;
+  paymentStatus?: { coding?: { code?: string }[]; text?: string };
+}
+
+export interface InvoiceSummary {
+  id: string;
+  encounterId: string | null;
+  patientId: string;
+  patientName: string;
+  date: string | null;
+  status: "issued" | "balanced";
+  currency: string;
+  total: number;
+  insurer: string | null;
+  coveragePercent: number;
+  insurerShare: number;
+  patientShare: number;
+  paid: number;
+  balance: number;
+  lines: { description: string; amount: number }[];
+  payments: { amount: number; method: string; date: string | null }[];
+}
+
+export function summarizeInvoice(invoice: FhirInvoice, notices: FhirPaymentNotice[]): InvoiceSummary {
+  const ext = (url: string) => invoice.extension?.find((e) => e.url === url);
+  const total = invoice.totalNet?.value ?? 0;
+  const patientShare = ext(PATIENT_SHARE_EXTENSION_URL)?.valueInteger ?? total;
+  const coveragePercent = ext(COVERAGE_EXTENSION_URL)?.valueInteger ?? 0;
+  const mine = notices.filter((n) => n.request?.reference === `Invoice/${invoice.id}`);
+  const paid = mine.reduce((sum, n) => sum + (n.amount?.value ?? 0), 0);
+
+  return {
+    id: invoice.id ?? "",
+    encounterId: invoice.identifier?.find((i) => i.system === INVOICE_ENCOUNTER_SYSTEM)?.value ?? null,
+    patientId: invoice.subject?.reference?.split("/")[1] ?? "",
+    patientName: invoice.subject?.display ?? "",
+    date: invoice.date ?? null,
+    status: invoice.status === "balanced" ? "balanced" : "issued",
+    currency: invoice.totalNet?.currency ?? "XOF",
+    total,
+    insurer: ext(INSURER_EXTENSION_URL)?.valueString ?? null,
+    coveragePercent,
+    insurerShare: total - patientShare,
+    patientShare,
+    paid,
+    balance: Math.max(patientShare - paid, 0),
+    lines: (invoice.lineItem ?? []).map((item) => ({
+      description: item.chargeItemCodeableConcept?.text ?? "",
+      amount: item.priceComponent?.[0]?.amount?.value ?? 0,
+    })),
+    payments: mine
+      .map((n) => ({ amount: n.amount?.value ?? 0, method: n.paymentStatus?.coding?.[0]?.code ?? "", date: n.created ?? null }))
+      .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),
+  };
+}

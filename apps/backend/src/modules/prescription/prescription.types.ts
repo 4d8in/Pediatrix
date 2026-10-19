@@ -9,6 +9,8 @@ export interface CreatePrescriptionInput {
   formularyCode?: string;
   doseMg?: number;
   dosesPerDay?: number;
+  // Durée du traitement en jours (facultative) : sert à clore l'échéancier des doses.
+  durationDays?: number;
 }
 
 export interface PrescriptionSummary {

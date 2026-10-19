@@ -14,6 +14,7 @@ import AllergiesSection from "./AllergiesSection";
 import PrescriptionsHistory from "./PrescriptionsHistory";
 import StaysSection from "./StaysSection";
 import BirthSection from "./BirthSection";
+import PmtctSection from "./PmtctSection";
 import DiagnosesSection from "./DiagnosesSection";
 import ReferralsSection from "./ReferralsSection";
 import {
@@ -21,6 +22,7 @@ import {
   getPatient,
   getPatientAllergies,
   getPatientBirth,
+  getPatientPmtct,
   revokeDeath,
   getPatientDiagnoses,
   getPatientReferrals,
@@ -37,6 +39,7 @@ import type {
   PatientStay,
   Allergy,
   BirthRecord,
+  PmtctFollowUp,
   GrowthMeasurement,
   ImagingReport,
   Immunization,
@@ -68,6 +71,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [birth, setBirth] = useState<BirthRecord | null>(null);
+  const [ptme, setPtme] = useState<PmtctFollowUp | null>(null);
   const [activeTab, setActiveTab] = useState<RecordTab>("info");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +116,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
       getPatientDiagnoses(patientId).catch(() => ({ diagnoses: [] as Diagnosis[] })),
       getPatientReferrals(patientId).catch(() => ({ referrals: [] as Referral[] })),
       getPatientBirth(patientId).catch(() => ({ birth: null as BirthRecord | null })),
+      getPatientPmtct(patientId).catch(() => ({ ptme: null as PmtctFollowUp | null })),
     ])
       .then(
         ([
@@ -126,6 +131,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           diagnosesData,
           referralsData,
           birthData,
+          ptmeData,
         ]) => {
           setRecord(recordData);
           setPatient(recordData.patient);
@@ -139,6 +145,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           setDiagnoses(diagnosesData.diagnoses);
           setReferrals(referralsData.referrals);
           setBirth(birthData.birth);
+          setPtme(ptmeData.ptme);
         },
       )
       .catch((err) => setError(err instanceof ApiError ? err.message : t("Erreur de chargement du dossier.")))
@@ -220,7 +227,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           </div>
 
           <div className="flex gap-1 overflow-x-auto border-b border-zinc-100 px-5">
-            {TABS.map((tab) => (
+            {TABS.filter((tab) => tab.id !== "ptme" || user?.role === "nurse" || user?.role === "doctor").map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -278,6 +285,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
               />
             )}
             {activeTab === "birth" && <BirthSection patientId={record.patient.id} birth={birth} onCreated={loadRecord} />}
+            {activeTab === "ptme" && <PmtctSection patientId={record.patient.id} ptme={ptme} onChanged={loadRecord} />}
             {activeTab === "exams" && (
               <>
                 <ReportsHistory reports={reports} patient={record.patient} />
@@ -300,13 +308,14 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   );
 }
 
-type RecordTab = "info" | "consultations" | "stays" | "birth" | "exams" | "vaccinations" | "growth" | "allergies";
+type RecordTab = "info" | "consultations" | "stays" | "birth" | "ptme" | "exams" | "vaccinations" | "growth" | "allergies";
 
 const TABS: { id: RecordTab; label: string }[] = [
   { id: "info", label: "Informations" },
   { id: "consultations", label: "Consultations et prescriptions" },
   { id: "stays", label: "Hospitalisations" },
   { id: "birth", label: "Naissance" },
+  { id: "ptme", label: "PTME" },
   { id: "exams", label: "Examens" },
   { id: "vaccinations", label: "Vaccinations" },
   { id: "growth", label: "Croissance" },

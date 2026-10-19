@@ -67,6 +67,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [dosage, setDosage] = useState("");
   const [doseMg, setDoseMg] = useState("");
   const [dosesPerDay, setDosesPerDay] = useState("");
+  const [durationDays, setDurationDays] = useState("");
   const [isPrescribing, setIsPrescribing] = useState(false);
   const [prescriptionErrors, setPrescriptionErrors] = useState<string[]>([]);
   const [allergyConflict, setAllergyConflict] = useState<AllergyConflict | null>(null);
@@ -91,6 +92,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setDosage("");
     setDoseMg("");
     setDosesPerDay("");
+    setDurationDays("");
     setConfirmedAllergy(false);
     setConfirmedDose(false);
     setPrescriptionErrors([]);
@@ -241,6 +243,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
         doseMg.trim() && dosesPerDay.trim()
           ? { formularyCode, doseMg: Number(doseMg.replace(",", ".")), dosesPerDay: Number(dosesPerDay) }
           : {};
+      const duration = durationDays.trim() ? { durationDays: Number(durationDays) } : {};
       const allergyOk = confirmedAllergy || accept === "allergy";
       // Allergie notée hors ligne et pas encore envoyée : le serveur ne peut pas la voir, on prévient ici.
       const pendingAllergies = patient && !allergyOk ? pendingAllergiesFor(patient.id) : [];
@@ -259,7 +262,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       const doseOk = confirmedDose || accept === "dose";
       if (accept === "allergy") setConfirmedAllergy(true);
       if (accept === "dose") setConfirmedDose(true);
-      await createPrescription(encounterId, { medication, dosage, confirmed: allergyOk, doseConfirmed: doseOk, ...structured });
+      await createPrescription(encounterId, { medication, dosage, confirmed: allergyOk, doseConfirmed: doseOk, ...structured, ...duration });
       setAllergyConflict(null);
       setPrescriptionCreated(true);
     } catch (error) {
@@ -674,6 +677,18 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                       onChange={(event) => setDosesPerDay(event.target.value)}
                       className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
                       placeholder={t("Ex. : 3")}
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-zinc-400">
+                    {t("Durée (jours)")}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      data-testid="prescription-duration-days"
+                      value={durationDays}
+                      onChange={(event) => setDurationDays(event.target.value)}
+                      className="mt-2 w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                      placeholder={t("Ex. : 5")}
                     />
                   </label>
                 </div>

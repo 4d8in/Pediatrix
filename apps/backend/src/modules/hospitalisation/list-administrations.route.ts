@@ -35,7 +35,7 @@ export async function listAdministrationsRoute(app: FastifyInstance) {
             id: string;
             status?: string;
             authoredOn?: string;
-            dosageInstruction?: { timing?: { repeat?: { frequency?: number } } }[];
+            dosageInstruction?: { timing?: { repeat?: { frequency?: number; boundsDuration?: { value?: number } } } }[];
           }>(`/MedicationRequest?patient=${patientId}&status=active,completed`);
           const stayStart = stay.period?.start ? Date.parse(stay.period.start) : 0;
           for (const rx of requests) {
@@ -49,7 +49,12 @@ export async function listAdministrationsRoute(app: FastifyInstance) {
             const lastGiven = administrations.find((a) => a.prescriptionId === rx.id && a.given)?.at ?? null;
             // L'ancre ne remonte jamais avant l'admission (ordonnance antérieure au séjour).
             const anchor = new Date(Math.max(Date.parse(rx.authoredOn), stayStart)).toISOString();
-            const result = doseSchedule({ dosesPerDay: perDay, lastGivenAt: lastGiven, anchor });
+            const days = rx.dosageInstruction?.[0]?.timing?.repeat?.boundsDuration?.value;
+            // La cure court à partir de la première prise donnée (délivrance tardive), sinon de l'ordonnance.
+            const givenTimes = administrations.filter((a) => a.prescriptionId === rx.id && a.given && a.at).map((a) => Date.parse(a.at!));
+            const courseStart = givenTimes.length > 0 ? Math.min(...givenTimes) : Date.parse(anchor);
+            const endAt = days ? new Date(courseStart + days * 86_400_000).toISOString() : undefined;
+            const result = doseSchedule({ dosesPerDay: perDay, lastGivenAt: lastGiven, anchor, endAt });
             if (result) schedule.push({ prescriptionId: rx.id, ...result });
           }
         }

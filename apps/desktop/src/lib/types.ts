@@ -219,6 +219,7 @@ export interface CreatePrescriptionInput {
   formularyCode?: string;
   doseMg?: number;
   dosesPerDay?: number;
+  durationDays?: number;
 }
 
 export interface Prescription {
@@ -604,10 +605,24 @@ export interface BirthRecord {
   alerts: BirthAlert[];
 }
 
+export interface PmtctMilestone {
+  key: string;
+  label: string;
+  dueDate: string;
+  state: "done" | "upcoming" | "due" | "overdue";
+  result: "negative" | "positive" | null;
+}
+
+export interface PmtctFollowUp {
+  enrolment: { motherStatus: "on_art" | "not_on_art" | "unknown"; infantProphylaxis: boolean };
+  status: "in_follow_up" | "positive" | "cleared";
+  milestones: PmtctMilestone[];
+}
+
 export interface DoseSchedule {
   prescriptionId: string;
   nextDueAt: string;
-  state: "not_due" | "due" | "overdue" | "awaiting_pharmacy";
+  state: "not_due" | "due" | "overdue" | "awaiting_pharmacy" | "finished";
 }
 
 export interface Administration {

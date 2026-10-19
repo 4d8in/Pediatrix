@@ -46,7 +46,17 @@ export function toFhirMedicationRequest(
     dosageInstruction: [
       {
         text: input.dosage,
-        timing: input.dosesPerDay ? { repeat: { frequency: input.dosesPerDay, period: 1, periodUnit: "d" } } : undefined,
+        timing:
+          input.dosesPerDay || input.durationDays
+            ? {
+                repeat: {
+                  ...(input.dosesPerDay ? { frequency: input.dosesPerDay, period: 1, periodUnit: "d" } : {}),
+                  ...(input.durationDays
+                    ? { boundsDuration: { value: input.durationDays, unit: "d", system: "http://unitsofmeasure.org", code: "d" } }
+                    : {}),
+                },
+              }
+            : undefined,
         doseAndRate: input.doseMg
           ? [{ doseQuantity: { value: input.doseMg, unit: "mg", system: "http://unitsofmeasure.org", code: "mg" } }]
           : undefined,

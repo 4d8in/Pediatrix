@@ -98,3 +98,10 @@ test("décès : la date doit être un ISO complet avec fuseau", () => {
   assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00" }));
   assert.ok("deceasedAt" in (validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00:00+01:00" }) as object));
 });
+
+test("échéancier : cure terminée", () => {
+  const anchor = "2026-10-10T00:00:00Z";
+  const endAt = "2026-10-13T00:00:00Z";
+  assert.equal(doseSchedule({ dosesPerDay: 3, lastGivenAt: null, anchor, endAt, now: new Date("2026-10-14T00:00:00Z") })?.state, "finished");
+  assert.equal(doseSchedule({ dosesPerDay: 3, lastGivenAt: null, anchor, endAt, now: new Date("2026-10-12T23:00:00Z") })?.state, "overdue");
+});

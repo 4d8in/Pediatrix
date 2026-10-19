@@ -5,6 +5,7 @@ import CompletedRequests from "../components/CompletedRequests";
 import ServiceSummary from "../components/ServiceSummary";
 import { ApiError, getImagingSummary, createImagingReport, listImagingRequests } from "../lib/api";
 import type { ImagingRequest, LabResultInput } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 const EMPTY_ROW: LabResultInput = { label: "", value: "" };
 
@@ -13,6 +14,7 @@ const EMPTY_ROW: LabResultInput = { label: "", value: "" };
 const AUTO_REFRESH_INTERVAL_MS = 15_000;
 
 export default function Radiology() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<"pending" | "done">("pending");
   const loadCompleted = useCallback(() => listImagingRequests("completed"), []);
   const [requests, setRequests] = useState<ImagingRequest[]>([]);
@@ -31,7 +33,7 @@ export default function Radiology() {
     setQueueError(null);
     listImagingRequests()
       .then((data) => setRequests(data.requests))
-      .catch((err) => setQueueError(err instanceof ApiError ? err.message : "Erreur de chargement de la file."))
+      .catch((err) => setQueueError(err instanceof ApiError ? err.message : t("Erreur de chargement de la file.")))
       .finally(() => setIsLoadingQueue(false));
   }
 
@@ -72,7 +74,7 @@ export default function Radiology() {
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'envoi du compte-rendu."]);
+        setErrors([t("Erreur inattendue lors de l'envoi du compte-rendu.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -82,10 +84,10 @@ export default function Radiology() {
   return (
     <div className="flex h-full flex-col gap-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Radiologie</h1>
-        <p className="mt-1 text-sm text-zinc-500">Demandes d'imagerie reçues et comptes-rendus</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Radiologie")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Demandes d'imagerie reçues et comptes-rendus")}</p>
       </div>
-      <ServiceSummary load={getImagingSummary} doneLabel="Comptes-rendus du jour" />
+      <ServiceSummary load={getImagingSummary} doneLabel={t("Comptes-rendus du jour")} />
       <div className="flex gap-1 border-b border-zinc-200">
         {(["pending", "done"] as const).map((tab) => (
           <button
@@ -97,16 +99,16 @@ export default function Radiology() {
                 : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            {tab === "pending" ? "Demandes en cours" : "Comptes-rendus envoyés"}
+            {tab === "pending" ? t("Demandes en cours") : t("Comptes-rendus envoyés")}
           </button>
         ))}
       </div>
-      {activeTab === "done" && <CompletedRequests load={loadCompleted} emptyLabel="Aucun compte-rendu envoyé pour le moment." />}
+      {activeTab === "done" && <CompletedRequests load={loadCompleted} emptyLabel={t("Aucun compte-rendu envoyé pour le moment.")} />}
       <div className={`flex flex-1 min-h-[560px] gap-4 overflow-hidden font-sans ${activeTab === "done" ? "hidden" : ""}`}>
         <div className="w-[40%] flex flex-col overflow-hidden rounded-[18px] border border-zinc-200/70 bg-white">
           <div className="p-5 border-b border-zinc-100 flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-zinc-900 flex items-center gap-3">
-              <ScanLine className="w-4 h-4" /> Demandes en attente ({requests.length})
+              <ScanLine className="w-4 h-4" /> {t("Demandes en attente")} ({requests.length})
             </h2>
             <button
               type="button"
@@ -114,20 +116,20 @@ export default function Radiology() {
               disabled={isLoadingQueue}
               className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-3 h-3 ${isLoadingQueue ? "animate-spin" : ""}`} /> Actualiser
+              <RefreshCw className={`w-3 h-3 ${isLoadingQueue ? "animate-spin" : ""}`} /> {t("Actualiser")}
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {isLoadingQueue && (
-              <p className="p-6 text-sm text-zinc-400">Chargement...</p>
+              <p className="p-6 text-sm text-zinc-400">{t("Chargement...")}</p>
             )}
             {queueError && (
               <p className="p-6 text-sm text-red-600">{queueError}</p>
             )}
             {!isLoadingQueue && !queueError && requests.length === 0 && (
               <p className="p-6 text-sm text-zinc-400">
-                Aucune demande en attente.
+                {t("Aucune demande en attente.")}
               </p>
             )}
 
@@ -140,11 +142,11 @@ export default function Radiology() {
                 }`}
               >
                 <h3 className="text-sm font-medium text-zinc-900">
-                  {request.patientName || "Patient inconnu"} —{" "}
-                  <span className="text-xs">{request.exam ?? "Examen non précisé"}</span>
+                  {request.patientName || t("Patient inconnu")} —{" "}
+                  <span className="text-xs">{request.exam ?? t("Examen non précisé")}</span>
                 </h3>
                 <div className="flex items-center gap-2 text-sm font-medium text-zinc-400 mt-2">
-                  <User className="w-3 h-3" /> {request.requester ?? "Demandeur inconnu"}
+                  <User className="w-3 h-3" /> {request.requester ?? t("Demandeur inconnu")}
                 </div>
               </button>
             ))}
@@ -155,7 +157,7 @@ export default function Radiology() {
           {!selected ? (
             <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-30">
               <ScanLine className="w-16 h-16 mb-6" />
-              <p className="text-sm font-medium">Sélectionner une demande</p>
+              <p className="text-sm font-medium">{t("Sélectionner une demande")}</p>
             </div>
           ) : submitted ? (
             <div className="h-full flex flex-col items-center justify-center p-12 text-center">
@@ -163,35 +165,35 @@ export default function Radiology() {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-medium text-zinc-900 mb-2">
-                Compte-rendu envoyé
+                {t("Compte-rendu envoyé")}
               </h3>
               <p className="text-sm text-zinc-500">
-                {selected.requester ?? "Le médecin"} sera notifié via le dossier patient.
+                {t("{name} sera notifié via le dossier patient.", { name: selected.requester ?? t("Le médecin") })}
               </p>
               <button
                 onClick={() => setSelected(null)}
                 className="mt-10 px-8 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all rounded-full"
               >
-                Demande suivante
+                {t("Demande suivante")}
               </button>
             </div>
           ) : (
             <>
               <div className="p-8 border-b border-zinc-100">
                 <h2 className="text-sm font-medium text-zinc-900 mb-6">
-                  Compte-rendu — {selected.patientName} — {selected.exam}
+                  {t("Compte-rendu")} — {selected.patientName} — {selected.exam}
                 </h2>
                 <div className="flex items-center gap-8 bg-zinc-50 p-4 border border-zinc-200/70 rounded-[18px]">
                   <div className="flex flex-col">
                     <span className="text-xs font-medium text-zinc-400 mb-0.5">
-                      ID Patient
+                      {t("ID Patient")}
                     </span>
                     <span className="text-xs font-medium text-zinc-900">{selected.patientId}</span>
                   </div>
                   <div className="w-px h-8 bg-zinc-200"></div>
                   <div className="flex flex-col">
                     <span className="text-xs font-medium text-zinc-400 mb-0.5">
-                      Demandeur
+                      {t("Demandeur")}
                     </span>
                     <span className="text-xs font-medium text-zinc-900">{selected.requester}</span>
                   </div>
@@ -214,10 +216,10 @@ export default function Radiology() {
                     <thead className="bg-white border-b border-zinc-100">
                       <tr>
                         <th className="px-6 py-4 text-xs font-medium text-zinc-400">
-                          Zone examinée
+                          {t("Zone examinée")}
                         </th>
                         <th className="px-6 py-4 text-xs font-medium text-zinc-400">
-                          Constatation
+                          {t("Constatation")}
                         </th>
                         <th className="px-6 py-4 w-12"></th>
                       </tr>
@@ -230,7 +232,7 @@ export default function Radiology() {
                               type="text"
                               value={row.label}
                               onChange={(event) => updateResultRow(index, "label", event.target.value)}
-                              placeholder="Ex. : Poumons"
+                              placeholder={t("Ex. : Poumons")}
                               className="w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
                             />
                           </td>
@@ -239,7 +241,7 @@ export default function Radiology() {
                               type="text"
                               value={row.value}
                               onChange={(event) => updateResultRow(index, "value", event.target.value)}
-                              placeholder="Ex. : Sans anomalie"
+                              placeholder={t("Ex. : Sans anomalie")}
                               className="w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl"
                             />
                           </td>
@@ -263,20 +265,20 @@ export default function Radiology() {
                     onClick={() => setResults((rows) => [...rows, EMPTY_ROW])}
                     className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 border-t border-zinc-100 transition-all"
                   >
-                    <Plus className="w-3 h-3" /> Ajouter une observation
+                    <Plus className="w-3 h-3" /> {t("Ajouter une observation")}
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400">
-                    Conclusion (optionnel)
+                    {t("Conclusion (optionnel)")}
                   </label>
                   <textarea
                     value={conclusion}
                     onChange={(event) => setConclusion(event.target.value)}
                     rows={3}
                     className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs resize-none rounded-xl"
-                    placeholder="Interprétation, recommandation..."
+                    placeholder={t("Interprétation, recommandation...")}
                   />
                 </div>
 
@@ -287,7 +289,7 @@ export default function Radiology() {
                     className="bg-[#1A6FD4] text-white px-10 py-4 text-xs font-medium hover:bg-[#1559ab] transition-all disabled:opacity-50 flex items-center gap-3 rounded-full"
                   >
                     <CheckCircle2 className="w-5 h-5" />
-                    {isSubmitting ? "Envoi..." : "Valider et envoyer"}
+                    {isSubmitting ? t("Envoi...") : t("Valider et envoyer")}
                   </button>
                 </div>
               </form>

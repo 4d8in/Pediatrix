@@ -5,6 +5,7 @@ import { ApiError, checkInPatient, getActiveQueue, markLeftWithoutConsultation, 
 import { useAuth } from "../lib/auth-context";
 import type { Patient, QueueEntry, TriageCategory, TriageVitals } from "../lib/types";
 import { cn } from "../lib/utils";
+import { LOCALES, useI18n } from "../lib/i18n";
 
 interface ActiveQueueProps {
   onOpenRecord: (patientId: string) => void;
@@ -24,14 +25,14 @@ const TRIAGE_STYLES: Record<TriageCategory, { label: string; className: string }
   non_urgent: { label: "Non urgent", className: "bg-emerald-50 text-emerald-700" },
 };
 
-function ageOf(birthDate: string | null): string {
+function ageOf(birthDate: string | null, t: (fr: string) => string): string {
   if (!birthDate) return "—";
   const birth = new Date(birthDate);
   if (Number.isNaN(birth.getTime())) return "—";
   const now = new Date();
   let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
   if (now.getDate() < birth.getDate()) months -= 1;
-  return months < 12 ? `${Math.max(months, 0)} mois` : `${Math.floor(months / 12)} ans`;
+  return months < 12 ? `${Math.max(months, 0)} ${t("mois")}` : `${Math.floor(months / 12)} ${t("ans")}`;
 }
 
 const VITAL_FIELDS: { key: keyof TriageVitals; label: string; unit: string }[] = [
@@ -42,21 +43,24 @@ const VITAL_FIELDS: { key: keyof TriageVitals; label: string; unit: string }[] =
 ];
 
 // Temps d'attente depuis l'arrivée, en minutes (rouge au-delà d'une heure).
-function waitOf(date: string | null): { label: string; late: boolean } | null {
+function waitOf(date: string | null, t: (fr: string, vars?: Record<string, string | number>) => string): { label: string; late: boolean } | null {
   if (!date) return null;
   const minutes = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 60000));
-  const label = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+  const label = minutes < 60
+      ? t("{n} min", { n: minutes })
+      : t("{h} h {m}", { h: Math.floor(minutes / 60), m: String(minutes % 60).padStart(2, "0") });
   return { label, late: minutes >= 60 };
 }
 
-function timeOf(date: string | null): string {
+function timeOf(date: string | null, locale: string): string {
   if (!date) return "—";
-  return new Date(date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(date).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 // File active du jour : patients admis aujourd'hui et leur statut (GET /api/queue).
 export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: ActiveQueueProps) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
   const canTriage = user?.role === "nurse" || user?.role === "doctor";
   const canCheckIn = user?.role === "nurse" || user?.role === "doctor" || user?.role === "receptionist";
   const [arrivalPatient, setArrivalPatient] = useState<Patient | null>(null);
@@ -74,7 +78,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
         setQueue(data.queue);
         setError(null);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable."))
+      .catch((err) => setError(err instanceof ApiError ? err.message : t("Le serveur Pédiatrix est injoignable.")))
       .finally(() => setIsLoading(false));
   }
 
@@ -88,7 +92,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
       setArrivalPatient(null);
       load();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
+      setActionError(err instanceof ApiError ? err.message : t("Erreur inattendue."));
     }
   }
 
@@ -108,18 +112,18 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
       setVitalsDraft({});
       load();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
+      setActionError(err instanceof ApiError ? err.message : t("Erreur inattendue."));
     }
   }
 
   async function handleLeft(entry: QueueEntry) {
-    if (!window.confirm(`Retirer ${entry.name} de la file (parti sans consultation) ?`)) return;
+    if (!window.confirm(t("Retirer {name} de la file (parti sans consultation) ?", { name: entry.name }))) return;
     setActionError(null);
     try {
       await markLeftWithoutConsultation(entry.patientId);
       load();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
+      setActionError(err instanceof ApiError ? err.message : t("Erreur inattendue."));
     }
   }
 
@@ -129,7 +133,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
       await setTriage(entry.patientId, category);
       load();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Erreur inattendue.");
+      setActionError(err instanceof ApiError ? err.message : t("Erreur inattendue."));
     }
   }
 
@@ -144,23 +148,23 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
   );
 
   const tabs: { id: Filter; label: string }[] = [
-    { id: "en_attente", label: `En attente (${counts.en_attente})` },
-    { id: "consulte", label: `Consultés (${counts.consulte})` },
-    { id: "tous", label: `Tous (${counts.tous})` },
+    { id: "en_attente", label: t("En attente ({n})", { n: counts.en_attente }) },
+    { id: "consulte", label: t("Consultés ({n})", { n: counts.consulte }) },
+    { id: "tous", label: t("Tous ({n})", { n: counts.tous }) },
   ];
 
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-900">File active des patients</h1>
-          <p className="mt-1 text-sm text-zinc-500">Patients admis aujourd'hui, en attente ou déjà consultés</p>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("File active des patients")}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t("Patients admis aujourd'hui, en attente ou déjà consultés")}</p>
         </div>
         <button
           onClick={load}
           className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
         >
-          <RefreshCcw className="h-4 w-4" /> Actualiser
+          <RefreshCcw className="h-4 w-4" /> {t("Actualiser")}
         </button>
       </div>
 
@@ -168,7 +172,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
         <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
           <div className="flex flex-wrap items-end gap-4">
             <div className="w-96">
-              <PatientPicker selected={arrivalPatient} onSelect={setArrivalPatient} label="Enregistrer l'arrivée d'un patient déjà connu" />
+              <PatientPicker selected={arrivalPatient} onSelect={setArrivalPatient} label={t("Enregistrer l'arrivée d'un patient déjà connu")} />
             </div>
             <button
               onClick={handleCheckIn}
@@ -176,7 +180,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
               data-testid="check-in"
               className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-5 py-2.5 text-xs font-medium text-white transition hover:bg-[#155bb0] disabled:opacity-40"
             >
-              <UserCheck className="h-4 w-4" /> Ajouter à la file
+              <UserCheck className="h-4 w-4" /> {t("Ajouter à la file")}
             </button>
           </div>
           {actionError && <p className="mt-3 text-sm text-red-600">{actionError}</p>}
@@ -203,7 +207,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               type="search"
-              placeholder="Rechercher un patient…"
+              placeholder={t("Rechercher un patient…")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="w-64 rounded-lg border border-zinc-200 bg-[#F4F7FB] py-2 pl-9 pr-4 text-sm outline-none transition focus:border-[#1A6FD4]"
@@ -217,29 +221,29 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
           <thead>
             <tr className="border-b border-zinc-200 text-zinc-500">
               <th className="py-3 font-normal">#</th>
-              <th className="py-3 font-normal">Patient</th>
-              <th className="py-3 font-normal">Âge</th>
-              <th className="py-3 font-normal">Tri</th>
-              <th className="py-3 font-normal">Constantes</th>
-              <th className="py-3 font-normal">Motif</th>
-              <th className="py-3 font-normal">Heure d'arrivée</th>
-              <th className="py-3 font-normal">Attente</th>
-              <th className="py-3 font-normal">Statut</th>
-              <th className="py-3 text-right font-normal">Action</th>
+              <th className="py-3 font-normal">{t("Patient")}</th>
+              <th className="py-3 font-normal">{t("Âge")}</th>
+              <th className="py-3 font-normal">{t("Tri")}</th>
+              <th className="py-3 font-normal">{t("Constantes")}</th>
+              <th className="py-3 font-normal">{t("Motif")}</th>
+              <th className="py-3 font-normal">{t("Heure d'arrivée")}</th>
+              <th className="py-3 font-normal">{t("Attente")}</th>
+              <th className="py-3 font-normal">{t("Statut")}</th>
+              <th className="py-3 text-right font-normal">{t("Action")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {isLoading && (
               <tr>
                 <td colSpan={10} className="py-10 text-center text-zinc-400">
-                  Chargement…
+                  {t("Chargement…")}
                 </td>
               </tr>
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-10 text-center text-zinc-400">
-                  Aucun patient dans cette liste aujourd'hui.
+                  {t("Aucun patient dans cette liste aujourd'hui.")}
                 </td>
               </tr>
             )}
@@ -248,14 +252,14 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
               <tr className="transition hover:bg-[#F4F7FB]">
                 <td className="py-3 text-zinc-500">{String(index + 1).padStart(3, "0")}</td>
                 <td className="py-3 text-zinc-900">{entry.name}</td>
-                <td className="py-3 text-zinc-700">{ageOf(entry.birthDate)}</td>
+                <td className="py-3 text-zinc-700">{ageOf(entry.birthDate, t)}</td>
                 <td className="py-3">
                   {entry.triage ? (
                     <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", TRIAGE_STYLES[entry.triage].className)}>
-                      {TRIAGE_STYLES[entry.triage].label}
+                      {t(TRIAGE_STYLES[entry.triage].label)}
                     </span>
                   ) : canTriage && entry.status === "en_attente" ? (
-                    <span className="text-xs text-zinc-400">À trier</span>
+                    <span className="text-xs text-zinc-400">{t("À trier")}</span>
                   ) : (
                     <span className="text-zinc-400">—</span>
                   )}
@@ -264,7 +268,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                       {(Object.keys(TRIAGE_STYLES) as TriageCategory[]).map((category) => (
                         <button
                           key={category}
-                          title={`Classer : ${TRIAGE_STYLES[category].label}`}
+                          title={t("Classer : {label}", { label: t(TRIAGE_STYLES[category].label) })}
                           data-testid={`triage-${category}`}
                           onClick={() => handleTriage(entry, category)}
                           className={cn(
@@ -289,7 +293,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                           data-testid={`vital-${f.key}`}
                           className={entry.criticalVitals?.includes(f.key) ? "font-semibold text-red-600" : "text-zinc-600"}
                         >
-                          {f.label} {entry.vitals[f.key]}
+                          {t(f.label)} {entry.vitals[f.key]}
                           {f.unit}
                         </span>
                       ))}
@@ -297,11 +301,11 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                   )}
                 </td>
                 <td className="py-3 text-zinc-700">{entry.reason ?? "—"}</td>
-                <td className="py-3 text-zinc-700">{timeOf(entry.admittedAt)}</td>
+                <td className="py-3 text-zinc-700">{timeOf(entry.admittedAt, LOCALES[lang])}</td>
                 <td className="py-3">
-                  {entry.status === "en_attente" && waitOf(entry.admittedAt) ? (
-                    <span className={cn("text-xs", waitOf(entry.admittedAt)?.late ? "font-medium text-red-600" : "text-zinc-600")}>
-                      {waitOf(entry.admittedAt)?.label}
+                  {entry.status === "en_attente" && waitOf(entry.admittedAt, t) ? (
+                    <span className={cn("text-xs", waitOf(entry.admittedAt, t)?.late ? "font-medium text-red-600" : "text-zinc-600")}>
+                      {waitOf(entry.admittedAt, t)?.label}
                     </span>
                   ) : (
                     <span className="text-zinc-400">—</span>
@@ -314,7 +318,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                       entry.status === "en_attente" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700",
                     )}
                   >
-                    {STATUS_LABELS[entry.status]}
+                    {t(STATUS_LABELS[entry.status])}
                   </span>
                 </td>
                 <td className="py-3 text-right">
@@ -324,7 +328,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                         onClick={() => onOpenConsultation(entry.patientId)}
                         className="rounded-lg bg-[#1A6FD4] px-3 py-1.5 text-xs text-white transition hover:bg-[#155bb0]"
                       >
-                        Consulter
+                        {t("Consulter")}
                       </button>
                     )}
                     {canTriage && entry.status === "en_attente" && (
@@ -333,7 +337,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                         onClick={() => setVitalsFor(vitalsFor === entry.patientId ? null : entry.patientId)}
                         className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
                       >
-                        Constantes
+                        {t("Constantes")}
                       </button>
                     )}
                     {entry.status === "en_attente" && (
@@ -342,14 +346,14 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                         onClick={() => handleLeft(entry)}
                         className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-500 transition hover:border-red-300 hover:text-red-600"
                       >
-                        Parti
+                        {t("Parti")}
                       </button>
                     )}
                     <button
                       onClick={() => onOpenRecord(entry.patientId)}
                       className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
                     >
-                      Voir
+                      {t("Voir")}
                     </button>
                   </div>
                 </td>
@@ -360,7 +364,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                     <div className="flex flex-wrap items-end gap-3">
                       {VITAL_FIELDS.map((f) => (
                         <label key={f.key} className="text-xs text-zinc-500">
-                          {f.label} ({f.unit})
+                          {t(f.label)} ({f.unit})
                           <input
                             data-testid={`vitals-input-${f.key}`}
                             inputMode="decimal"
@@ -370,7 +374,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                           />
                         </label>
                       ))}
-                      <span className="text-xs text-zinc-500">Enregistrer avec le tri :</span>
+                      <span className="text-xs text-zinc-500">{t("Enregistrer avec le tri :")}</span>
                       {(Object.keys(TRIAGE_STYLES) as TriageCategory[]).map((category) => (
                         <button
                           key={category}
@@ -378,7 +382,7 @@ export default function ActiveQueue({ onOpenRecord, onOpenConsultation }: Active
                           onClick={() => saveTriageWithVitals(entry, category)}
                           className={cn("rounded-full px-3 py-1.5 text-xs font-medium", TRIAGE_STYLES[category].className)}
                         >
-                          {TRIAGE_STYLES[category].label}
+                          {t(TRIAGE_STYLES[category].label)}
                         </button>
                       ))}
                     </div>

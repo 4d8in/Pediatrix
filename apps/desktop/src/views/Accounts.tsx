@@ -5,16 +5,18 @@ import { ApiError, createUserAccount, listUserAccounts, resetUserPassword, setUs
 import type { Role, UserAccount } from "../lib/types";
 import { ROLE_LABELS } from "../lib/roles";
 import { cn } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 
 const inputClass = "w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#1A6FD4]";
 
-function errorText(err: unknown): string {
-  return err instanceof ApiError ? err.message : "Le serveur Pédiatrix est injoignable.";
+function errorText(err: unknown, t: (fr: string) => string): string {
+  return err instanceof ApiError ? err.message : t("Le serveur Pédiatrix est injoignable.");
 }
 
 // Gestion des comptes (administrateur technique) : création, réinitialisation du
 // mot de passe, activation / désactivation.
 export default function Accounts() {
+  const { t } = useI18n();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [form, setForm] = useState({ username: "", displayName: "", role: "nurse" as Role, password: "" });
@@ -25,8 +27,8 @@ export default function Accounts() {
   const load = useCallback(() => {
     listUserAccounts()
       .then((data) => setUsers(data.users))
-      .catch((err) => setMessage({ ok: false, text: errorText(err) }));
-  }, []);
+      .catch((err) => setMessage({ ok: false, text: errorText(err, t) }));
+  }, [t]);
 
   useEffect(load, [load]);
 
@@ -39,7 +41,7 @@ export default function Accounts() {
       load();
       return true;
     } catch (err) {
-      setMessage({ ok: false, text: errorText(err) });
+      setMessage({ ok: false, text: errorText(err, t) });
       return false;
     } finally {
       setIsBusy(false);
@@ -48,14 +50,14 @@ export default function Accounts() {
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
-    const ok = await run(() => createUserAccount(form), `Compte « ${form.username} » créé.`);
+    const ok = await run(() => createUserAccount(form), t("Compte « {username} » créé.", { username: form.username }));
     if (ok) setForm({ username: "", displayName: "", role: "nurse", password: "" });
   }
 
   async function handleReset(event: FormEvent) {
     event.preventDefault();
     if (!resetFor) return;
-    const ok = await run(() => resetUserPassword(resetFor, newPassword), `Mot de passe de « ${resetFor} » réinitialisé.`);
+    const ok = await run(() => resetUserPassword(resetFor, newPassword), t("Mot de passe de « {username} » réinitialisé.", { username: resetFor }));
     if (ok) {
       setResetFor(null);
       setNewPassword("");
@@ -65,8 +67,8 @@ export default function Accounts() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Comptes utilisateurs</h1>
-        <p className="mt-1 text-sm text-zinc-500">Créer, désactiver un compte ou réinitialiser un mot de passe</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Comptes utilisateurs")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Créer, désactiver un compte ou réinitialiser un mot de passe")}</p>
       </div>
 
       {message && (
@@ -85,11 +87,11 @@ export default function Accounts() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 text-zinc-500">
-                <th className="py-3 font-normal">Identifiant</th>
-                <th className="py-3 font-normal">Nom</th>
-                <th className="py-3 font-normal">Rôle</th>
-                <th className="py-3 font-normal">Statut</th>
-                <th className="py-3 text-right font-normal">Actions</th>
+                <th className="py-3 font-normal">{t("Identifiant")}</th>
+                <th className="py-3 font-normal">{t("Nom")}</th>
+                <th className="py-3 font-normal">{t("Rôle")}</th>
+                <th className="py-3 font-normal">{t("Statut")}</th>
+                <th className="py-3 text-right font-normal">{t("Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -97,7 +99,7 @@ export default function Accounts() {
                 <tr key={account.username}>
                   <td className="py-3 text-zinc-900">{account.username}</td>
                   <td className="py-3 text-zinc-700">{account.displayName}</td>
-                  <td className="py-3 text-zinc-700">{ROLE_LABELS[account.role]}</td>
+                  <td className="py-3 text-zinc-700">{t(ROLE_LABELS[account.role])}</td>
                   <td className="py-3">
                     <span
                       className={cn(
@@ -105,7 +107,7 @@ export default function Accounts() {
                         account.active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500",
                       )}
                     >
-                      {account.active ? "Actif" : "Désactivé"}
+                      {account.active ? t("Actif") : t("Désactivé")}
                     </span>
                   </td>
                   <td className="py-3">
@@ -117,14 +119,16 @@ export default function Accounts() {
                         }}
                         className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4]"
                       >
-                        Mot de passe
+                        {t("Mot de passe")}
                       </button>
                       <button
                         disabled={isBusy}
                         onClick={() =>
                           run(
                             () => setUserActive(account.username, !account.active),
-                            `Compte « ${account.username} » ${account.active ? "désactivé" : "réactivé"}.`,
+                            account.active
+                              ? t("Compte « {username} » désactivé.", { username: account.username })
+                              : t("Compte « {username} » réactivé.", { username: account.username }),
                           )
                         }
                         className={cn(
@@ -134,7 +138,7 @@ export default function Accounts() {
                             : "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
                         )}
                       >
-                        {account.active ? "Désactiver" : "Réactiver"}
+                        {account.active ? t("Désactiver") : t("Réactiver")}
                       </button>
                     </div>
                   </td>
@@ -147,32 +151,32 @@ export default function Accounts() {
         <div className="space-y-4">
           <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
             <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-              <UserPlus className="h-5 w-5 text-[#1A6FD4]" /> Nouveau compte
+              <UserPlus className="h-5 w-5 text-[#1A6FD4]" /> {t("Nouveau compte")}
             </h2>
             <form onSubmit={handleCreate} className="space-y-3">
               <input
                 required
-                placeholder="Identifiant (ex. infirmiere2)"
+                placeholder={t("Identifiant (ex. infirmiere2)")}
                 value={form.username}
                 onChange={(event) => setForm({ ...form, username: event.target.value })}
                 className={inputClass}
               />
               <input
                 required
-                placeholder="Nom affiché (ex. Fatou Ndiaye)"
+                placeholder={t("Nom affiché (ex. Fatou Ndiaye)")}
                 value={form.displayName}
                 onChange={(event) => setForm({ ...form, displayName: event.target.value })}
                 className={inputClass}
               />
               <select
-                aria-label="Rôle"
+                aria-label={t("Rôle")}
                 value={form.role}
                 onChange={(event) => setForm({ ...form, role: event.target.value as Role })}
                 className={inputClass}
               >
                 {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
                   <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
+                    {t(ROLE_LABELS[role])}
                   </option>
                 ))}
               </select>
@@ -181,7 +185,7 @@ export default function Accounts() {
                 type="password"
                 minLength={8}
                 autoComplete="new-password"
-                placeholder="Mot de passe initial (8 caractères minimum)"
+                placeholder={t("Mot de passe initial (8 caractères minimum)")}
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
                 className={inputClass}
@@ -191,7 +195,7 @@ export default function Accounts() {
                 disabled={isBusy}
                 className="w-full rounded-lg bg-[#1A6FD4] py-2.5 text-sm font-medium text-white transition hover:bg-[#155bb0] disabled:opacity-40"
               >
-                Créer le compte
+                {t("Créer le compte")}
               </button>
             </form>
           </section>
@@ -199,7 +203,7 @@ export default function Accounts() {
           {resetFor && (
             <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
               <h2 className="mb-3 flex items-center gap-2 text-lg text-zinc-700">
-                <KeyRound className="h-5 w-5 text-[#1A6FD4]" /> Mot de passe de « {resetFor} »
+                <KeyRound className="h-5 w-5 text-[#1A6FD4]" /> {t("Mot de passe de « {username} »", { username: resetFor })}
               </h2>
               <form onSubmit={handleReset} className="space-y-3">
                 <input
@@ -207,7 +211,7 @@ export default function Accounts() {
                   type="password"
                   minLength={8}
                   autoComplete="new-password"
-                  placeholder="Nouveau mot de passe"
+                  placeholder={t("Nouveau mot de passe")}
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   className={inputClass}
@@ -218,14 +222,14 @@ export default function Accounts() {
                     disabled={isBusy}
                     className="flex-1 rounded-lg bg-[#1A6FD4] py-2.5 text-sm font-medium text-white transition hover:bg-[#155bb0] disabled:opacity-40"
                   >
-                    Réinitialiser
+                    {t("Réinitialiser")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setResetFor(null)}
                     className="rounded-lg border border-zinc-200 px-4 text-sm text-zinc-700"
                   >
-                    Annuler
+                    {t("Annuler")}
                   </button>
                 </div>
               </form>

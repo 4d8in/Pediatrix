@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Syringe, Search, ChevronRight, User } from "lucide-react";
 import { ApiError, getPatientImmunizations, listPatients } from "../lib/api";
 import type { Patient } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 interface CarnetRow {
   key: string;
@@ -17,7 +18,7 @@ interface CarnetRow {
 // EN_RETARD/À_VENIR sans l'inventer. Cet écran affiche donc un carnet réel —
 // les vaccins EFFECTIVEMENT enregistrés (Immunization) — plutôt que la file
 // d'attente prévisionnelle de la maquette de référence.
-function ageAt(birthDate: string, atDate: string): string {
+function ageAt(birthDate: string, atDate: string, t: (fr: string) => string): string {
   const birth = new Date(birthDate);
   const at = new Date(atDate);
   if (Number.isNaN(birth.getTime()) || Number.isNaN(at.getTime())) return "—";
@@ -28,11 +29,12 @@ function ageAt(birthDate: string, atDate: string): string {
     years -= 1;
     months += 12;
   }
-  if (years < 1) return `${Math.max(months, 0)} mois`;
-  return `${years} ans`;
+  if (years < 1) return `${Math.max(months, 0)} ${t("mois")}`;
+  return `${years} ${t("ans")}`;
 }
 
 export default function Vaccinations() {
+  const { t, formatDate } = useI18n();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [rows, setRows] = useState<CarnetRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,9 +69,9 @@ export default function Vaccinations() {
             immunizations.map((immunization) => ({
               key: immunization.id,
               patient: `${patient.firstName} ${patient.lastName}`,
-              vaccine: immunization.vaccine ?? "Vaccin non précisé",
-              dose: immunization.doseNumber ? `Dose ${immunization.doseNumber}` : "—",
-              ageAtVaccination: immunization.date ? ageAt(patient.birthDate, immunization.date) : "—",
+              vaccine: immunization.vaccine ?? t("Vaccin non précisé"),
+              dose: immunization.doseNumber ? t("Dose {n}", { n: immunization.doseNumber }) : "—",
+              ageAtVaccination: immunization.date ? ageAt(patient.birthDate, immunization.date, t) : "—",
               date: immunization.date,
             })),
           )
@@ -78,7 +80,7 @@ export default function Vaccinations() {
         setRows(allRows);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Erreur de chargement du carnet vaccinal.");
+        if (!cancelled) setError(err instanceof ApiError ? err.message : t("Erreur de chargement du carnet vaccinal."));
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -99,10 +101,10 @@ export default function Vaccinations() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-sm font-medium text-zinc-900">
-            Programme élargi de vaccination
+            {t("Programme élargi de vaccination")}
           </h1>
           <p className="text-sm font-medium text-zinc-400">
-            Historique des vaccinations enregistrées — {patients.length} patient{patients.length > 1 ? "s" : ""}
+            {t("Historique des vaccinations enregistrées — {n} patient(s)", { n: patients.length })}
           </p>
         </div>
       </div>
@@ -111,7 +113,7 @@ export default function Vaccinations() {
         <div className="lg:col-span-3 space-y-8">
           <div className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
             <div className="p-8 border-b border-zinc-50 flex items-center justify-between bg-white rounded-[18px]">
-              <h2 className="text-sm font-medium text-zinc-400">Carnet vaccinal</h2>
+              <h2 className="text-sm font-medium text-zinc-400">{t("Carnet vaccinal")}</h2>
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-300" />
@@ -119,7 +121,7 @@ export default function Vaccinations() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Rechercher dans le carnet"
+                    placeholder={t("Rechercher dans le carnet")}
                     className="pl-9 pr-4 py-2 border border-zinc-200/70 text-xs bg-white focus:outline-none focus:border-[#1A6FD4] transition-all rounded-[18px]"
                   />
                 </div>
@@ -133,11 +135,11 @@ export default function Vaccinations() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-white text-xs font-medium text-zinc-300 border-b border-zinc-100">
-                  <th className="px-8 py-5">Patient</th>
-                  <th className="px-8 py-5">Vaccin</th>
-                  <th className="px-8 py-5">Dose</th>
-                  <th className="px-8 py-5">Âge à la vaccination</th>
-                  <th className="px-8 py-5">Date</th>
+                  <th className="px-8 py-5">{t("Patient")}</th>
+                  <th className="px-8 py-5">{t("Vaccin")}</th>
+                  <th className="px-8 py-5">{t("Dose")}</th>
+                  <th className="px-8 py-5">{t("Âge à la vaccination")}</th>
+                  <th className="px-8 py-5">{t("Date")}</th>
                   <th className="px-8 py-5"></th>
                 </tr>
               </thead>
@@ -145,14 +147,14 @@ export default function Vaccinations() {
                 {isLoading && (
                   <tr>
                     <td colSpan={6} className="px-8 py-10 text-center text-sm text-zinc-400">
-                      Chargement du carnet vaccinal...
+                      {t("Chargement du carnet vaccinal...")}
                     </td>
                   </tr>
                 )}
                 {!isLoading && filteredRows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-8 py-10 text-center text-sm text-zinc-400">
-                      Aucun vaccin enregistré.
+                      {t("Aucun vaccin enregistré.")}
                     </td>
                   </tr>
                 )}
@@ -174,7 +176,7 @@ export default function Vaccinations() {
                       {row.ageAtVaccination}
                     </td>
                     <td className="px-8 py-6 text-sm font-medium text-zinc-900">
-                      {row.date ? new Date(row.date).toLocaleDateString("fr-FR") : "—"}
+                      {row.date ? formatDate(row.date) : "—"}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button className="p-2 hover:bg-zinc-100 transition-all opacity-0 group-hover:opacity-100">
@@ -192,7 +194,7 @@ export default function Vaccinations() {
           <div className="p-8 border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center text-center space-y-4 opacity-60">
             <Syringe className="w-8 h-8 text-zinc-300" />
             <p className="text-xs font-medium text-zinc-400 leading-relaxed">
-              Pas de calendrier PEV prévisionnel dans ce socle : seuls les vaccins déjà enregistrés sont affichés.
+              {t("Pas de calendrier PEV prévisionnel dans ce socle : seuls les vaccins déjà enregistrés sont affichés.")}
             </p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { Consultation } from "../../lib/types";
+import { useI18n } from "../../lib/i18n";
 
 const VITAL_LABELS: { key: keyof Consultation["vitals"]; label: string; unit: string }[] = [
   { key: "temperature", label: "Température", unit: "°C" },
@@ -9,16 +10,17 @@ const VITAL_LABELS: { key: keyof Consultation["vitals"]; label: string; unit: st
 ];
 
 export default function ConsultationHistoryItem({ consultation }: { consultation: Consultation }) {
+  const { t, formatDateTime } = useI18n();
   const vitalsPresent = VITAL_LABELS.filter((vital) => consultation.vitals[vital.key] !== undefined);
 
   return (
     <div className="p-8 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-zinc-900">
-          {consultation.reason ?? "Motif non renseigné"}
+          {consultation.reason ?? t("Motif non renseigné")}
         </p>
         <span className="text-sm text-zinc-400">
-          {consultation.date ? new Date(consultation.date).toLocaleString("fr-FR") : "Date inconnue"}
+          {consultation.date ? formatDateTime(consultation.date) : t("Date inconnue")}
         </span>
       </div>
 
@@ -31,7 +33,7 @@ export default function ConsultationHistoryItem({ consultation }: { consultation
               key={vital.key}
               className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl"
             >
-              {vital.label}: {consultation.vitals[vital.key]} {vital.unit}
+              {t(vital.label)}: {consultation.vitals[vital.key]} {vital.unit}
             </span>
           ))}
         </div>

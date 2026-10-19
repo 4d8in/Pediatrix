@@ -16,6 +16,7 @@ import { useAuth } from "../lib/auth-context";
 import { usePrint } from "../lib/print";
 import type { BillableEncounter, BillingSummary, Invoice, PaymentMethod, TariffTable } from "../lib/types";
 import { formatMoney } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 
 type Tab = "encounters" | "invoices" | "tariffs";
 
@@ -24,9 +25,9 @@ const METHOD_LABELS: Record<string, string> = { cash: "Espèces", mobile_money: 
 const inputClass =
   "w-full bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-[#1A6FD4] rounded-xl";
 
-function errorText(error: unknown): string[] {
+function errorText(error: unknown, t: (fr: string) => string): string[] {
   if (error instanceof ApiError) return error.details ?? [error.message];
-  return ["Erreur inattendue."];
+  return [t("Erreur inattendue.")];
 }
 
 function Errors({ messages }: { messages: string[] }) {
@@ -43,6 +44,7 @@ function Errors({ messages }: { messages: string[] }) {
 }
 
 export default function Billing() {
+  const { t, formatDateTime } = useI18n();
   const { user } = useAuth();
   const { printDocument } = usePrint();
   const isCashier = user?.role === "cashier";
@@ -90,7 +92,7 @@ export default function Billing() {
         setDrugItems(tariffData.items);
         setEncounters(encounterData.encounters);
       })
-      .catch((error) => setLoadError(errorText(error).join(" ")))
+      .catch((error) => setLoadError(errorText(error, t).join(" ")))
       .finally(() => setIsLoading(false));
   }, [isCashier]);
 
@@ -109,7 +111,7 @@ export default function Billing() {
       setTab("invoices");
       load();
     } catch (error) {
-      setBillErrors(errorText(error));
+      setBillErrors(errorText(error, t));
     }
   }
 
@@ -123,7 +125,7 @@ export default function Billing() {
       setAmount("");
       load();
     } catch (error) {
-      setPayErrors(errorText(error));
+      setPayErrors(errorText(error, t));
     }
   }
 
@@ -137,7 +139,7 @@ export default function Billing() {
       setTariffs(saved);
       setTariffSaved(true);
     } catch (error) {
-      setTariffMessage(errorText(error));
+      setTariffMessage(errorText(error, t));
     }
   }
 
@@ -157,8 +159,8 @@ export default function Billing() {
     <div className="flex h-full flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-900">Facturation</h1>
-          <p className="mt-1 text-sm text-zinc-500">Factures, encaissements et tarifs de l'établissement</p>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("Facturation")}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t("Factures, encaissements et tarifs de l'établissement")}</p>
         </div>
         <button
           type="button"
@@ -166,7 +168,7 @@ export default function Billing() {
           disabled={isLoading}
           className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
         >
-          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> Actualiser
+          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> {t("Actualiser")}
         </button>
       </div>
 
@@ -176,7 +178,7 @@ export default function Billing() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {tiles.map((tile) => (
             <div key={tile.label} className="rounded-[18px] border border-zinc-200/70 bg-white p-4">
-              <p className="text-sm text-zinc-500">{tile.label}</p>
+              <p className="text-sm text-zinc-500">{t(tile.label)}</p>
               <p className="text-[22px] font-medium text-zinc-900">{tile.value}</p>
             </div>
           ))}
@@ -195,7 +197,7 @@ export default function Billing() {
                 : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            {item.label}
+            {t(item.label)}
             {item.id === "encounters" && ` (${encounters.length})`}
           </button>
         ))}
@@ -206,11 +208,11 @@ export default function Billing() {
           <Errors messages={billErrors} />
           <div className="grid max-w-xl grid-cols-2 gap-4 rounded-[18px] border border-zinc-200/70 bg-white p-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Assureur / mutuelle (optionnel)</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Assureur / mutuelle (optionnel)")}</label>
               <input value={insurer} onChange={(event) => setInsurer(event.target.value)} className={inputClass} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Prise en charge (%)</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Prise en charge (%)")}</label>
               <input
                 type="number"
                 min={0}
@@ -222,21 +224,21 @@ export default function Billing() {
             </div>
           </div>
           <div className="overflow-hidden rounded-[18px] border border-zinc-200/70 bg-white">
-            {encounters.length === 0 && <p className="p-6 text-sm text-zinc-400">Aucune consultation à facturer.</p>}
+            {encounters.length === 0 && <p className="p-6 text-sm text-zinc-400">{t("Aucune consultation à facturer.")}</p>}
             {encounters.map((encounter) => (
               <div key={encounter.encounterId} className="flex items-center justify-between border-b border-zinc-50 p-5">
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
-                    {encounter.patientName || "Patient inconnu"}
+                    {encounter.patientName || t("Patient inconnu")}
                     {encounter.supplementary && (
                       <span data-testid="supplementary-badge" className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                        Complément : {encounter.unbilledCount} élément(s) non facturé(s)
+                        {t("Complément : {count} élément(s) non facturé(s)", { count: encounter.unbilledCount ?? 0 })}
                       </span>
                     )}
                   </p>
                   <p className="text-xs text-zinc-500">
-                    {encounter.reason ?? "Consultation"} ·{" "}
-                    {encounter.date ? new Date(encounter.date).toLocaleString("fr-FR") : "date inconnue"}
+                    {encounter.reason ?? t("Consultation")} ·{" "}
+                    {encounter.date ? formatDateTime(encounter.date) : t("date inconnue")}
                   </p>
                 </div>
                 <button
@@ -244,7 +246,7 @@ export default function Billing() {
                   data-testid="bill-encounter"
                   className="flex items-center gap-2 rounded-full bg-[#1A6FD4] px-5 py-2 text-xs font-medium text-white hover:bg-[#155bb0]"
                 >
-                  <Receipt className="h-4 w-4" /> {encounter.supplementary ? "Facturer le complément" : "Facturer"}
+                  <Receipt className="h-4 w-4" /> {encounter.supplementary ? t("Facturer le complément") : t("Facturer")}
                 </button>
               </div>
             ))}
@@ -255,7 +257,7 @@ export default function Billing() {
       {tab === "invoices" && (
         <div className="flex min-h-[420px] flex-1 gap-4">
           <div className="w-[45%] overflow-y-auto rounded-[18px] border border-zinc-200/70 bg-white">
-            {invoices.length === 0 && <p className="p-6 text-sm text-zinc-400">Aucune facture.</p>}
+            {invoices.length === 0 && <p className="p-6 text-sm text-zinc-400">{t("Aucune facture.")}</p>}
             {invoices.map((invoice) => (
               <button
                 key={invoice.id}
@@ -268,7 +270,7 @@ export default function Billing() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-zinc-900">{invoice.patientName || "Patient inconnu"}</h3>
+                  <h3 className="text-sm font-medium text-zinc-900">{invoice.patientName || t("Patient inconnu")}</h3>
                   <span
                     className={`rounded-xl border px-2 py-0.5 text-xs font-medium ${
                       invoice.status === "balanced"
@@ -276,11 +278,11 @@ export default function Billing() {
                         : "border-amber-200 bg-amber-50 text-amber-700"
                     }`}
                   >
-                    {invoice.status === "balanced" ? "Soldée" : "À encaisser"}
+                    {invoice.status === "balanced" ? t("Soldée") : t("À encaisser")}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Total {formatMoney(invoice.total, invoice.currency)} · reste {formatMoney(invoice.balance, invoice.currency)}
+                  {t("Total {total} · reste {balance}", { total: formatMoney(invoice.total, invoice.currency), balance: formatMoney(invoice.balance, invoice.currency) })}
                 </p>
               </button>
             ))}
@@ -290,14 +292,14 @@ export default function Billing() {
             {!selectedInvoice ? (
               <div className="flex h-full flex-col items-center justify-center text-center opacity-30">
                 <Banknote className="mb-4 h-14 w-14" />
-                <p className="text-sm font-medium">Sélectionner une facture</p>
+                <p className="text-sm font-medium">{t("Sélectionner une facture")}</p>
               </div>
             ) : (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-sm font-medium text-zinc-900">Facture de {selectedInvoice.patientName}</h2>
+                  <h2 className="text-sm font-medium text-zinc-900">{t("Facture de {name}", { name: selectedInvoice.patientName })}</h2>
                   <p className="mt-1 text-xs text-zinc-500">
-                    {selectedInvoice.date ? new Date(selectedInvoice.date).toLocaleString("fr-FR") : ""}
+                    {formatDateTime(selectedInvoice.date)}
                   </p>
                 </div>
                 <table className="w-full text-left text-sm">
@@ -309,7 +311,7 @@ export default function Billing() {
                       </tr>
                     ))}
                     <tr>
-                      <td className="py-2 font-medium text-zinc-900">Total</td>
+                      <td className="py-2 font-medium text-zinc-900">{t("Total")}</td>
                       <td className="py-2 text-right font-medium text-zinc-900">
                         {formatMoney(selectedInvoice.total, selectedInvoice.currency)}
                       </td>
@@ -317,7 +319,7 @@ export default function Billing() {
                     {selectedInvoice.coveragePercent > 0 && (
                       <tr>
                         <td className="py-2 text-zinc-500">
-                          Pris en charge par {selectedInvoice.insurer} ({selectedInvoice.coveragePercent} %)
+                          {t("Pris en charge par {insurer} ({percent} %)", { insurer: selectedInvoice.insurer ?? "", percent: selectedInvoice.coveragePercent })}
                         </td>
                         <td className="py-2 text-right text-zinc-500">
                           − {formatMoney(selectedInvoice.insurerShare, selectedInvoice.currency)}
@@ -325,11 +327,11 @@ export default function Billing() {
                       </tr>
                     )}
                     <tr>
-                      <td className="py-2 text-zinc-500">Déjà payé</td>
+                      <td className="py-2 text-zinc-500">{t("Déjà payé")}</td>
                       <td className="py-2 text-right text-zinc-500">{formatMoney(selectedInvoice.paid, selectedInvoice.currency)}</td>
                     </tr>
                     <tr>
-                      <td className="py-2 font-medium text-zinc-900">Reste à payer</td>
+                      <td className="py-2 font-medium text-zinc-900">{t("Reste à payer")}</td>
                       <td className="py-2 text-right font-medium text-zinc-900" data-testid="invoice-balance">
                         {formatMoney(selectedInvoice.balance, selectedInvoice.currency)}
                       </td>
@@ -341,8 +343,8 @@ export default function Billing() {
                   <ul className="space-y-1 text-xs text-zinc-500">
                     {selectedInvoice.payments.map((payment, index) => (
                       <li key={index}>
-                        {formatMoney(payment.amount, selectedInvoice.currency)} · {METHOD_LABELS[payment.method] ?? payment.method}
-                        {payment.date && ` · ${new Date(payment.date).toLocaleString("fr-FR")}`}
+                        {formatMoney(payment.amount, selectedInvoice.currency)} · {METHOD_LABELS[payment.method] ? t(METHOD_LABELS[payment.method]) : payment.method}
+                        {payment.date && ` · ${formatDateTime(payment.date)}`}
                       </li>
                     ))}
                   </ul>
@@ -354,12 +356,12 @@ export default function Billing() {
                   onClick={() => printDocument((facility) => <InvoiceSheet facility={facility} invoice={selectedInvoice} />)}
                   className="flex items-center gap-2 text-xs font-medium text-[#1A6FD4] hover:underline"
                 >
-                  <Printer className="h-3.5 w-3.5" /> {selectedInvoice.status === "balanced" ? "Imprimer le reçu" : "Imprimer la facture"}
+                  <Printer className="h-3.5 w-3.5" /> {selectedInvoice.status === "balanced" ? t("Imprimer le reçu") : t("Imprimer la facture")}
                 </button>
 
                 {selectedInvoice.status === "balanced" ? (
                   <p className="flex items-center gap-2 text-sm font-medium text-green-700">
-                    <CheckCircle2 className="h-4 w-4" /> Facture soldée
+                    <CheckCircle2 className="h-4 w-4" /> {t("Facture soldée")}
                   </p>
                 ) : (
                   isCashier && (
@@ -367,7 +369,7 @@ export default function Billing() {
                       <Errors messages={payErrors} />
                       <div className="flex items-end gap-3">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-zinc-400">Montant</label>
+                          <label className="text-sm font-medium text-zinc-400">{t("Montant")}</label>
                           <input
                             type="number"
                             min={1}
@@ -379,11 +381,11 @@ export default function Billing() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-zinc-400">Mode</label>
+                          <label className="text-sm font-medium text-zinc-400">{t("Mode")}</label>
                           <select value={method} onChange={(event) => setMethod(event.target.value as PaymentMethod)} className={inputClass}>
                             {Object.entries(METHOD_LABELS).map(([value, label]) => (
                               <option key={value} value={value}>
-                                {label}
+                                {t(label)}
                               </option>
                             ))}
                           </select>
@@ -393,7 +395,7 @@ export default function Billing() {
                           data-testid="payment-submit"
                           className="rounded-full bg-[#1A6FD4] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#155bb0]"
                         >
-                          Encaisser
+                          {t("Encaisser")}
                         </button>
                       </div>
                     </form>
@@ -409,11 +411,11 @@ export default function Billing() {
         <form onSubmit={handleSaveTariffs} className="max-w-2xl space-y-5 rounded-[18px] border border-zinc-200/70 bg-white p-8">
           {!tariffs.customized && (
             <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-              Tarifs d'exemple : la direction doit les adapter à l'établissement.
+              {t("Tarifs d'exemple : la direction doit les adapter à l'établissement.")}
             </p>
           )}
           <Errors messages={tariffMessage} />
-          {tariffSaved && <p className="text-xs font-medium text-green-700">Grille enregistrée.</p>}
+          {tariffSaved && <p className="text-xs font-medium text-green-700">{t("Grille enregistrée.")}</p>}
           <div className="grid grid-cols-3 gap-4">
             {(
               [
@@ -424,7 +426,7 @@ export default function Billing() {
             ).map(([label, key]) => (
               <div key={key} className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">
-                  {label} ({tariffs.currency})
+                  {t(label)} ({tariffs.currency})
                 </label>
                 <input
                   type="number"
@@ -438,7 +440,7 @@ export default function Billing() {
               </div>
             ))}
           </div>
-          <h3 className="pt-2 text-sm font-medium text-zinc-900">Médicaments (prix unitaire)</h3>
+          <h3 className="pt-2 text-sm font-medium text-zinc-900">{t("Médicaments (prix unitaire)")}</h3>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
             {drugItems.map((item) => (
               <div key={item.code} className="flex items-center justify-between gap-3">
@@ -462,7 +464,7 @@ export default function Billing() {
               data-testid="tariff-save"
               className="rounded-full bg-[#1A6FD4] px-8 py-3 text-xs font-medium text-white hover:bg-[#155bb0]"
             >
-              Enregistrer la grille
+              {t("Enregistrer la grille")}
             </button>
           )}
         </form>

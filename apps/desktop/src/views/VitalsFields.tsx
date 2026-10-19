@@ -1,3 +1,4 @@
+import { useI18n } from "../lib/i18n";
 import type { Vitals } from "../lib/types";
 
 interface VitalsFieldsProps {
@@ -14,6 +15,7 @@ const FIELDS: { key: keyof Vitals; label: string; unit: string; step: string }[]
 ];
 
 export default function VitalsFields({ vitals, onChange }: VitalsFieldsProps) {
+  const { t } = useI18n();
   function updateValue(key: keyof Vitals, raw: string) {
     const value = raw === "" ? undefined : Number(raw);
     onChange({ ...vitals, [key]: value });
@@ -24,7 +26,7 @@ export default function VitalsFields({ vitals, onChange }: VitalsFieldsProps) {
       {FIELDS.map((field) => (
         <div key={field.key} className="space-y-3">
           <label className="text-sm font-medium text-zinc-400">
-            {field.label} ({field.unit})
+            {t(field.label)} ({field.unit})
           </label>
           <input
             type="number"

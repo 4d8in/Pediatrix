@@ -11,6 +11,7 @@ import {
   updateAppointmentStatus,
 } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { LOCALES, useI18n } from "../lib/i18n";
 import type { Appointment, AppointmentStatus, DoctorOption, Patient } from "../lib/types";
 
 const STATUS_LABELS: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -28,17 +29,18 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function timeOf(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function timeOf(iso: string, locale: string): string {
+  return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
-function errorText(error: unknown): string[] {
+function errorText(error: unknown, t: (fr: string) => string): string[] {
   if (error instanceof ApiError) return error.details ?? [error.message];
-  return ["Erreur inattendue."];
+  return [t("Erreur inattendue.")];
 }
 
 export default function Appointments() {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
   const canBook = user?.role === "receptionist" || user?.role === "nurse";
   const isDoctor = user?.role === "doctor";
 
@@ -64,9 +66,9 @@ export default function Appointments() {
     setLoadError(null);
     listAppointments(date, filterDoctor || undefined)
       .then((data) => setAppointments(data.appointments))
-      .catch((error) => setLoadError(errorText(error).join(" ")))
+      .catch((error) => setLoadError(errorText(error, t).join(" ")))
       .finally(() => setIsLoading(false));
-  }, [date, filterDoctor]);
+  }, [date, filterDoctor, t]);
 
   useEffect(load, [load]);
 
@@ -90,7 +92,7 @@ export default function Appointments() {
   async function handleBook(event: FormEvent) {
     event.preventDefault();
     if (!patient) {
-      setBookErrors(["Choisissez un patient."]);
+      setBookErrors([t("Choisissez un patient.")]);
       return;
     }
     setBookErrors([]);
@@ -101,7 +103,7 @@ export default function Appointments() {
       setBooked((value) => !value);
       if (bookDate === date) load();
     } catch (error) {
-      setBookErrors(errorText(error));
+      setBookErrors(errorText(error, t));
     }
   }
 
@@ -111,7 +113,7 @@ export default function Appointments() {
       await updateAppointmentStatus(appointment.id, status);
       load();
     } catch (error) {
-      setActionError(errorText(error).join(" "));
+      setActionError(errorText(error, t).join(" "));
     }
   }
 
@@ -119,9 +121,9 @@ export default function Appointments() {
     <div className="flex h-full flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-900">Rendez-vous</h1>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("Rendez-vous")}</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {isDoctor ? "Votre agenda" : "Agenda des consultations et prise de rendez-vous"}
+            {isDoctor ? t("Votre agenda") : t("Agenda des consultations et prise de rendez-vous")}
           </p>
         </div>
         <button
@@ -130,7 +132,7 @@ export default function Appointments() {
           disabled={isLoading}
           className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
         >
-          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> Actualiser
+          <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} /> {t("Actualiser")}
         </button>
       </div>
 
@@ -146,7 +148,7 @@ export default function Appointments() {
             />
             {!isDoctor && (
               <select value={filterDoctor} onChange={(event) => setFilterDoctor(event.target.value)} className={`${inputClass} w-56`}>
-                <option value="">Tous les médecins</option>
+                <option value="">{t("Tous les médecins")}</option>
                 {doctors.map((doctor) => (
                   <option key={doctor.practitionerId} value={doctor.practitionerId}>
                     {doctor.name}
@@ -160,16 +162,16 @@ export default function Appointments() {
           {appointments.length === 0 && !loadError && (
             <div className="flex flex-1 flex-col items-center justify-center text-center opacity-30">
               <CalendarDays className="mb-3 h-12 w-12" />
-              <p className="text-sm font-medium">Aucun rendez-vous ce jour</p>
+              <p className="text-sm font-medium">{t("Aucun rendez-vous ce jour")}</p>
             </div>
           )}
           <div className="divide-y divide-zinc-50 overflow-y-auto">
             {appointments.map((appointment) => (
               <div key={appointment.id} className="flex items-center justify-between gap-4 py-3">
                 <div className="flex items-center gap-4">
-                  <span className="w-14 text-sm font-medium text-zinc-900">{timeOf(appointment.start)}</span>
+                  <span className="w-14 text-sm font-medium text-zinc-900">{timeOf(appointment.start, LOCALES[lang])}</span>
                   <div>
-                    <p className="text-sm font-medium text-zinc-900">{appointment.patientName || "Patient inconnu"}</p>
+                    <p className="text-sm font-medium text-zinc-900">{appointment.patientName || t("Patient inconnu")}</p>
                     <p className="text-xs text-zinc-500">
                       {appointment.reason} · {appointment.practitionerName}
                     </p>
@@ -177,7 +179,7 @@ export default function Appointments() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-xl border px-2 py-0.5 text-xs font-medium ${STATUS_LABELS[appointment.status].className}`}>
-                    {STATUS_LABELS[appointment.status].label}
+                    {t(STATUS_LABELS[appointment.status].label)}
                   </span>
                   {canBook && appointment.status === "booked" && (
                     <>
@@ -186,16 +188,16 @@ export default function Appointments() {
                         data-testid="appointment-arrived"
                         className="text-xs font-medium text-[#1A6FD4] hover:underline"
                       >
-                        Arrivé
+                        {t("Arrivé")}
                       </button>
                       <button onClick={() => handleStatus(appointment, "noshow")} className="text-xs text-zinc-500 hover:underline">
-                        Absent
+                        {t("Absent")}
                       </button>
                     </>
                   )}
                   {canBook && (appointment.status === "booked" || appointment.status === "arrived") && (
                     <button onClick={() => handleStatus(appointment, "cancelled")} className="text-xs text-red-600 hover:underline">
-                      Annuler
+                      {t("Annuler")}
                     </button>
                   )}
                   {isDoctor && appointment.status === "arrived" && (
@@ -203,7 +205,7 @@ export default function Appointments() {
                       onClick={() => handleStatus(appointment, "fulfilled")}
                       className="text-xs font-medium text-green-700 hover:underline"
                     >
-                      Terminer
+                      {t("Terminer")}
                     </button>
                   )}
                 </div>
@@ -214,7 +216,7 @@ export default function Appointments() {
 
         {canBook && (
           <form onSubmit={handleBook} className="w-[360px] space-y-4 rounded-[18px] border border-zinc-200/70 bg-white p-6">
-            <h2 className="text-sm font-medium text-zinc-900">Nouveau rendez-vous</h2>
+            <h2 className="text-sm font-medium text-zinc-900">{t("Nouveau rendez-vous")}</h2>
             {bookErrors.length > 0 && (
               <div className="space-y-1 rounded-[18px] border border-red-200 bg-red-50 p-3">
                 {bookErrors.map((message) => (
@@ -226,9 +228,9 @@ export default function Appointments() {
             )}
             <PatientPicker selected={patient} onSelect={setPatient} />
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Médecin</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Médecin")}</label>
               <select required data-testid="book-doctor" value={bookDoctor} onChange={(event) => setBookDoctor(event.target.value)} className={inputClass}>
-                <option value="">Choisir…</option>
+                <option value="">{t("Choisir…")}</option>
                 {doctors.map((doctor) => (
                   <option key={doctor.practitionerId} value={doctor.practitionerId}>
                     {doctor.name}
@@ -237,22 +239,22 @@ export default function Appointments() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Jour</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Jour")}</label>
               <input type="date" value={bookDate} min={today()} onChange={(event) => setBookDate(event.target.value)} className={inputClass} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Créneau</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Créneau")}</label>
               <select required data-testid="book-slot" value={slot} onChange={(event) => setSlot(event.target.value)} className={inputClass}>
-                <option value="">{bookDoctor ? (slots.length ? "Choisir…" : "Aucun créneau libre") : "Choisissez un médecin"}</option>
+                <option value="">{bookDoctor ? (slots.length ? t("Choisir…") : t("Aucun créneau libre")) : t("Choisissez un médecin")}</option>
                 {slots.map((item) => (
                   <option key={item} value={item}>
-                    {timeOf(item)}
+                    {timeOf(item, LOCALES[lang])}
                   </option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Motif</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Motif")}</label>
               <input required data-testid="book-reason" value={reason} onChange={(event) => setReason(event.target.value)} className={inputClass} />
             </div>
             <button
@@ -260,7 +262,7 @@ export default function Appointments() {
               data-testid="book-submit"
               className="w-full rounded-full bg-[#1A6FD4] px-6 py-3 text-xs font-medium text-white hover:bg-[#155bb0]"
             >
-              Réserver
+              {t("Réserver")}
             </button>
           </form>
         )}

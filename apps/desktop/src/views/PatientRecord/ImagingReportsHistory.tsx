@@ -1,15 +1,17 @@
 import type { ImagingReport } from "../../lib/types";
+import { useI18n } from "../../lib/i18n";
 
 export default function ImagingReportsHistory({ reports }: { reports: ImagingReport[] }) {
+  const { t, formatDateTime } = useI18n();
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-sm font-medium">Comptes-rendus d'imagerie</h2>
+        <h2 className="text-sm font-medium">{t("Comptes-rendus d'imagerie")}</h2>
       </div>
 
       {reports.length === 0 ? (
         <p className="p-10 text-sm text-zinc-400">
-          Aucun compte-rendu disponible.
+          {t("Aucun compte-rendu disponible.")}
         </p>
       ) : (
         <div className="divide-y divide-zinc-100">
@@ -17,10 +19,10 @@ export default function ImagingReportsHistory({ reports }: { reports: ImagingRep
             <div key={report.id} className="p-8 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-zinc-900">
-                  {report.exam ?? "Examen non précisé"}
+                  {report.exam ?? t("Examen non précisé")}
                 </p>
                 <span className="text-sm text-zinc-400">
-                  {report.date ? new Date(report.date).toLocaleString("fr-FR") : "Date inconnue"}
+                  {report.date ? formatDateTime(report.date) : t("Date inconnue")}
                 </span>
               </div>
 

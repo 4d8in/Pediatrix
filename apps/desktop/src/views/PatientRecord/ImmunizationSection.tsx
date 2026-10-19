@@ -4,6 +4,7 @@ import { Printer } from "lucide-react";
 import { VaccinationCardSheet } from "../../components/print/PrintSheets";
 import { useAuth } from "../../lib/auth-context";
 import { usePrint } from "../../lib/print";
+import { useI18n } from "../../lib/i18n";
 import { ApiError, createImmunization, getVaccinationSchedule, getVaccineCatalog } from "../../lib/api";
 import type { Immunization, Patient, ScheduleItem, ScheduleStatus, Vaccine } from "../../lib/types";
 
@@ -25,6 +26,7 @@ export default function ImmunizationSection({
   immunizations: Immunization[];
   onCreated: () => void;
 }) {
+  const { t, formatDate } = useI18n();
   const { user } = useAuth();
   const { printDocument } = usePrint();
   const canWrite = user?.role === "doctor" || user?.role === "nurse";
@@ -78,7 +80,7 @@ export default function ImmunizationSection({
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'enregistrement du vaccin."]);
+        setErrors([t("Erreur inattendue lors de l'enregistrement du vaccin.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -88,7 +90,7 @@ export default function ImmunizationSection({
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100 flex items-center justify-between">
-        <h2 className="text-sm font-medium">Carnet vaccinal</h2>
+        <h2 className="text-sm font-medium">{t("Carnet vaccinal")}</h2>
         {immunizations.length > 0 && (
           <button
             type="button"
@@ -100,21 +102,21 @@ export default function ImmunizationSection({
             }
             className="flex items-center gap-2 text-xs font-medium text-[#1A6FD4] hover:underline"
           >
-            <Printer className="h-3.5 w-3.5" /> Imprimer le carnet
+            <Printer className="h-3.5 w-3.5" /> {t("Imprimer le carnet")}
           </button>
         )}
       </div>
 
       {schedule.length > 0 && (
         <div className="border-b border-zinc-100 p-8" data-testid="vaccination-schedule">
-          <h3 className="mb-3 text-sm font-medium text-zinc-400">Calendrier recommandé</h3>
+          <h3 className="mb-3 text-sm font-medium text-zinc-400">{t("Calendrier recommandé")}</h3>
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-zinc-400">
               <tr>
-                <th className="py-2 font-medium">Âge</th>
-                <th className="py-2 font-medium">Vaccin</th>
-                <th className="py-2 font-medium">Prévu le</th>
-                <th className="py-2 font-medium">État</th>
+                <th className="py-2 font-medium">{t("Âge")}</th>
+                <th className="py-2 font-medium">{t("Vaccin")}</th>
+                <th className="py-2 font-medium">{t("Prévu le")}</th>
+                <th className="py-2 font-medium">{t("État")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50">
@@ -124,17 +126,17 @@ export default function ImmunizationSection({
                   onClick={canWrite && item.status !== "done" ? () => fillFrom(item) : undefined}
                   className={canWrite && item.status !== "done" ? "cursor-pointer hover:bg-zinc-50" : undefined}
                 >
-                  <td className="py-2 text-zinc-500">{item.label}</td>
+                  <td className="py-2 text-zinc-500">{t(item.label)}</td>
                   <td className="py-2 text-zinc-900">
-                    {item.name} — dose {item.dose}
+                    {t("{nom} — dose {dose}", { nom: t(item.name), dose: item.dose })}
                   </td>
-                  <td className="py-2 text-zinc-500">{new Date(item.dueDate).toLocaleDateString("fr-FR")}</td>
+                  <td className="py-2 text-zinc-500">{formatDate(item.dueDate)}</td>
                   <td className="py-2">
                     <span className={`rounded-xl border px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[item.status].className}`}>
-                      {STATUS_STYLES[item.status].label}
+                      {t(STATUS_STYLES[item.status].label)}
                     </span>
                     {item.doneDate && (
-                      <span className="ml-2 text-xs text-zinc-400">le {new Date(item.doneDate).toLocaleDateString("fr-FR")}</span>
+                      <span className="ml-2 text-xs text-zinc-400">{t("le {date}", { date: formatDate(item.doneDate) })}</span>
                     )}
                   </td>
                 </tr>
@@ -142,7 +144,7 @@ export default function ImmunizationSection({
             </tbody>
           </table>
           <p className="mt-3 text-xs text-zinc-400">
-            Calendrier d'exemple fondé sur le PEV : à adapter au calendrier national en vigueur.
+            {t("Calendrier d'exemple fondé sur le PEV : à adapter au calendrier national en vigueur.")}
           </p>
         </div>
       )}
@@ -161,7 +163,7 @@ export default function ImmunizationSection({
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Vaccin</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Vaccin")}</label>
               <input
                 type="text"
                 required
@@ -169,7 +171,7 @@ export default function ImmunizationSection({
                 value={vaccine}
                 onChange={(event) => setVaccine(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                placeholder="Ex. : BCG"
+                placeholder={t("Ex. : BCG")}
               />
               <datalist id="vaccine-catalog">
                 {catalog.map((item) => (
@@ -179,14 +181,14 @@ export default function ImmunizationSection({
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Date</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Date")}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 required
                 pattern="\d{4}-\d{2}-\d{2}"
-                title="Format AAAA-MM-JJ"
-                placeholder="AAAA-MM-JJ"
+                title={t("Format AAAA-MM-JJ")}
+                placeholder={t("AAAA-MM-JJ")}
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
@@ -195,7 +197,7 @@ export default function ImmunizationSection({
 
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-400">
-                Dose (optionnel)
+                {t("Dose (optionnel)")}
               </label>
               <input
                 type="number"
@@ -203,7 +205,7 @@ export default function ImmunizationSection({
                 value={doseNumber}
                 onChange={(event) => setDoseNumber(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                placeholder="Ex. : 3"
+                placeholder={t("Ex. : 3")}
               />
             </div>
           </div>
@@ -213,14 +215,14 @@ export default function ImmunizationSection({
             disabled={isSubmitting}
             className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
-            {isSubmitting ? "Enregistrement..." : "Ajouter au carnet"}
+            {isSubmitting ? t("Enregistrement...") : t("Ajouter au carnet")}
           </button>
         </form>
       )}
 
       {immunizations.length === 0 ? (
         <p className="p-10 text-sm text-zinc-400">
-          Aucun vaccin enregistré.
+          {t("Aucun vaccin enregistré.")}
         </p>
       ) : (
         <div className="divide-y divide-zinc-100">
@@ -228,13 +230,13 @@ export default function ImmunizationSection({
             <div key={immunization.id} className="p-8 flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-zinc-900">
-                  {immunization.vaccine ?? "Vaccin non précisé"}
-                  {immunization.doseNumber ? ` — dose ${immunization.doseNumber}` : ""}
+                  {immunization.vaccine ?? t("Vaccin non précisé")}
+                  {immunization.doseNumber ? ` — ${t("dose {n}", { n: immunization.doseNumber })}` : ""}
                 </p>
                 {immunization.notes && <p className="text-xs text-zinc-600">{immunization.notes}</p>}
               </div>
               <span className="text-sm text-zinc-400">
-                {immunization.date ? new Date(immunization.date).toLocaleDateString("fr-FR") : "Date inconnue"}
+                {immunization.date ? formatDate(immunization.date) : t("Date inconnue")}
               </span>
             </div>
           ))}

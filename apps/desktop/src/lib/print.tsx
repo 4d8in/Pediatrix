@@ -1,3 +1,4 @@
+import { useI18n } from "./i18n";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -19,13 +20,14 @@ const PrintContext = createContext<PrintContextValue>({ printDocument: async () 
 export function PrintProvider({ children }: { children: ReactNode }) {
   const [sheet, setSheet] = useState<ReactNode>(null);
   const facilityRef = useRef<Facility | null>(null);
+  const { t } = useI18n();
 
   const printDocument = useCallback(async (render: (facility: Facility) => ReactNode) => {
     if (!facilityRef.current) {
-      facilityRef.current = await getFacility().catch(() => FALLBACK_FACILITY);
+      facilityRef.current = await getFacility().catch(() => ({ ...FALLBACK_FACILITY, name: t(FALLBACK_FACILITY.name) }));
     }
     setSheet(render(facilityRef.current));
-  }, []);
+  }, [t]);
 
   // Une fois le document monté, on lance l'impression puis on le retire.
   useEffect(() => {

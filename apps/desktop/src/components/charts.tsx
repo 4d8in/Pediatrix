@@ -1,4 +1,6 @@
 // Graphiques légers en SVG (aucune dépendance) pour le tableau de bord.
+import { useI18n } from "../lib/i18n";
+
 const DARK = "#1A6FD4";
 const LIGHT = "#A9CDF5";
 
@@ -47,6 +49,7 @@ const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Se
 
 // Histogramme mensuel à deux séries (une barre par mois, alternance foncé / clair).
 export function MonthlyBars({ primary, secondary }: { primary: number[]; secondary: number[] }) {
+  const { t } = useI18n();
   const max = Math.max(...primary, ...secondary, 1);
   const ticks = [max, Math.round((max * 3) / 4), Math.round(max / 2), Math.round(max / 4), 0];
   return (
@@ -63,15 +66,15 @@ export function MonthlyBars({ primary, secondary }: { primary: number[]; seconda
               <div
                 className="w-1/2 rounded-t-md"
                 style={{ height: `${(primary[i] / max) * 100}%`, backgroundColor: DARK }}
-                title={`${primary[i]} consultation(s)`}
+                title={t("{n} consultation(s)", { n: primary[i] })}
               />
               <div
                 className="w-1/2 rounded-t-md"
                 style={{ height: `${(secondary[i] / max) * 100}%`, backgroundColor: LIGHT }}
-                title={`${secondary[i]} examen(s)`}
+                title={t("{n} examen(s)", { n: secondary[i] })}
               />
             </div>
-            <span className="text-xs text-zinc-400">{month}</span>
+            <span className="text-xs text-zinc-400">{t(month)}</span>
           </div>
         ))}
       </div>

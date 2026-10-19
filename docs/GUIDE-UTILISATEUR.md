@@ -2,6 +2,12 @@
 
 Une section par métier. Chaque personne voit uniquement les écrans de son rôle.
 
+## Langue
+
+L'interface existe en français et en anglais. Le sélecteur de langue est sur l'écran de connexion et dans la barre latérale ; le choix est mémorisé sur le poste. Les messages renvoyés par le serveur (erreurs de validation) et les données saisies (noms, motifs, notes) restent dans leur langue d'origine.
+
+Pour ajouter ou corriger une traduction : `apps/desktop/src/lib/i18n/en/` (le texte français sert de clé) ; contrôle de couverture : `cd apps/backend && npx tsx ../../scripts/i18n/check-i18n.ts`.
+
 ## Se connecter
 
 Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est désactivé, il faut se reconnecter. Le mot de passe se change dans **Paramètres**, la photo et les coordonnées dans **Mon profil**.

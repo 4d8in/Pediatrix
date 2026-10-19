@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import type { Diagnosis, Facility, Immunization, Invoice, Patient, Prescription, Referral, Report } from "../../lib/types";
 import { formatMoney } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 // Modèles des documents imprimés. Mise en page sobre (noir sur blanc), une page A4.
-
-const dateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR") : "");
-const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("fr-FR") : "");
 
 function Letterhead({ facility, title }: { facility: Facility; title: string }) {
   return (
@@ -24,15 +22,16 @@ function Letterhead({ facility, title }: { facility: Facility; title: string }) 
 }
 
 function PatientBlock({ patient }: { patient: Patient }) {
+  const { t } = useI18n();
   return (
     <div style={{ marginBottom: 16, fontSize: "11pt" }}>
       <strong>
         {patient.firstName} {patient.lastName}
       </strong>
-      {" — "}né(e) le {patient.birthDate} — dossier {patient.mrn}
+      {" — "}{t("né(e) le {date} — dossier {mrn}", { date: patient.birthDate, mrn: patient.mrn })}
       {patient.guardian && (
         <div>
-          Tuteur : {patient.guardian.name} ({patient.guardian.relationship}), {patient.guardian.phone}
+          {t("Tuteur :")} {patient.guardian.name} ({patient.guardian.relationship}), {patient.guardian.phone}
         </div>
       )}
     </div>
@@ -54,37 +53,39 @@ function Page({ children }: { children: ReactNode }) {
 }
 
 export function PrescriptionSheet({ facility, patient, prescriptions }: { facility: Facility; patient: Patient; prescriptions: Prescription[] }) {
+  const { t, formatDateTime } = useI18n();
   return (
     <Page>
-      <Letterhead facility={facility} title="Ordonnance" />
+      <Letterhead facility={facility} title={t("Ordonnance")} />
       <PatientBlock patient={patient} />
       <ol style={{ paddingLeft: 20 }}>
         {prescriptions.map((rx) => (
           <li key={rx.id} style={{ marginBottom: 12 }}>
-            <strong>{rx.medication ?? "Médicament"}</strong>
+            <strong>{rx.medication ?? t("Médicament")}</strong>
             <div>{rx.dosage}</div>
-            <div style={{ fontSize: "10pt", color: "#444" }}>Prescrit le {dateTime(rx.date)}</div>
+            <div style={{ fontSize: "10pt", color: "#444" }}>{t("Prescrit le {date}", { date: formatDateTime(rx.date) })}</div>
           </li>
         ))}
       </ol>
-      <Signature label="Le médecin" />
+      <Signature label={t("Le médecin")} />
     </Page>
   );
 }
 
 export function LabReportSheet({ facility, patient, report }: { facility: Facility; patient: Patient; report: Report }) {
+  const { t, formatDateTime } = useI18n();
   return (
     <Page>
-      <Letterhead facility={facility} title="Compte rendu d'examen" />
+      <Letterhead facility={facility} title={t("Compte rendu d'examen")} />
       <PatientBlock patient={patient} />
-      <h2 style={{ fontSize: "13pt", margin: "8px 0" }}>{report.exam ?? "Examen"}</h2>
-      <div style={{ fontSize: "10pt", marginBottom: 8 }}>Rendu le {dateTime(report.date)}</div>
+      <h2 style={{ fontSize: "13pt", margin: "8px 0" }}>{report.exam ?? t("Examen")}</h2>
+      <div style={{ fontSize: "10pt", marginBottom: 8 }}>{t("Rendu le {date}", { date: formatDateTime(report.date) })}</div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
         <thead>
           <tr style={{ borderBottom: "1px solid #111", textAlign: "left" }}>
-            <th>Paramètre</th>
-            <th>Résultat</th>
-            <th>Valeurs de référence</th>
+            <th>{t("Paramètre")}</th>
+            <th>{t("Résultat")}</th>
+            <th>{t("Valeurs de référence")}</th>
           </tr>
         </thead>
         <tbody>
@@ -95,8 +96,8 @@ export function LabReportSheet({ facility, patient, report }: { facility: Facili
                 {result.value}
                 {result.flag === "H" && " ↑"}
                 {result.flag === "L" && " ↓"}
-                {result.flag === "HH" && " ↑↑ (critique)"}
-                {result.flag === "LL" && " ↓↓ (critique)"}
+                {result.flag === "HH" && ` ↑↑ (${t("critique")})`}
+                {result.flag === "LL" && ` ↓↓ (${t("critique")})`}
               </td>
               <td>{result.reference ?? ""}</td>
             </tr>
@@ -105,25 +106,26 @@ export function LabReportSheet({ facility, patient, report }: { facility: Facili
       </table>
       {report.conclusion && (
         <p style={{ marginTop: 12 }}>
-          <strong>Conclusion :</strong> {report.conclusion}
+          <strong>{t("Conclusion :")}</strong> {report.conclusion}
         </p>
       )}
-      <Signature label="Le biologiste" />
+      <Signature label={t("Le biologiste")} />
     </Page>
   );
 }
 
 export function VaccinationCardSheet({ facility, patient, immunizations }: { facility: Facility; patient: Patient; immunizations: Immunization[] }) {
+  const { t, formatDate } = useI18n();
   return (
     <Page>
-      <Letterhead facility={facility} title="Carnet de vaccination" />
+      <Letterhead facility={facility} title={t("Carnet de vaccination")} />
       <PatientBlock patient={patient} />
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
         <thead>
           <tr style={{ borderBottom: "1px solid #111", textAlign: "left" }}>
-            <th>Vaccin</th>
-            <th>Dose</th>
-            <th>Date</th>
+            <th>{t("Vaccin")}</th>
+            <th>{t("Dose")}</th>
+            <th>{t("Date")}</th>
           </tr>
         </thead>
         <tbody>
@@ -131,22 +133,23 @@ export function VaccinationCardSheet({ facility, patient, immunizations }: { fac
             <tr key={item.id} style={{ borderBottom: "1px solid #ccc" }}>
               <td>{item.vaccine ?? ""}</td>
               <td>{item.doseNumber ?? ""}</td>
-              <td>{day(item.date)}</td>
+              <td>{formatDate(item.date)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <Signature label="Cachet et signature" />
+      <Signature label={t("Cachet et signature")} />
     </Page>
   );
 }
 
 export function InvoiceSheet({ facility, invoice }: { facility: Facility; invoice: Invoice }) {
+  const { t, formatDate } = useI18n();
   return (
     <Page>
-      <Letterhead facility={facility} title={invoice.status === "balanced" ? "Reçu" : "Facture"} />
+      <Letterhead facility={facility} title={invoice.status === "balanced" ? t("Reçu") : t("Facture")} />
       <div style={{ marginBottom: 16, fontSize: "11pt" }}>
-        <strong>{invoice.patientName}</strong> — facture n° {invoice.id} du {day(invoice.date)}
+        <strong>{invoice.patientName}</strong> — {t("facture n° {id} du {date}", { id: invoice.id, date: formatDate(invoice.date) })}
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
         <tbody>
@@ -157,28 +160,28 @@ export function InvoiceSheet({ facility, invoice }: { facility: Facility; invoic
             </tr>
           ))}
           <tr>
-            <td style={{ fontWeight: 700 }}>Total</td>
+            <td style={{ fontWeight: 700 }}>{t("Total")}</td>
             <td style={{ textAlign: "right", fontWeight: 700 }}>{formatMoney(invoice.total, invoice.currency)}</td>
           </tr>
           {invoice.coveragePercent > 0 && (
             <tr>
               <td>
-                Pris en charge par {invoice.insurer} ({invoice.coveragePercent} %)
+                {t("Pris en charge par {assureur} ({pct} %)", { assureur: invoice.insurer ?? "", pct: invoice.coveragePercent })}
               </td>
               <td style={{ textAlign: "right" }}>− {formatMoney(invoice.insurerShare, invoice.currency)}</td>
             </tr>
           )}
           <tr>
-            <td>Payé</td>
+            <td>{t("Payé")}</td>
             <td style={{ textAlign: "right" }}>{formatMoney(invoice.paid, invoice.currency)}</td>
           </tr>
           <tr>
-            <td style={{ fontWeight: 700 }}>Reste à payer</td>
+            <td style={{ fontWeight: 700 }}>{t("Reste à payer")}</td>
             <td style={{ textAlign: "right", fontWeight: 700 }}>{formatMoney(invoice.balance, invoice.currency)}</td>
           </tr>
         </tbody>
       </table>
-      <Signature label="Le caissier" />
+      <Signature label={t("Le caissier")} />
     </Page>
   );
 }
@@ -194,30 +197,31 @@ export function ReferralSheet({
   referral: Referral;
   diagnoses: Diagnosis[];
 }) {
+  const { t, formatDateTime } = useI18n();
   return (
     <Page>
-      <Letterhead facility={facility} title="Fiche de référence" />
+      <Letterhead facility={facility} title={t("Fiche de référence")} />
       <div style={{ marginBottom: 12, fontSize: "11pt" }}>
-        À l'attention de : <strong>{referral.destination}</strong>
-        {referral.urgent && <strong style={{ marginLeft: 12, textTransform: "uppercase" }}>— Urgent</strong>}
-        <div>Le {dateTime(referral.date)}</div>
+        {t("À l'attention de :")} <strong>{referral.destination}</strong>
+        {referral.urgent && <strong style={{ marginLeft: 12, textTransform: "uppercase" }}>— {t("Urgent")}</strong>}
+        <div>{t("Le {date}", { date: formatDateTime(referral.date) })}</div>
       </div>
       <PatientBlock patient={patient} />
       <p>
-        <strong>Motif de la référence :</strong> {referral.reason}
+        <strong>{t("Motif de la référence :")}</strong> {referral.reason}
       </p>
       {diagnoses.length > 0 && (
         <p>
-          <strong>Diagnostic(s) :</strong>{" "}
-          {diagnoses.map((d) => `${d.text}${d.code ? ` (CIM-10 ${d.code})` : ""}${d.certainty === "provisional" ? " — provisoire" : ""}`).join(" ; ")}
+          <strong>{t("Diagnostic(s) :")}</strong>{" "}
+          {diagnoses.map((d) => `${d.text}${d.code ? ` (${t("CIM-10")} ${d.code})` : ""}${d.certainty === "provisional" ? ` — ${t("provisoire")}` : ""}`).join(" ; ")}
         </p>
       )}
       {referral.summary && (
         <p style={{ whiteSpace: "pre-wrap" }}>
-          <strong>Résumé clinique :</strong> {referral.summary}
+          <strong>{t("Résumé clinique :")}</strong> {referral.summary}
         </p>
       )}
-      <Signature label={referral.sender ? `Dr ${referral.sender.replace(/^Dr\.?\s+/i, "")}` : "Le médecin"} />
+      <Signature label={referral.sender ? `Dr ${referral.sender.replace(/^Dr\.?\s+/i, "")}` : t("Le médecin")} />
     </Page>
   );
 }

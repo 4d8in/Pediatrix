@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useAuth } from "../../lib/auth-context";
 import { ApiError, createAllergy } from "../../lib/api";
 import type { Allergy } from "../../lib/types";
+import { useI18n } from "../../lib/i18n";
 
 export default function AllergiesSection({
   patientId,
@@ -13,6 +14,7 @@ export default function AllergiesSection({
   allergies: Allergy[];
   onCreated: () => void;
 }) {
+  const { t, formatDate } = useI18n();
   const { user } = useAuth();
   const canWrite = user?.role === "doctor" || user?.role === "nurse";
 
@@ -35,7 +37,7 @@ export default function AllergiesSection({
       if (error instanceof ApiError) {
         setErrors(error.details ?? [error.message]);
       } else {
-        setErrors(["Erreur inattendue lors de l'enregistrement de l'allergie."]);
+        setErrors([t("Erreur inattendue lors de l'enregistrement de l'allergie.")]);
       }
     } finally {
       setIsSubmitting(false);
@@ -45,7 +47,7 @@ export default function AllergiesSection({
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100">
-        <h2 className="text-sm font-medium">Allergies connues</h2>
+        <h2 className="text-sm font-medium">{t("Allergies connues")}</h2>
       </div>
 
       {canWrite && (
@@ -62,27 +64,27 @@ export default function AllergiesSection({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-400">Substance</label>
+              <label className="text-sm font-medium text-zinc-400">{t("Substance")}</label>
               <input
                 type="text"
                 required
                 value={substance}
                 onChange={(event) => setSubstance(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                placeholder="Ex. : Pénicilline"
+                placeholder={t("Ex. : Pénicilline")}
               />
             </div>
 
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-400">
-                Réaction (optionnel)
+                {t("Réaction (optionnel)")}
               </label>
               <input
                 type="text"
                 value={reaction}
                 onChange={(event) => setReaction(event.target.value)}
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
-                placeholder="Ex. : Éruption cutanée"
+                placeholder={t("Ex. : Éruption cutanée")}
               />
             </div>
           </div>
@@ -92,14 +94,14 @@ export default function AllergiesSection({
             disabled={isSubmitting}
             className="px-10 py-3 bg-[#1A6FD4] text-white text-sm font-medium hover:bg-[#155bb0] transition-all disabled:opacity-50 rounded-full"
           >
-            {isSubmitting ? "Enregistrement..." : "Ajouter une allergie"}
+            {isSubmitting ? t("Enregistrement...") : t("Ajouter une allergie")}
           </button>
         </form>
       )}
 
       {allergies.length === 0 ? (
         <p className="p-10 text-sm text-zinc-400">
-          Aucune allergie connue.
+          {t("Aucune allergie connue.")}
         </p>
       ) : (
         <div className="divide-y divide-zinc-100">
@@ -110,7 +112,7 @@ export default function AllergiesSection({
                 {allergy.reaction && <p className="text-xs text-zinc-600">{allergy.reaction}</p>}
               </div>
               <span className="text-sm text-zinc-400">
-                {allergy.recordedDate ? new Date(allergy.recordedDate).toLocaleDateString("fr-FR") : "Date inconnue"}
+                {allergy.recordedDate ? formatDate(allergy.recordedDate) : t("Date inconnue")}
               </span>
             </div>
           ))}

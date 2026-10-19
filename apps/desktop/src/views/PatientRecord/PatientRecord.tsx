@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import PatientPicker from "../../components/PatientPicker";
+import { useI18n } from "../../lib/i18n";
 import PatientIdentity from "./PatientIdentity";
 import ConsultationHistory from "./ConsultationHistory";
 import ReportsHistory from "./ReportsHistory";
@@ -43,6 +44,7 @@ interface PatientRecordProps {
 }
 
 export default function PatientRecord({ initialPatientId }: PatientRecordProps) {
+  const { t } = useI18n();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [record, setRecord] = useState<PatientRecordData | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -124,9 +126,9 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
           setReferrals(referralsData.referrals);
         },
       )
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Erreur de chargement du dossier."))
+      .catch((err) => setError(err instanceof ApiError ? err.message : t("Erreur de chargement du dossier.")))
       .finally(() => setIsLoading(false));
-  }, [patientId]);
+  }, [patientId, t]);
 
   useEffect(() => {
     loadRecord();
@@ -135,15 +137,15 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-900">Dossier patient</h1>
-        <p className="mt-1 text-sm text-zinc-500">Identité, consultations, examens et suivi de l'enfant</p>
+        <h1 className="text-[22px] font-medium text-zinc-900">{t("Dossier patient")}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t("Identité, consultations, examens et suivi de l'enfant")}</p>
       </div>
 
       <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
         <PatientPicker selected={patient} onSelect={selectPatient} />
       </section>
 
-      {isLoading && <p className="text-sm text-zinc-400">Chargement du dossier…</p>}
+      {isLoading && <p className="text-sm text-zinc-400">{t("Chargement du dossier…")}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {record && (
@@ -157,7 +159,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                 {record.patient.firstName} {record.patient.lastName}
               </p>
               <p className="text-sm text-zinc-500">
-                {ageLabel(record.patient.birthDate)} • {SEX_LABELS[record.patient.gender]} • N° de dossier : {record.patient.mrn}
+                {ageLabel(record.patient.birthDate, t)} • {t(SEX_LABELS[record.patient.gender])} • {t("N° de dossier : {mrn}", { mrn: record.patient.mrn })}
               </p>
             </div>
           </div>
@@ -173,7 +175,7 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
                     : "border-transparent text-zinc-500 hover:text-zinc-800"
                 }`}
               >
-                {tab.label}
+                {t(tab.label)}
               </button>
             ))}
           </div>
@@ -230,11 +232,11 @@ const SEX_LABELS: Record<Patient["gender"], string> = {
   unknown: "Sexe non renseigné",
 };
 
-function ageLabel(birthDate: string): string {
+function ageLabel(birthDate: string, t: (fr: string, vars?: Record<string, string | number>) => string): string {
   const birth = new Date(birthDate);
-  if (Number.isNaN(birth.getTime())) return "Âge inconnu";
+  if (Number.isNaN(birth.getTime())) return t("Âge inconnu");
   const now = new Date();
   let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
   if (now.getDate() < birth.getDate()) months -= 1;
-  return months < 12 ? `${Math.max(months, 0)} mois` : `${Math.floor(months / 12)} ans`;
+  return months < 12 ? t("{n} mois", { n: Math.max(months, 0) }) : t("{n} ans", { n: Math.floor(months / 12) });
 }

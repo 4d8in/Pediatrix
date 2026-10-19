@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart3, Bed, Clock, TrendingUp, Info, LockKeyhole, RefreshCw, Users, FlaskConical, Syringe, Pill } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 import { ApiError, getStats } from "../lib/api";
 import type { Stats as StatsData, UnavailableIndicator, AvailableIndicator } from "../lib/types";
 
@@ -17,6 +18,7 @@ function UnavailableCard({
   icon: typeof BarChart3;
   indicator: UnavailableIndicator | AvailableIndicator;
 }) {
+  const { t } = useI18n();
   if (indicator.disponible) {
     return (
       <div className="relative overflow-hidden rounded-[18px] border border-zinc-200/70 bg-white p-8">
@@ -46,7 +48,7 @@ function UnavailableCard({
           <span className="text-3xl font-medium text-zinc-300">—</span>
         </div>
         <p className="text-xs text-zinc-400 leading-relaxed pt-2">
-          Non disponible — {indicator.raison}
+          {t("Non disponible — {raison}", { raison: indicator.raison })}
         </p>
       </div>
     </div>
@@ -54,6 +56,7 @@ function UnavailableCard({
 }
 
 export default function Stats() {
+  const { t, formatDateTime } = useI18n();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export default function Stats() {
           setRestricted(true);
           return;
         }
-        setError(err instanceof ApiError ? err.message : "Erreur de chargement des statistiques.");
+        setError(err instanceof ApiError ? err.message : t("Erreur de chargement des statistiques."));
       })
       .finally(() => setIsLoading(false));
   }
@@ -86,9 +89,9 @@ export default function Stats() {
           <div className="w-20 h-20 bg-zinc-100 border-2 border-zinc-200 rounded-full flex items-center justify-center mb-8">
             <LockKeyhole className="w-8 h-8 text-zinc-400" />
           </div>
-          <h1 className="text-xl font-medium text-zinc-900 mb-4">Accès restreint</h1>
+          <h1 className="text-xl font-medium text-zinc-900 mb-4">{t("Accès restreint")}</h1>
           <p className="text-xs font-medium text-zinc-500 text-center max-w-sm leading-relaxed">
-            Statistiques du service — accès réservé au Directeur (et à l'Administrateur technique).
+            {t("Statistiques du service — accès réservé au Directeur (et à l'Administrateur technique).")}
           </p>
           <div className="mt-12 h-px w-24 bg-zinc-200"></div>
         </div>
@@ -104,11 +107,11 @@ export default function Stats() {
       {/* En-tête */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-4">
-          <h1 className="text-[22px] font-medium text-zinc-900">Statistiques du service</h1>
+          <h1 className="text-[22px] font-medium text-zinc-900">{t("Statistiques du service")}</h1>
           <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 w-fit flex items-center gap-2 rounded-full">
             <Info className="w-3.5 h-3.5 text-blue-600" />
             <span className="text-sm font-medium text-blue-700">
-              Calculées en direct depuis HAPI (local, hors ligne) — Service Pédiatrie
+              {t("Calculées en direct depuis HAPI (local, hors ligne) — Service Pédiatrie")}
             </span>
           </div>
         </div>
@@ -118,14 +121,14 @@ export default function Stats() {
           disabled={isLoading}
           className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700 transition hover:border-[#1A6FD4] hover:text-[#1A6FD4] disabled:opacity-50"
         >
-          <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} /> Actualiser
+          <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} /> {t("Actualiser")}
         </button>
       </div>
 
       {error && <div className="bg-red-50 border border-red-100 p-4 text-sm font-medium text-red-700 rounded-[18px]">{error}</div>}
 
       {isLoading && !stats && (
-        <p className="text-sm text-zinc-400">Chargement des statistiques...</p>
+        <p className="text-sm text-zinc-400">{t("Chargement des statistiques...")}</p>
       )}
 
       {stats && (
@@ -139,11 +142,11 @@ export default function Stats() {
                 </div>
               </div>
               <div className="space-y-1">
-                <span className="text-sm font-medium text-zinc-400">Consultations ce mois</span>
+                <span className="text-sm font-medium text-zinc-400">{t("Consultations ce mois")}</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-medium text-zinc-900">{stats.consultations.moisCourant}</span>
                   <span className="text-xs text-zinc-400">
-                    {stats.consultations.total} au total
+                    {t("{total} au total", { total: stats.consultations.total })}
                   </span>
                 </div>
               </div>
@@ -152,9 +155,9 @@ export default function Stats() {
               </div>
             </div>
 
-            <UnavailableCard label="Taux d'hospitalisation" icon={Bed} indicator={stats.tauxHospitalisation} />
-            <UnavailableCard label="Durée moyenne de séjour" icon={Clock} indicator={stats.dureeMoyenneSejour} />
-            <UnavailableCard label="Lits occupés" icon={TrendingUp} indicator={stats.litsOccupes} />
+            <UnavailableCard label={t("Taux d'hospitalisation")} icon={Bed} indicator={stats.tauxHospitalisation} />
+            <UnavailableCard label={t("Durée moyenne de séjour")} icon={Clock} indicator={stats.dureeMoyenneSejour} />
+            <UnavailableCard label={t("Lits occupés")} icon={TrendingUp} indicator={stats.litsOccupes} />
           </div>
 
           {/* Autres compteurs réels renvoyés par /api/stats, non repris dans les 4
@@ -162,10 +165,10 @@ export default function Stats() {
               calculés puis jetés. */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {[
-              { label: "Patients", value: stats.patients.total, icon: Users },
-              { label: "Demandes d'examen", value: stats.examens.demandes, icon: FlaskConical },
-              { label: "Résultats reçus", value: stats.examens.resultats, icon: FlaskConical },
-              { label: "Vaccinations", value: stats.vaccinations.total, icon: Syringe },
+              { label: t("Patients"), value: stats.patients.total, icon: Users },
+              { label: t("Demandes d'examen"), value: stats.examens.demandes, icon: FlaskConical },
+              { label: t("Résultats reçus"), value: stats.examens.resultats, icon: FlaskConical },
+              { label: t("Vaccinations"), value: stats.vaccinations.total, icon: Syringe },
             ].map((chip) => (
               <div key={chip.label} className="bg-white border border-zinc-200/70 px-6 py-5 flex items-center gap-4 rounded-[18px]">
                 <chip.icon className="w-4 h-4 text-zinc-400 shrink-0" />
@@ -179,7 +182,7 @@ export default function Stats() {
               <Pill className="w-4 h-4 text-zinc-400 shrink-0" />
               <div>
                 <p className="text-lg font-medium text-zinc-900 leading-none">{stats.prescriptions.total}</p>
-                <p className="text-xs text-zinc-400 mt-1">Prescriptions</p>
+                <p className="text-xs text-zinc-400 mt-1">{t("Prescriptions")}</p>
               </div>
             </div>
           </div>
@@ -192,13 +195,13 @@ export default function Stats() {
             <div className="bg-white border border-zinc-200/70 p-8 rounded-[18px]">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-xs font-medium text-zinc-900 flex items-center gap-3">
-                  Répartition des examens par type
+                  {t("Répartition des examens par type")}
                 </h3>
               </div>
 
               {examensParTypeSorted.length === 0 ? (
                 <p className="text-sm text-zinc-400">
-                  Aucune demande d'examen enregistrée.
+                  {t("Aucune demande d'examen enregistrée.")}
                 </p>
               ) : (
                 <div className="space-y-5">
@@ -225,7 +228,7 @@ export default function Stats() {
             <div className="bg-white border border-zinc-200/70 flex flex-col rounded-[18px]">
               <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-zinc-900 flex items-center gap-3">
-                  Charge de travail par praticien
+                  {t("Charge de travail par praticien")}
                 </h3>
               </div>
               {stats.chargeParPraticien.disponible ? (
@@ -233,7 +236,7 @@ export default function Stats() {
                   {stats.chargeParPraticien.parPraticien.map((row) => (
                     <div key={row.nom} className="flex items-center justify-between text-sm font-medium text-zinc-900">
                       <span>{row.nom}</span>
-                      <span className="text-zinc-500">{row.consultations} consultation(s)</span>
+                      <span className="text-zinc-500">{t("{n} consultation(s)", { n: row.consultations })}</span>
                     </div>
                   ))}
                   <p className="pt-2 text-xs text-zinc-400">{stats.chargeParPraticien.detail}</p>
@@ -242,14 +245,14 @@ export default function Stats() {
                 <div className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-4">
                   <LockKeyhole className="w-8 h-8 text-zinc-300" />
                   <p className="text-sm font-medium text-zinc-400 max-w-xs leading-relaxed">
-                    Non disponible — {stats.chargeParPraticien.raison}
+                    {t("Non disponible — {raison}", { raison: stats.chargeParPraticien.raison })}
                   </p>
                 </div>
               )}
               <div className="p-6 bg-white border-t border-zinc-100 flex items-center gap-3 text-zinc-400 rounded-[18px]">
                 <Info className="w-3.5 h-3.5" />
                 <p className="text-xs">
-                  Généré le {new Date(stats.genereLe).toLocaleString("fr-FR")}
+                  {t("Généré le {date}", { date: formatDateTime(stats.genereLe) })}
                 </p>
               </div>
             </div>
@@ -266,29 +269,30 @@ const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Se
 // Activité par service (vue Directeur) : volumes mensuels de l'année et
 // occupation actuelle des lits par service.
 function ServiceActivity({ stats }: { stats: StatsData | null }) {
+  const { t } = useI18n();
   if (!stats) return null;
   const rows = [
-    { label: "Consultations (Pédiatrie)", values: stats.activiteMensuelle.consultations },
-    { label: "Examens de laboratoire", values: stats.activiteMensuelle.examensLabo },
-    { label: "Examens d'imagerie", values: stats.activiteMensuelle.examensImagerie },
-    { label: "Hospitalisations", values: stats.activiteMensuelle.hospitalisations },
+    { label: t("Consultations (Pédiatrie)"), values: stats.activiteMensuelle.consultations },
+    { label: t("Examens de laboratoire"), values: stats.activiteMensuelle.examensLabo },
+    { label: t("Examens d'imagerie"), values: stats.activiteMensuelle.examensImagerie },
+    { label: t("Hospitalisations"), values: stats.activiteMensuelle.hospitalisations },
   ];
   const currentMonth = new Date().getMonth();
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
       <section className="overflow-x-auto rounded-[18px] border border-zinc-200/70 bg-white p-5">
-        <h2 className="text-lg text-zinc-500">Activité par service — {new Date().getFullYear()}</h2>
+        <h2 className="text-lg text-zinc-500">{t("Activité par service — {year}", { year: new Date().getFullYear() })}</h2>
         <table className="mt-4 w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 text-zinc-500">
-              <th className="py-2 text-left font-normal">Activité</th>
+              <th className="py-2 text-left font-normal">{t("Activité")}</th>
               {MONTHS.map((month) => (
                 <th key={month} className="px-1 py-2 text-right font-normal">
-                  {month}
+                  {t(month)}
                 </th>
               ))}
-              <th className="py-2 pl-2 text-right font-normal">Total</th>
+              <th className="py-2 pl-2 text-right font-normal">{t("Total")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -313,9 +317,9 @@ function ServiceActivity({ stats }: { stats: StatsData | null }) {
       </section>
 
       <section className="rounded-[18px] border border-zinc-200/70 bg-white p-5">
-        <h2 className="text-lg text-zinc-500">Occupation des lits par service</h2>
+        <h2 className="text-lg text-zinc-500">{t("Occupation des lits par service")}</h2>
         {stats.occupationParService.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-400">Aucun lit configuré.</p>
+          <p className="mt-4 text-sm text-zinc-400">{t("Aucun lit configuré.")}</p>
         ) : (
           <ul className="mt-4 space-y-4">
             {stats.occupationParService.map((ward) => {

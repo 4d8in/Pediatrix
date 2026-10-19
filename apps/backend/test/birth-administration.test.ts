@@ -83,3 +83,18 @@ test("décès : date réelle validée, helper, correction tracée", () => {
   assert.equal((fixed.hospitalization as unknown), undefined);
   assert.ok(JSON.stringify(fixed).includes("erreur de saisie"));
 });
+
+test("échéancier : bornes (exactement au délai de grâce, 1 et 24 prises par jour)", () => {
+  const anchor = "2026-10-19T00:00:00Z";
+  // 1 prise/jour, dernière à 00h : due à 24h, grâce = max(30 min, 6 h) = 6 h
+  assert.equal(doseSchedule({ dosesPerDay: 1, lastGivenAt: anchor, anchor, now: new Date("2026-10-20T05:59:00Z") })?.state, "due");
+  assert.equal(doseSchedule({ dosesPerDay: 1, lastGivenAt: anchor, anchor, now: new Date("2026-10-20T06:00:00Z") })?.state, "overdue");
+  assert.ok(doseSchedule({ dosesPerDay: 24, lastGivenAt: anchor, anchor, now: new Date("2026-10-19T00:30:00Z") }));
+  assert.equal(doseSchedule({ dosesPerDay: 25, lastGivenAt: null, anchor }), null);
+});
+
+test("décès : la date doit être un ISO complet avec fuseau", () => {
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19" }));
+  assert.ok("errors" in validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00" }));
+  assert.ok("deceasedAt" in (validateDischarge({ outcome: "deceased", deceasedAt: "2026-10-19T10:00:00+01:00" }) as object));
+});

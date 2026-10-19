@@ -74,10 +74,7 @@ RX3=$(body "$(api POST "$DOCTOR" "/api/encounters/${ENC}/prescriptions" '{"medic
 [ -n "$RX3" ] || fail "prescription à 3 prises par jour."
 sleep 1
 STATE=$(body "$(api GET "$NURSE" "/api/hospitalisations/${STAY}/administrations")" | jq -r --arg id "$RX3" '.schedule[] | select(.prescriptionId==$id) | .state')
-[ "$STATE" = "due" ] || [ "$STATE" = "overdue" ] || fail "première dose attendue due, état : ${STATE:-absent}."
-[ "$(status "$(api POST "$NURSE" "/api/hospitalisations/${STAY}/administrations" "{\"prescriptionId\":\"${RX3}\",\"given\":true}")")" = "201" ] || fail "administration 3 prises refusée."
-STATE=$(body "$(api GET "$NURSE" "/api/hospitalisations/${STAY}/administrations")" | jq -r --arg id "$RX3" '.schedule[] | select(.prescriptionId==$id) | .state')
-[ "$STATE" = "not_due" ] || fail "après la prise, état attendu not_due : ${STATE:-absent}."
+[ "$STATE" = "awaiting_pharmacy" ] || fail "avant délivrance, état attendu awaiting_pharmacy : ${STATE:-absent}."
 echo "OK : échéancier des doses."
 
 # --- Décès à la sortie ---

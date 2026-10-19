@@ -607,7 +607,7 @@ export interface BirthRecord {
 export interface DoseSchedule {
   prescriptionId: string;
   nextDueAt: string;
-  state: "not_due" | "due" | "overdue";
+  state: "not_due" | "due" | "overdue" | "awaiting_pharmacy";
 }
 
 export interface Administration {

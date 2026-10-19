@@ -81,6 +81,7 @@ const dictionary: Record<string, string> = {
   "Motif de la correction (requis)": "Reason for the correction (required)",
   "Annuler le décès": "Cancel the death record",
   "Erreur lors de la correction.": "Error during the correction.",
+  "En attente de la pharmacie": "Awaiting pharmacy",
   "Mortalité hospitalière": "In-hospital mortality",
   "Confirmer l'issue « décédé » ? Elle ne pourra plus être modifiée.": "Confirm the \"deceased\" outcome? It cannot be changed afterwards.",
   "Établi le {date}": "Issued on {date}",

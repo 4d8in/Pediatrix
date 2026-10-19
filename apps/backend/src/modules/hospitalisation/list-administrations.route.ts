@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { fetchAll } from "../../lib/fhir-search.js";
 import { hapiClient } from "../../lib/hapi-client.js";
 import { isSafeId } from "../../lib/safe-id.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
@@ -16,7 +17,7 @@ export async function listAdministrationsRoute(app: FastifyInstance) {
       if (!isSafeId(request.params.id)) return reply.code(404).send({ error: "Séjour introuvable." });
       try {
         const bundle = await hapiClient.get<{ entry?: { resource: never }[] }>(
-          `/MedicationAdministration?context=Encounter/${request.params.id}&_sort=-effective-time&_count=200`,
+          `/MedicationAdministration?context=Encounter/${request.params.id}&_sort=-effective-time`,
           { "Cache-Control": "no-cache" },
         );
         const administrations = fromFhirAdministrations(bundle);
@@ -27,16 +28,28 @@ export async function listAdministrationsRoute(app: FastifyInstance) {
           `/Encounter/${request.params.id}`,
         );
         const patientId = stay.subject?.reference?.split("/")[1];
-        if (stay.status === "in-progress" && patientId) {
-          const requests = await hapiClient.get<{
-            entry?: { resource: { id: string; authoredOn?: string; dosageInstruction?: { timing?: { repeat?: { frequency?: number } } }[] } }[];
-          }>(`/MedicationRequest?patient=${patientId}&status=active&_count=100`, { "Cache-Control": "no-cache" });
+        if (stay.status === "in-progress" && patientId && isSafeId(patientId)) {
+          // « active » = pas encore délivrée par la pharmacie ; « completed » = délivrée. Les ordonnances
+          // arrêtées ou annulées sont exclues par la recherche.
+          const requests = await fetchAll<{
+            id: string;
+            status?: string;
+            authoredOn?: string;
+            dosageInstruction?: { timing?: { repeat?: { frequency?: number } } }[];
+          }>(`/MedicationRequest?patient=${patientId}&status=active,completed`);
           const stayStart = stay.period?.start ? Date.parse(stay.period.start) : 0;
-          for (const { resource: rx } of requests.entry ?? []) {
+          for (const rx of requests) {
             const perDay = rx.dosageInstruction?.[0]?.timing?.repeat?.frequency;
             if (!perDay || !rx.authoredOn || Date.parse(rx.authoredOn) < stayStart - 86_400_000) continue;
+            // Pas d'alarme de retard tant que la pharmacie n'a pas délivré le médicament.
+            if (rx.status === "active") {
+              schedule.push({ prescriptionId: rx.id, nextDueAt: rx.authoredOn, state: "awaiting_pharmacy" });
+              continue;
+            }
             const lastGiven = administrations.find((a) => a.prescriptionId === rx.id && a.given)?.at ?? null;
-            const result = doseSchedule({ dosesPerDay: perDay, lastGivenAt: lastGiven, anchor: rx.authoredOn });
+            // L'ancre ne remonte jamais avant l'admission (ordonnance antérieure au séjour).
+            const anchor = new Date(Math.max(Date.parse(rx.authoredOn), stayStart)).toISOString();
+            const result = doseSchedule({ dosesPerDay: perDay, lastGivenAt: lastGiven, anchor });
             if (result) schedule.push({ prescriptionId: rx.id, ...result });
           }
         }

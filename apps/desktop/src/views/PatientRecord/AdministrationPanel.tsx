@@ -62,7 +62,9 @@ export default function AdministrationPanel({ stayId, prescriptions }: { stayId:
                         due.state === "overdue" ? "bg-red-100 text-red-700" : due.state === "due" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-600"
                       }`}
                     >
-                      {due.state === "overdue"
+                      {due.state === "awaiting_pharmacy"
+                        ? t("En attente de la pharmacie")
+                        : due.state === "overdue"
                         ? t("En retard depuis {heure}", { heure: formatDateTime(due.nextDueAt) })
                         : due.state === "due"
                           ? t("À donner maintenant")

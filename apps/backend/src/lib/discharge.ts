@@ -45,7 +45,11 @@ export function validateDischarge(
   // Date et heure réelles du décès (facultatives : l'heure de saisie sert à défaut).
   let deceasedAt: string | undefined;
   if (b.deceasedAt !== undefined && b.deceasedAt !== "") {
-    const time = typeof b.deceasedAt === "string" ? Date.parse(b.deceasedAt) : Number.NaN;
+    // Format ISO complet avec fuseau (Z ou ±hh:mm) exigé : pas d'ambiguïté d'heure locale.
+    const time =
+      typeof b.deceasedAt === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(b.deceasedAt)
+        ? Date.parse(b.deceasedAt)
+        : Number.NaN;
     if (outcome !== "deceased") errors.push("La date du décès n'a de sens qu'avec l'issue « décédé ».");
     else if (Number.isNaN(time)) errors.push("Date du décès invalide.");
     else if (time > Date.now() + 10 * 60_000) errors.push("La date du décès ne peut pas être dans le futur.");

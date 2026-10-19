@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Facility, Immunization, Invoice, Patient, Prescription, Report } from "../../lib/types";
+import type { Diagnosis, Facility, Immunization, Invoice, Patient, Prescription, Referral, Report } from "../../lib/types";
 import { formatMoney } from "../../lib/utils";
 
 // Modèles des documents imprimés. Mise en page sobre (noir sur blanc), une page A4.
@@ -177,6 +177,45 @@ export function InvoiceSheet({ facility, invoice }: { facility: Facility; invoic
         </tbody>
       </table>
       <Signature label="Le caissier" />
+    </Page>
+  );
+}
+
+export function ReferralSheet({
+  facility,
+  patient,
+  referral,
+  diagnoses,
+}: {
+  facility: Facility;
+  patient: Patient;
+  referral: Referral;
+  diagnoses: Diagnosis[];
+}) {
+  return (
+    <Page>
+      <Letterhead facility={facility} title="Fiche de référence" />
+      <div style={{ marginBottom: 12, fontSize: "11pt" }}>
+        À l'attention de : <strong>{referral.destination}</strong>
+        {referral.urgent && <strong style={{ marginLeft: 12, textTransform: "uppercase" }}>— Urgent</strong>}
+        <div>Le {dateTime(referral.date)}</div>
+      </div>
+      <PatientBlock patient={patient} />
+      <p>
+        <strong>Motif de la référence :</strong> {referral.reason}
+      </p>
+      {diagnoses.length > 0 && (
+        <p>
+          <strong>Diagnostic(s) :</strong>{" "}
+          {diagnoses.map((d) => `${d.text}${d.code ? ` (CIM-10 ${d.code})` : ""}${d.certainty === "provisional" ? " — provisoire" : ""}`).join(" ; ")}
+        </p>
+      )}
+      {referral.summary && (
+        <p style={{ whiteSpace: "pre-wrap" }}>
+          <strong>Résumé clinique :</strong> {referral.summary}
+        </p>
+      )}
+      <Signature label={referral.sender ? `Dr ${referral.sender.replace(/^Dr\.?\s+/i, "")}` : "Le médecin"} />
     </Page>
   );
 }

@@ -9,7 +9,7 @@ Postes (application de bureau Electron + React)
 Backend Node.js (Fastify)  ── SOCLE : identité patient · authentification et rôles · audit
         │                  └─ MODULES : Pédiatrie · Laboratoire · Radiologie · Vaccination
         │                               Croissance · Prescription · Pharmacie · Facturation
-        │                               Rendez-vous · Hospitalisation
+        │                               Rendez-vous · Hospitalisation · Référence
         ▼  ressources FHIR R4
 Serveur HAPI FHIR  ──►  PostgreSQL « clinique »
                                 │
@@ -41,6 +41,7 @@ Principes :
 | `MedicationDispense` / `SupplyDelivery` | délivrances et réceptions (le stock s'en déduit) | pharmacie |
 | `Invoice` / `PaymentNotice` | factures et encaissements (le solde s'en déduit) | facturation |
 | `Appointment` | rendez-vous | rendez-vous |
+| `Communication` (catégorie « referral ») | fiche de référence vers une autre structure | reference |
 | `Location` | services et lits | hospitalisation |
 
 Les codes locaux utilisent l'espace `http://pediatrix.local/fhir/…` (rôles, formulaire, vaccins, tri, numéro de dossier). Codes standards : LOINC (constantes et examens), UCUM (unités), CIM-10 (diagnostics), `v3-ObservationInterpretation` (drapeaux H/L/N).

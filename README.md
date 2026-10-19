@@ -2,7 +2,7 @@
 
 Logiciel de gestion hospitalière **modulaire** pour les hôpitaux de district et centres de santé d'Afrique, centré sur la pédiatrie. Il fonctionne sur le réseau local, sans Internet, et échange ses données sous forme de ressources **HL7 FHIR** (serveur HAPI).
 
-Modules : admission et file d'attente avec tri, consultation et diagnostics (CIM-10), laboratoire, radiologie, vaccination (calendrier), croissance, prescription et allergies, pharmacie et stock, facturation et encaissements, rendez-vous, hospitalisation et lits, rapports (CSV, DHIS2), journal d'audit.
+Modules : admission et file d'attente avec tri, consultation et diagnostics (CIM-10), laboratoire, radiologie, vaccination (calendrier), croissance, prescription et allergies, pharmacie et stock, facturation et encaissements, rendez-vous, hospitalisation et lits, référence vers d'autres structures, dépistage nutritionnel (périmètre brachial), rapports (CSV, DHIS2), journal d'audit.
 
 ## Documentation
 

@@ -36,6 +36,8 @@ import { triageRoute } from "./modules/pediatrie/triage.route.js";
 import { listDiagnosisCatalogRoute } from "./modules/pediatrie/list-diagnosis-catalog.route.js";
 import { createDiagnosisRoute } from "./modules/pediatrie/create-diagnosis.route.js";
 import { listPatientDiagnosesRoute } from "./modules/pediatrie/list-patient-diagnoses.route.js";
+import { createReferralRoute } from "./modules/reference/create-referral.route.js";
+import { listPatientReferralsRoute } from "./modules/reference/list-patient-referrals.route.js";
 import { listLabRequestsRoute } from "./modules/laboratoire/list-lab-requests.route.js";
 import { createReportRoute } from "./modules/laboratoire/create-report.route.js";
 import { listBedsRoute } from "./modules/hospitalisation/list-beds.route.js";
@@ -136,6 +138,8 @@ await app.register(triageRoute);
 await app.register(listDiagnosisCatalogRoute);
 await app.register(createDiagnosisRoute);
 await app.register(listPatientDiagnosesRoute);
+await app.register(createReferralRoute);
+await app.register(listPatientReferralsRoute);
 
 // Module Laboratoire : file d'attente et rapport (DiagnosticReport + Observations).
 await app.register(listLabRequestsRoute);

@@ -174,6 +174,7 @@ export interface CreateGrowthInput {
   weight?: number;
   height?: number;
   headCircumference?: number;
+  muac?: number;
 }
 
 export interface GrowthMeasurement {
@@ -181,6 +182,8 @@ export interface GrowthMeasurement {
   weight?: number;
   height?: number;
   headCircumference?: number;
+  muac?: number;
+  muacStatus?: "severe" | "moderate" | "normal";
 }
 
 export interface CreateAllergyInput {
@@ -509,4 +512,15 @@ export interface ScheduleItem {
   dueDate: string;
   status: ScheduleStatus;
   doneDate: string | null;
+}
+
+export interface Referral {
+  id: string;
+  encounterId: string | null;
+  date: string | null;
+  destination: string;
+  reason: string;
+  summary: string | null;
+  urgent: boolean;
+  sender: string | null;
 }

@@ -28,6 +28,7 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
    - **Diagnostic** : choisir dans la liste CIM-10 ou saisir un diagnostic libre, *confirmé* ou *provisoire*. On peut en ajouter plusieurs.
    - **Demander un examen** : choisir dans le catalogue (NFS, hémoglobine, CRP, glycémie…) ou saisir librement. Le laboratoire le reçoit aussitôt.
    - **Demander une imagerie**.
+   - **Référer vers une autre structure** (hôpital régional, CHU…) : destination, motif, résumé clinique, case *urgente*. La **fiche de référence** s'imprime ensuite depuis le dossier du patient (onglet *Consultations et prescriptions*), avec les diagnostics de la consultation.
    - **Prescrire** : choisir dans le formulaire de la pharmacie. Le logiciel avertit si l'enfant a une allergie connue au médicament ; il faut confirmer pour prescrire quand même.
 4. Les résultats reviennent dans le **Dossier patient** (onglet *Examens*), avec un drapeau ↑ ou ↓ quand la valeur sort de la plage de référence.
 
@@ -38,7 +39,7 @@ Le médecin voit aussi son agenda du jour dans *Rendez-vous* et clôt un rendez-
 Onglets : Informations, Consultations et prescriptions, Hospitalisations, Examens, Vaccinations, Croissance, Allergies.
 
 - **Vaccinations** : le *calendrier recommandé* montre chaque dose avec son état (fait, à faire, en retard, à venir). Cliquer une dose non faite préremplit la saisie ; indiquer la date d'administration. *Imprimer le carnet*.
-- **Croissance** : poids, taille, périmètre crânien. (Les courbes de référence de l'OMS ne sont pas encore intégrées.)
+- **Croissance** : poids, taille, périmètre crânien et **périmètre brachial** (en mm). Pour un enfant de 6 à 59 mois, le périmètre brachial est classé automatiquement : moins de 115 mm = malnutrition aiguë sévère, de 115 à 124 mm = modérée, 125 mm et plus = normal. Hors de cette tranche d'âge, la valeur est enregistrée sans classement. (Les courbes de référence de l'OMS ne sont pas encore intégrées.)
 - **Ordonnance** et **comptes rendus d'examens** : boutons *Imprimer* (ou enregistrer en PDF).
 
 ## Laboratoire (technicien)

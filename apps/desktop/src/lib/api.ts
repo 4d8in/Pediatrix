@@ -47,6 +47,7 @@ import type {
   TariffTable,
   LabRequest,
   PendingPrescription,
+  Referral,
   ScheduleItem,
   Vaccine,
   ReceiptInput,
@@ -554,4 +555,18 @@ export function setTriage(patientId: string, category: TriageCategory, note?: st
     method: "POST",
     body: JSON.stringify({ category, note }),
   });
+}
+
+export function createReferral(
+  encounterId: string,
+  input: { destination: string; reason: string; summary?: string; urgent: boolean },
+): Promise<{ referralId: string }> {
+  return request<{ referralId: string }>(`/api/encounters/${encounterId}/referral`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getPatientReferrals(patientId: string): Promise<{ referrals: Referral[] }> {
+  return request<{ referrals: Referral[] }>(`/api/patients/${patientId}/referrals`);
 }

@@ -30,6 +30,7 @@ export const PLAUSIBLE_RANGES = {
   heartRate: { min: 30, max: 250, unit: "/min" },
   respiratoryRate: { min: 5, max: 120, unit: "/min" },
   headCircumference: { min: 20, max: 70, unit: "cm" },
+  muac: { min: 50, max: 300, unit: "mm" },
 } satisfies Record<string, Range>;
 
 // Valeur numérique dans les bornes. Renvoie un message d'erreur, ou null.

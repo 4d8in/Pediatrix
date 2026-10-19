@@ -1,13 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { GROWTH_CATEGORY_CODING, HEAD_CIRCUMFERENCE_LOINC } from "../../lib/growth-codes.js";
+import { GROWTH_CATEGORY_CODING, HEAD_CIRCUMFERENCE_LOINC, MUAC_CODE } from "../../lib/growth-codes.js";
 import { VITAL_LOINC_CODES } from "../../lib/vitals-codes.js";
 import type { CreateGrowthInput, GrowthMeasurement } from "./growth.types.js";
 
-const MEASURE_CODES = {
+interface MeasureCode {
+  code: string;
+  display: string;
+  unit: string;
+  // Absent = LOINC.
+  system?: string;
+}
+
+const MEASURE_CODES: Record<"weight" | "height" | "headCircumference" | "muac", MeasureCode> = {
   weight: VITAL_LOINC_CODES.weight,
   height: VITAL_LOINC_CODES.height,
   headCircumference: HEAD_CIRCUMFERENCE_LOINC,
-} as const;
+  muac: MUAC_CODE,
+};
 
 type MeasureKey = keyof typeof MEASURE_CODES;
 
@@ -29,7 +38,7 @@ export function toGrowthTransactionBundle(patientId: string, input: CreateGrowth
         resourceType: "Observation",
         status: "final",
         category: [{ coding: [GROWTH_CATEGORY_CODING] }],
-        code: { coding: [{ system: "http://loinc.org", code: meta.code, display: meta.display }] },
+        code: { coding: [{ system: meta.system ?? "http://loinc.org", code: meta.code, display: meta.display }] },
         subject: { reference: patientRef },
         effectiveDateTime: input.date,
         valueQuantity: { value, unit: meta.unit, system: "http://unitsofmeasure.org", code: meta.unit },
@@ -71,7 +80,7 @@ interface FhirBundle {
 }
 
 const LOINC_TO_MEASURE_KEY: Record<string, MeasureKey> = Object.fromEntries(
-  (Object.entries(MEASURE_CODES) as [MeasureKey, { code: string }][]).map(([key, meta]) => [meta.code, key]),
+  (Object.entries(MEASURE_CODES) as [MeasureKey, MeasureCode][]).map(([key, meta]) => [meta.code, key]),
 );
 
 export function fromFhirGrowthBundle(bundle: FhirBundle): GrowthMeasurement[] {

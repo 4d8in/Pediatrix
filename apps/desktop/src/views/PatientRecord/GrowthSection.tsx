@@ -56,6 +56,7 @@ export default function GrowthSection({
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [headCircumference, setHeadCircumference] = useState("");
+  const [muac, setMuac] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -70,11 +71,13 @@ export default function GrowthSection({
         weight: weight ? Number(weight) : undefined,
         height: height ? Number(height) : undefined,
         headCircumference: headCircumference ? Number(headCircumference) : undefined,
+        muac: muac ? Number(muac) : undefined,
       });
       setDate("");
       setWeight("");
       setHeight("");
       setHeadCircumference("");
+      setMuac("");
       onCreated();
     } catch (error) {
       if (error instanceof ApiError) {
@@ -105,7 +108,7 @@ export default function GrowthSection({
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-400">Date</label>
               <input
@@ -158,6 +161,19 @@ export default function GrowthSection({
                 className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
               />
             </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-zinc-400">Périmètre brachial (mm)</label>
+              <input
+                type="number"
+                step="1"
+                min={0}
+                data-testid="growth-muac"
+                value={muac}
+                onChange={(event) => setMuac(event.target.value)}
+                className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+              />
+            </div>
           </div>
 
           <button
@@ -191,6 +207,22 @@ export default function GrowthSection({
                   {measurement.height !== undefined && (
                     <span className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-3 py-1 rounded-xl">
                       Taille: {measurement.height} cm
+                    </span>
+                  )}
+                  {measurement.muac !== undefined && (
+                    <span
+                      data-testid="muac-badge"
+                      className={`text-sm font-medium border px-3 py-1 rounded-xl ${
+                        measurement.muacStatus === "severe"
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : measurement.muacStatus === "moderate"
+                            ? "border-amber-200 bg-amber-50 text-amber-700"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                      }`}
+                    >
+                      PB: {measurement.muac} mm
+                      {measurement.muacStatus === "severe" && " — malnutrition aiguë sévère"}
+                      {measurement.muacStatus === "moderate" && " — malnutrition aiguë modérée"}
                     </span>
                   )}
                   {measurement.headCircumference !== undefined && (

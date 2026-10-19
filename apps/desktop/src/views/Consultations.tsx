@@ -9,6 +9,7 @@ import {
   createEncounter,
   createImagingRequest,
   createPrescription,
+  createReferral,
   createServiceRequest,
   getDiagnosisCatalog,
   getFormulary,
@@ -38,6 +39,13 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [certainty, setCertainty] = useState<Certainty>("confirmed");
   const [diagnosisErrors, setDiagnosisErrors] = useState<string[]>([]);
   const [recordedDiagnoses, setRecordedDiagnoses] = useState<string[]>([]);
+
+  const [referralDestination, setReferralDestination] = useState("");
+  const [referralReason, setReferralReason] = useState("");
+  const [referralSummary, setReferralSummary] = useState("");
+  const [referralUrgent, setReferralUrgent] = useState(false);
+  const [referralErrors, setReferralErrors] = useState<string[]>([]);
+  const [referralDone, setReferralDone] = useState<string | null>(null);
 
   const [exam, setExam] = useState("");
   const [requester, setRequester] = useState("");
@@ -144,6 +152,23 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
       setDiagnosisText("");
     } catch (error) {
       setDiagnosisErrors(error instanceof ApiError ? (error.details ?? [error.message]) : ["Erreur inattendue."]);
+    }
+  }
+
+  async function handleReferral(event: FormEvent) {
+    event.preventDefault();
+    if (!encounterId) return;
+    setReferralErrors([]);
+    try {
+      await createReferral(encounterId, {
+        destination: referralDestination,
+        reason: referralReason,
+        summary: referralSummary || undefined,
+        urgent: referralUrgent,
+      });
+      setReferralDone(referralDestination);
+    } catch (error) {
+      setReferralErrors(error instanceof ApiError ? (error.details ?? [error.message]) : ["Erreur inattendue."]);
     }
   }
 
@@ -292,6 +317,65 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                 </button>
               </div>
             </form>
+
+            {referralDone ? (
+              <div className="bg-zinc-50 border border-zinc-200/70 p-6 rounded-[18px]">
+                <p className="text-xs font-medium text-zinc-700" data-testid="referral-done">
+                  Référence enregistrée vers {referralDone}. La fiche est imprimable depuis le dossier du patient
+                  (Consultations et prescriptions).
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleReferral} className="space-y-4" data-testid="referral-form">
+                <h3 className="text-sm font-medium text-zinc-400">Référer vers une autre structure (optionnel)</h3>
+                {referralErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 p-4 space-y-2 rounded-[18px]">
+                    {referralErrors.map((message) => (
+                      <p key={message} className="text-xs font-medium text-red-700">
+                        {message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="text"
+                  data-testid="referral-destination"
+                  value={referralDestination}
+                  onChange={(event) => setReferralDestination(event.target.value)}
+                  placeholder="Structure de destination (ex. Hôpital régional, CHU…)"
+                  className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                />
+                <input
+                  type="text"
+                  data-testid="referral-reason"
+                  value={referralReason}
+                  onChange={(event) => setReferralReason(event.target.value)}
+                  placeholder="Motif de la référence"
+                  className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs rounded-xl"
+                />
+                <textarea
+                  value={referralSummary}
+                  onChange={(event) => setReferralSummary(event.target.value)}
+                  rows={3}
+                  placeholder="Résumé clinique et traitements déjà donnés"
+                  className="w-full px-5 py-3 bg-zinc-50 border border-zinc-200 focus:bg-white focus:border-[#1A6FD4] outline-none transition-all text-xs resize-none rounded-xl"
+                />
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-xs text-zinc-700">
+                    <input type="checkbox" checked={referralUrgent} onChange={(event) => setReferralUrgent(event.target.checked)} />
+                    Référence urgente
+                  </label>
+                  <button
+                    type="submit"
+                    data-testid="referral-submit"
+                    disabled={!referralDestination.trim() || !referralReason.trim()}
+                    className="px-6 py-3 bg-[#1A6FD4] text-white text-xs font-medium hover:bg-[#1559ab] transition-all rounded-full disabled:opacity-40"
+                  >
+                    Enregistrer la référence
+                  </button>
+                </div>
+              </form>
+            )}
 
             {examRequested ? (
               <div className="bg-zinc-50 border border-zinc-200/70 p-6 flex items-center gap-4 rounded-[18px]">

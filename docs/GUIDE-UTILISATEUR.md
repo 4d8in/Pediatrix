@@ -31,7 +31,7 @@ Saisir son identifiant et son mot de passe. Après 8 heures, ou si le compte est
    - **Demander un examen** : choisir dans le catalogue (NFS, hémoglobine, CRP, glycémie…) ou saisir librement. Le laboratoire le reçoit aussitôt.
    - **Demander une imagerie**.
    - **Référer vers une autre structure** (hôpital régional, CHU…) : destination, motif, résumé clinique, case *urgente*. La **fiche de référence** s'imprime ensuite depuis le dossier du patient (onglet *Consultations et prescriptions*), avec les diagnostics de la consultation.
-   - **Prescrire** : choisir dans le formulaire de la pharmacie. Le logiciel avertit si l'enfant a une allergie connue au médicament ; il faut confirmer pour prescrire quand même.
+   - **Prescrire** : choisir dans le formulaire de la pharmacie. Le logiciel avertit si l'enfant a une allergie connue au médicament ; il faut confirmer pour prescrire quand même. En renseignant la dose par prise (mg) et le nombre de prises par jour pour un médicament du formulaire, la dose quotidienne par kg est contrôlée d'après le dernier poids ; si elle dépasse le maximum usuel, ou si le poids est inconnu, une confirmation est demandée et tracée. Les maxima sont à faire valider par le pharmacien responsable.
 4. Les résultats reviennent dans le **Dossier patient** (onglet *Examens*), avec un drapeau ↑ ou ↓ quand la valeur sort de la plage de référence.
 
 Le médecin voit aussi son agenda du jour dans *Rendez-vous* et clôt un rendez-vous (*Terminer*) une fois l'enfant vu.

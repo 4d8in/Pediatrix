@@ -48,6 +48,7 @@ import Profile, { photoSrc } from "./views/Profile";
 import { getMyProfile } from "./lib/api";
 import UpdateBanner from "./components/UpdateBanner";
 import ConnectionBanner from "./components/ConnectionBanner";
+import OutboxBanner from "./components/OutboxBanner";
 import { LogoBadge } from "./components/Logo";
 import { useAuth } from "./lib/auth-context";
 import type { Role, UserProfile } from "./lib/types";
@@ -303,6 +304,7 @@ function App() {
         </header>
 
         <ConnectionBanner onReconnect={reload} />
+        <OutboxBanner onSent={reload} />
         <UpdateBanner />
         {/* La clé force le rechargement de l'écran courant après une reconnexion. */}
         <main key={reloadKey} className="flex-1 overflow-y-auto p-6">

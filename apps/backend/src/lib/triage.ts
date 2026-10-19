@@ -34,6 +34,7 @@ export function toTriageObservation(
   category: TriageCategory,
   note: string | undefined,
   nurse: { id: string; name: string },
+  at?: string,
 ) {
   return {
     resourceType: "Observation",
@@ -41,7 +42,7 @@ export function toTriageObservation(
     code: { coding: [{ system: TRIAGE_SYSTEM, code: "triage-category", display: "Catégorie de tri" }] },
     subject: { reference: `Patient/${patientId}` },
     encounter: { reference: `Encounter/${encounterId}` },
-    effectiveDateTime: new Date().toISOString(),
+    effectiveDateTime: at ?? new Date().toISOString(),
     performer: [{ reference: `Practitioner/${nurse.id}`, display: nurse.name }],
     valueCodeableConcept: { coding: [{ system: TRIAGE_SYSTEM, code: category, display: TRIAGE_LABELS[category] }] },
     note: note ? [{ text: note }] : undefined,

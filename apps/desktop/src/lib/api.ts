@@ -62,6 +62,8 @@ import type {
   User,
 } from "./types";
 
+import { type OutboxItem, enqueue } from "./outbox";
+
 // Résolu au build (variable Vite) : permet de recompiler l'app pour un poste
 // dont le backend tourne sur une autre machine du LAN, sans toucher au code.
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:3001";
@@ -102,6 +104,44 @@ let onUnauthorized: (() => void) | null = null;
 
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
+}
+
+// Écriture différable : si le serveur est injoignable, la saisie est gardée sur le poste (voir
+// outbox.ts) et renvoyée au retour du réseau ; l'appelant reçoit alors `queuedResult` et l'écran
+// affiche le bandeau « en attente d'envoi ». Tout autre échec (refus du serveur) est remonté tel quel.
+async function postOrQueue<T>(
+  path: string,
+  payload: Record<string, unknown>,
+  label: string,
+  queuedResult: T,
+  options: { stampTime?: boolean } = {},
+): Promise<T> {
+  const key = crypto.randomUUID();
+  const body = options.stampTime ? { ...payload, occurredAt: new Date().toISOString() } : payload;
+  try {
+    return await request<T>(path, { method: "POST", body: JSON.stringify(body), headers: { "Idempotency-Key": key } });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === undefined) {
+      await enqueue({ id: key, path, body, label });
+      return queuedResult;
+    }
+    throw error;
+  }
+}
+
+// Renvoi d'un élément de la file (même clé d'idempotence que l'envoi d'origine).
+export async function sendQueued(item: OutboxItem): Promise<void> {
+  await request(item.path, { method: "POST", body: JSON.stringify(item.body), headers: { "Idempotency-Key": item.id } });
+}
+
+export function classifyReplayError(error: unknown): "network" | "unauthorized" | "duplicate" | "rejected" | "retry" {
+  if (!(error instanceof ApiError)) return "retry";
+  if (error.status === undefined) return "network";
+  if (error.status === 401) return "unauthorized";
+  // Déjà fait entre-temps (ex. patient déjà dans la file du jour) : rien à renvoyer.
+  if (error.status === 409) return "duplicate";
+  if (error.status >= 500) return "retry";
+  return "rejected";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -251,10 +291,7 @@ export function createImmunization(
   patientId: string,
   input: CreateImmunizationInput,
 ): Promise<{ immunizationId: string }> {
-  return request<{ immunizationId: string }>(`/api/patients/${patientId}/immunizations`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/immunizations`, { ...input }, "Vaccination", { immunizationId: "" });
 }
 
 export function getPatientImmunizations(patientId: string): Promise<{ immunizations: Immunization[] }> {
@@ -265,10 +302,7 @@ export function createGrowthMeasurement(
   patientId: string,
   input: CreateGrowthInput,
 ): Promise<{ observationIds: string[] }> {
-  return request<{ observationIds: string[] }>(`/api/patients/${patientId}/growth`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/growth`, { ...input }, "Mesure de croissance", { observationIds: [] });
 }
 
 export function getPatientGrowth(patientId: string): Promise<{ measurements: GrowthMeasurement[] }> {
@@ -276,10 +310,7 @@ export function getPatientGrowth(patientId: string): Promise<{ measurements: Gro
 }
 
 export function createAllergy(patientId: string, input: CreateAllergyInput): Promise<{ allergyId: string }> {
-  return request<{ allergyId: string }>(`/api/patients/${patientId}/allergies`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return postOrQueue(`/api/patients/${patientId}/allergies`, { ...input }, "Allergie", { allergyId: "" });
 }
 
 export function getPatientAllergies(patientId: string): Promise<{ allergies: Allergy[] }> {
@@ -553,7 +584,7 @@ export function getVaccinationSchedule(patientId: string): Promise<{ schedule: S
 }
 
 export function checkInPatient(patientId: string): Promise<{ encounterId: string }> {
-  return request<{ encounterId: string }>(`/api/patients/${patientId}/arrival`, { method: "POST", body: "{}" });
+  return postOrQueue(`/api/patients/${patientId}/arrival`, {}, "Arrivée à l'accueil", { encounterId: "" }, { stampTime: true });
 }
 
 export function markLeftWithoutConsultation(patientId: string): Promise<{ encounterId: string }> {
@@ -561,10 +592,7 @@ export function markLeftWithoutConsultation(patientId: string): Promise<{ encoun
 }
 
 export function setTriage(patientId: string, category: TriageCategory, note?: string, vitals?: TriageVitals): Promise<{ encounterId: string }> {
-  return request<{ encounterId: string }>(`/api/patients/${patientId}/triage`, {
-    method: "POST",
-    body: JSON.stringify({ category, note, vitals }),
-  });
+  return postOrQueue(`/api/patients/${patientId}/triage`, { category, note, vitals }, "Tri et constantes", { encounterId: "" }, { stampTime: true });
 }
 
 export function createReferral(

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { login as apiLogin, getMe, hasAuthToken, setAuthToken, setUnauthorizedHandler } from "./api";
+import { setOutboxUser } from "./outbox";
 import type { User } from "./types";
 
 interface AuthContextValue {
@@ -23,6 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [isRestoring, setIsRestoring] = useState(() => hasAuthToken());
+
+  useEffect(() => {
+    setOutboxUser(user?.id ?? null);
+  }, [user]);
 
   const logout = useCallback(() => {
     setAuthToken(null);

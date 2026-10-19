@@ -8,13 +8,13 @@ export function startOfTodayIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
 }
 
-export function toArrivedEncounter(patientId: string) {
+export function toArrivedEncounter(patientId: string, startIso?: string) {
   return {
     resourceType: "Encounter",
     status: "arrived",
     class: { code: "AMB", display: "ambulatory" },
     subject: { reference: `Patient/${patientId}` },
-    period: { start: new Date().toISOString() },
+    period: { start: startIso ?? new Date().toISOString() },
   };
 }
 
@@ -27,7 +27,7 @@ export async function findTodayArrival(patientId: string): Promise<EncounterReso
   return bundle.entry?.[0]?.resource;
 }
 
-export async function createArrival(patientId: string): Promise<string> {
-  const created = await hapiClient.post<{ id: string }>("/Encounter", toArrivedEncounter(patientId));
+export async function createArrival(patientId: string, startIso?: string): Promise<string> {
+  const created = await hapiClient.post<{ id: string }>("/Encounter", toArrivedEncounter(patientId, startIso));
   return created.id;
 }

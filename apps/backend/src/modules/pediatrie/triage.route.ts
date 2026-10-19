@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { isTriageCategory, toTriageObservation } from "../../lib/triage.js";
+import { parseOccurredAt } from "../../lib/occurred-at.js";
 import { authenticate } from "../../socle/auth/authenticate.js";
 import { authorize } from "../../socle/auth/authorize.js";
 import { parseTriageVitals, toTriageVitalObservations } from "../../lib/triage-vitals.js";
@@ -19,6 +20,8 @@ export async function triageRoute(app: FastifyInstance) {
         return reply.code(400).send({ error: "Catégorie de tri invalide (emergency, priority ou non_urgent)." });
       }
 
+      const occurred = parseOccurredAt(b.occurredAt);
+      if ("error" in occurred) return reply.code(400).send({ error: occurred.error });
       const parsedVitals = parseTriageVitals(b.vitals);
       if ("errors" in parsedVitals) {
         return reply.code(400).send({ error: "Requête invalide.", details: parsedVitals.errors });
@@ -27,13 +30,13 @@ export async function triageRoute(app: FastifyInstance) {
       try {
         await hapiClient.get(`/Patient/${id}`);
         // Le tri s'attache à l'arrivée du jour ; on l'enregistre si elle n'existe pas encore.
-        const encounterId = (await findTodayArrival(id))?.id ?? (await createArrival(id));
+        const encounterId = (await findTodayArrival(id))?.id ?? (await createArrival(id, occurred.at));
         await hapiClient.post(
           "/Observation",
-          toTriageObservation(id, encounterId, b.category, note, { id: request.user.sub, name: request.user.name }),
+          toTriageObservation(id, encounterId, b.category, note, { id: request.user.sub, name: request.user.name }, occurred.at),
         );
         const performer = { id: request.user.sub, name: request.user.name };
-        for (const observation of toTriageVitalObservations(id, encounterId, parsedVitals.vitals, performer)) {
+        for (const observation of toTriageVitalObservations(id, encounterId, parsedVitals.vitals, performer, occurred.at)) {
           await hapiClient.post("/Observation", observation);
         }
         return reply.code(201).send({ encounterId });

@@ -19,6 +19,7 @@ import {
   Syringe,
   Terminal,
   BarChart3,
+  FileSpreadsheet,
   UserPlus,
   UsersRound,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import Pharmacy from "./views/Pharmacy";
 import Billing from "./views/Billing";
 import Appointments from "./views/Appointments";
 import AuditLog from "./views/AuditLog";
+import Reporting from "./views/Reporting";
 import FhirLog from "./views/FhirLog";
 import Login from "./views/Login";
 import Vaccinations from "./views/Vaccinations";
@@ -63,6 +65,7 @@ type ViewType =
   | "billing"
   | "appointments"
   | "audit"
+  | "reporting"
   | "fhirLog"
   | "vaccinations"
   | "stats"
@@ -110,6 +113,7 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: typeof UserPlus; roles: Ro
   { id: "beds", label: "Gestion des lits", icon: BedDouble, roles: ["nurse", "doctor", "director", "tech_admin"] },
   { id: "vaccinations", label: "Vaccinations", icon: Syringe, roles: ["nurse", "doctor"] },
   { id: "stats", label: "Statistiques", icon: BarChart3, roles: ["director"] },
+  { id: "reporting", label: "Rapports", icon: FileSpreadsheet, roles: ["director", "tech_admin"] },
   {
     id: "profile",
     label: "Mon profil",
@@ -195,6 +199,8 @@ function App() {
         return <Appointments />;
       case "audit":
         return <AuditLog />;
+      case "reporting":
+        return <Reporting />;
       case "fhirLog":
         return <FhirLog />;
       case "vaccinations":

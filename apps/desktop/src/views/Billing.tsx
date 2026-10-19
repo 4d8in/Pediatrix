@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Banknote, CheckCircle2, Receipt, RefreshCw } from "lucide-react";
+import { Banknote, CheckCircle2, Printer, Receipt, RefreshCw } from "lucide-react";
+import { InvoiceSheet } from "../components/print/PrintSheets";
 import {
   ApiError,
   addPayment,
@@ -12,6 +13,7 @@ import {
   saveTariffs,
 } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { usePrint } from "../lib/print";
 import type { BillableEncounter, BillingSummary, Invoice, PaymentMethod, TariffTable } from "../lib/types";
 import { formatMoney } from "../lib/utils";
 
@@ -42,6 +44,7 @@ function Errors({ messages }: { messages: string[] }) {
 
 export default function Billing() {
   const { user } = useAuth();
+  const { printDocument } = usePrint();
   const isCashier = user?.role === "cashier";
   const canEditTariffs = user?.role === "director" || user?.role === "tech_admin";
   const tabs: { id: Tab; label: string }[] = [
@@ -337,6 +340,15 @@ export default function Billing() {
                     ))}
                   </ul>
                 )}
+
+                <button
+                  type="button"
+                  data-testid="print-invoice"
+                  onClick={() => printDocument((facility) => <InvoiceSheet facility={facility} invoice={selectedInvoice} />)}
+                  className="flex items-center gap-2 text-xs font-medium text-[#1A6FD4] hover:underline"
+                >
+                  <Printer className="h-3.5 w-3.5" /> {selectedInvoice.status === "balanced" ? "Imprimer le reçu" : "Imprimer la facture"}
+                </button>
 
                 {selectedInvoice.status === "balanced" ? (
                   <p className="flex items-center gap-2 text-sm font-medium text-green-700">

@@ -1,19 +1,25 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Printer } from "lucide-react";
+import { VaccinationCardSheet } from "../../components/print/PrintSheets";
 import { useAuth } from "../../lib/auth-context";
+import { usePrint } from "../../lib/print";
 import { ApiError, createImmunization } from "../../lib/api";
-import type { Immunization } from "../../lib/types";
+import type { Immunization, Patient } from "../../lib/types";
 
 export default function ImmunizationSection({
   patientId,
+  patient,
   immunizations,
   onCreated,
 }: {
   patientId: string;
+  patient: Patient;
   immunizations: Immunization[];
   onCreated: () => void;
 }) {
   const { user } = useAuth();
+  const { printDocument } = usePrint();
   const canWrite = user?.role === "doctor" || user?.role === "nurse";
 
   const [vaccine, setVaccine] = useState("");
@@ -50,8 +56,22 @@ export default function ImmunizationSection({
 
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
-      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100 flex items-center justify-between">
         <h2 className="text-sm font-medium">Carnet vaccinal</h2>
+        {immunizations.length > 0 && (
+          <button
+            type="button"
+            data-testid="print-vaccination-card"
+            onClick={() =>
+              printDocument((facility) => (
+                <VaccinationCardSheet facility={facility} patient={patient} immunizations={immunizations} />
+              ))
+            }
+            className="flex items-center gap-2 text-xs font-medium text-[#1A6FD4] hover:underline"
+          >
+            <Printer className="h-3.5 w-3.5" /> Imprimer le carnet
+          </button>
+        )}
       </div>
 
       {canWrite && (

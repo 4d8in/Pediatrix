@@ -469,3 +469,22 @@ export interface Diagnosis {
   date: string | null;
   recorder: string | null;
 }
+
+export interface Facility {
+  name: string;
+  address: string;
+  phone: string;
+}
+
+export interface IndicatorRow {
+  id: string;
+  label: string;
+  value: number;
+  mapped: boolean;
+}
+
+export interface Dhis2Mapping {
+  orgUnit: string;
+  dataSet?: string;
+  dataElements: Record<string, string>;
+}

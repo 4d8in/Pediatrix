@@ -1,6 +1,10 @@
-import type { Report } from "../../lib/types";
+import { Printer } from "lucide-react";
+import { LabReportSheet } from "../../components/print/PrintSheets";
+import { usePrint } from "../../lib/print";
+import type { Patient, Report } from "../../lib/types";
 
-export default function ReportsHistory({ reports }: { reports: Report[] }) {
+export default function ReportsHistory({ reports, patient }: { reports: Report[]; patient: Patient }) {
+  const { printDocument } = usePrint();
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
       <div className="bg-white px-8 py-4 border-b border-zinc-100">
@@ -19,8 +23,16 @@ export default function ReportsHistory({ reports }: { reports: Report[] }) {
                 <p className="text-xs font-medium text-zinc-900">
                   {report.exam ?? "Examen non précisé"}
                 </p>
-                <span className="text-sm text-zinc-400">
+                <span className="flex items-center gap-4 text-sm text-zinc-400">
                   {report.date ? new Date(report.date).toLocaleString("fr-FR") : "Date inconnue"}
+                  <button
+                    type="button"
+                    data-testid="print-report"
+                    onClick={() => printDocument((facility) => <LabReportSheet facility={facility} patient={patient} report={report} />)}
+                    className="flex items-center gap-1 text-xs font-medium text-[#1A6FD4] hover:underline"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> Imprimer
+                  </button>
                 </span>
               </div>
 

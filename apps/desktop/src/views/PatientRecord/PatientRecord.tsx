@@ -177,18 +177,18 @@ export default function PatientRecord({ initialPatientId }: PatientRecordProps) 
               <>
                 <DiagnosesSection diagnoses={diagnoses} />
                 <ConsultationHistory consultations={record.consultations} />
-                <PrescriptionsHistory prescriptions={prescriptions} />
+                <PrescriptionsHistory prescriptions={prescriptions} patient={record.patient} />
               </>
             )}
             {activeTab === "stays" && <StaysSection stays={stays} />}
             {activeTab === "exams" && (
               <>
-                <ReportsHistory reports={reports} />
+                <ReportsHistory reports={reports} patient={record.patient} />
                 <ImagingReportsHistory reports={imagingReports} />
               </>
             )}
             {activeTab === "vaccinations" && (
-              <ImmunizationSection patientId={record.patient.id} immunizations={immunizations} onCreated={loadRecord} />
+              <ImmunizationSection patientId={record.patient.id} patient={record.patient} immunizations={immunizations} onCreated={loadRecord} />
             )}
             {activeTab === "growth" && (
               <GrowthSection patientId={record.patient.id} measurements={growthMeasurements} onCreated={loadRecord} />

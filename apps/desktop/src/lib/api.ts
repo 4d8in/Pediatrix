@@ -35,8 +35,11 @@ import type {
   BillingSummary,
   Certainty,
   Diagnosis,
+  Dhis2Mapping,
+  IndicatorRow,
   DiagnosisCatalogItem,
   DoctorOption,
+  Facility,
   FormularyItem,
   Invoice,
   PaymentMethod,
@@ -509,4 +512,24 @@ export function createDiagnosis(
 
 export function getPatientDiagnoses(patientId: string): Promise<{ diagnoses: Diagnosis[] }> {
   return request<{ diagnoses: Diagnosis[] }>(`/api/patients/${patientId}/diagnoses`);
+}
+
+export function getFacility(): Promise<Facility> {
+  return request<Facility>("/api/facility");
+}
+
+export function getIndicators(period: string): Promise<{ period: string; mappingConfigured: boolean; indicators: IndicatorRow[] }> {
+  return request(`/api/reporting/indicators?period=${encodeURIComponent(period)}`);
+}
+
+export function getDhis2Export(period: string): Promise<{ dataValueSet: unknown; unmapped: string[] }> {
+  return request(`/api/reporting/dhis2?period=${encodeURIComponent(period)}`);
+}
+
+export function getDhis2Mapping(): Promise<{ mapping: Dhis2Mapping | null }> {
+  return request("/api/reporting/dhis2/mapping");
+}
+
+export function saveDhis2Mapping(mapping: Dhis2Mapping): Promise<{ mapping: Dhis2Mapping }> {
+  return request("/api/reporting/dhis2/mapping", { method: "PUT", body: JSON.stringify(mapping) });
 }

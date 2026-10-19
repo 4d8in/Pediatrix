@@ -28,3 +28,21 @@
 ::-webkit-scrollbar-button {
   display: none;
 }
+
+/* Impression : seul le document du portail #print-root est imprimé. */
+#print-root {
+  display: none;
+}
+@media print {
+  .app-shell {
+    display: none !important;
+  }
+  #print-root {
+    display: block;
+    color: #111;
+    font-size: 12pt;
+  }
+  @page {
+    margin: 16mm;
+  }
+}

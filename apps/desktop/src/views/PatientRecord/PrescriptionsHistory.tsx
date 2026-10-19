@@ -1,10 +1,24 @@
-import type { Prescription } from "../../lib/types";
+import { Printer } from "lucide-react";
+import { PrescriptionSheet } from "../../components/print/PrintSheets";
+import { usePrint } from "../../lib/print";
+import type { Patient, Prescription } from "../../lib/types";
 
-export default function PrescriptionsHistory({ prescriptions }: { prescriptions: Prescription[] }) {
+export default function PrescriptionsHistory({ prescriptions, patient }: { prescriptions: Prescription[]; patient: Patient }) {
+  const { printDocument } = usePrint();
   return (
     <section className="bg-white border border-zinc-200/70 overflow-hidden rounded-[18px]">
-      <div className="bg-white px-8 py-4 border-b border-zinc-100">
+      <div className="bg-white px-8 py-4 border-b border-zinc-100 flex items-center justify-between">
         <h2 className="text-sm font-medium">Prescriptions</h2>
+        {prescriptions.length > 0 && (
+          <button
+            type="button"
+            data-testid="print-prescriptions"
+            onClick={() => printDocument((facility) => <PrescriptionSheet facility={facility} patient={patient} prescriptions={prescriptions} />)}
+            className="flex items-center gap-2 text-xs font-medium text-[#1A6FD4] hover:underline"
+          >
+            <Printer className="h-3.5 w-3.5" /> Imprimer l'ordonnance
+          </button>
+        )}
       </div>
 
       {prescriptions.length === 0 ? (

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { HapiError, hapiClient } from "../../lib/hapi-client.js";
 import { VITAL_LOINC_CODES, type VitalKey } from "../../lib/vitals-codes.js";
+import { canReadClinicalContent, canReadGuardian } from "../../lib/clinical-access.js";
 import { authenticate } from "../auth/authenticate.js";
 import { authorize } from "../auth/authorize.js";
 import { type FhirPatient, fromFhirPatient } from "./patient.fhir.js";
@@ -78,7 +79,11 @@ export async function getPatientRoute(app: FastifyInstance) {
 
     try {
       const patientResource = await hapiClient.get<FhirPatient>(`/Patient/${id}`);
-      const patient = fromFhirPatient(patientResource);
+      const full = fromFhirPatient(patientResource);
+      const patient = canReadGuardian(request.user.role) ? full : { ...full, guardian: null };
+      if (!canReadClinicalContent(request.user.role)) {
+        return reply.send({ patient, consultations: [] });
+      }
 
       const bundle = await hapiClient.get<FhirBundle>(
         `/Encounter?patient=${id}&class=AMB&status=finished&_revinclude=Observation:encounter&_sort=-date`,

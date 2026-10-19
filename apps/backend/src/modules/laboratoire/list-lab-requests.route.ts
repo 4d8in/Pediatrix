@@ -11,6 +11,7 @@ interface FhirServiceRequest {
   subject?: { reference?: string };
   requester?: { display?: string };
   authoredOn?: string;
+  priority?: string;
 }
 
 interface FhirPatient {
@@ -31,6 +32,7 @@ interface LabRequestSummary {
   examCode: string | null;
   requester: string | null;
   authoredOn: string | null;
+  urgent: boolean;
 }
 
 function parseLabRequests(bundle: FhirBundle): LabRequestSummary[] {
@@ -53,9 +55,11 @@ function parseLabRequests(bundle: FhirBundle): LabRequestSummary[] {
         examCode: sr.code?.coding?.[0]?.code ?? null,
         requester: sr.requester?.display ?? null,
         authoredOn: sr.authoredOn ?? null,
+        urgent: sr.priority === "urgent" || sr.priority === "asap" || sr.priority === "stat",
       };
     })
-    .sort((a, b) => (b.authoredOn ?? "").localeCompare(a.authoredOn ?? ""));
+    // Les demandes urgentes d'abord, puis les plus récentes.
+    .sort((a, b) => Number(b.urgent) - Number(a.urgent) || (b.authoredOn ?? "").localeCompare(a.authoredOn ?? ""));
 }
 
 export async function listLabRequestsRoute(app: FastifyInstance) {

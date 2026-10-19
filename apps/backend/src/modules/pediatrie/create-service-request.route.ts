@@ -27,7 +27,7 @@ function validate(body: unknown): { input: CreateServiceRequestInput } | { error
 
   if (errors.length > 0) return { errors };
 
-  return { input: { exam, requester, examCode } };
+  return { input: { exam, requester, examCode, urgent: b.urgent === true } };
 }
 
 export async function createServiceRequestRoute(app: FastifyInstance) {

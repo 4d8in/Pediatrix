@@ -57,6 +57,11 @@ export default function RecentResults({ onOpenRecord }: { onOpenRecord: (patient
               )}
               <div className="min-w-0 flex-1">
                 <p className={cn("truncate", result.read ? "text-zinc-700" : "font-medium text-zinc-900")}>
+                  {result.critical && (
+                    <span data-testid="result-critical" className="mr-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                      Critique
+                    </span>
+                  )}
                   {result.exam} — {result.patientName}
                 </p>
                 {result.conclusion && <p className="truncate text-xs text-zinc-500">{result.conclusion}</p>}

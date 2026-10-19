@@ -91,10 +91,12 @@ export function LabReportSheet({ facility, patient, report }: { facility: Facili
           {report.results.map((result) => (
             <tr key={result.label} style={{ borderBottom: "1px solid #ccc" }}>
               <td>{result.label}</td>
-              <td style={{ fontWeight: result.flag === "H" || result.flag === "L" ? 700 : 400 }}>
+              <td style={{ fontWeight: result.flag && result.flag !== "N" ? 700 : 400 }}>
                 {result.value}
                 {result.flag === "H" && " ↑"}
                 {result.flag === "L" && " ↓"}
+                {result.flag === "HH" && " ↑↑ (critique)"}
+                {result.flag === "LL" && " ↓↓ (critique)"}
               </td>
               <td>{result.reference ?? ""}</td>
             </tr>

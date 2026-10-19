@@ -48,6 +48,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
   const [referralDone, setReferralDone] = useState<string | null>(null);
 
   const [exam, setExam] = useState("");
+  const [examUrgent, setExamUrgent] = useState(false);
   const [requester, setRequester] = useState("");
   const [isRequestingExam, setIsRequestingExam] = useState(false);
   const [examErrors, setExamErrors] = useState<string[]>([]);
@@ -75,6 +76,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
     setVitals({});
     setEncounterId(null);
     setExam("");
+    setExamUrgent(false);
     setRequester("");
     setExamErrors([]);
     setExamRequested(false);
@@ -185,7 +187,7 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
 
     try {
       const examCode = labTests.find((test) => test.display === exam.trim())?.code;
-      await createServiceRequest(encounterId, { exam, requester, examCode });
+      await createServiceRequest(encounterId, { exam, requester, examCode, urgent: examUrgent });
       setExamRequested(true);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -444,6 +446,16 @@ export default function Consultations({ initialPatientId }: ConsultationsProps) 
                     placeholder="Ex. : Dr. Moussa Diallo"
                   />
                 </div>
+
+                <label className="flex items-center gap-2 text-sm text-zinc-500">
+                  <input
+                    type="checkbox"
+                    data-testid="exam-request-urgent"
+                    checked={examUrgent}
+                    onChange={(event) => setExamUrgent(event.target.checked)}
+                  />
+                  Demande urgente (passe en tête de la file du laboratoire)
+                </label>
 
                 <button
                   type="submit"

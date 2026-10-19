@@ -32,6 +32,8 @@ Application : table de références pédiatriques par âge et sexe (`lib/lab-ref
 
 - Pharmacie : principes de gestion de stock par lots et péremption (premier périmé, premier sorti, FEFO), pratique générale connue ; aucune source logicielle consultée ni reprise.
 
+- Laboratoire (priorité des demandes, alerte de résultat critique au prescripteur) : pratique courante des laboratoires et champ `priority` de FHIR ServiceRequest (norme ouverte) ; aucun code repris.
+
 Application des droits : principe du besoin d'en connaître (`apps/backend/src/lib/clinical-access.ts`), formulé et écrit par nous.
 
 Toute reprise de code doit être inscrite ici avec projet, licence, fichier et justification.
